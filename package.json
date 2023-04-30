@@ -1,0 +1,22 @@
+{
+  "name": "txa-network-contracts",
+  "description": "Smart contracts powering the TXA Network",
+  "version": "0.0.1",
+  "author": {
+    "name": "Arseniy Klempner",
+    "url": "https://gitlab.com/arseniy-tacen"
+  },
+  "devDependencies": {
+    "prettier": "^2.8.7",
+    "solhint": "^3.4.0"
+  },
+  "keywords": [],
+  "private": true,
+  "scripts": {
+    "clean": "rm -rf cache out",
+    "lint": "npm lint:sol && npm prettier:check",
+    "lint:sol": "forge fmt --check && npm solhint \"{script,src,test}/**/*.sol\"",
+    "prettier:check": "prettier --check \"**/*.{json,md,yml}\"",
+    "prettier:write": "prettier --write \"**/*.{json,md,yml}\""
+  }
+}

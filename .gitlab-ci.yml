@@ -1,0 +1,52 @@
+image:
+  name: ghcr.io/foundry-rs/foundry
+  entrypoint: [""]
+
+include: 
+  - project: "projecttxa/txa-utils/txa-ci-templates"
+    file: "/templates/gpg-validate.yml"
+  - project: "projecttxa/txa-utils/txa-ci-templates"
+    file: "/templates/docker.yml"
+
+variables:
+    IMAGE_TAG: "$CI_REGISTRY_IMAGE/txa-network-contracts-cliquebait:latest"
+    GPG_FILE: "settlements.csv"
+    DOCKER_TLS_CERTDIR: "/certs"
+    GIT_SUBMODULE_STRATEGY: recursive
+
+.before_script:
+  before_script:
+    - forge install
+    # below is necessary to prevent `fatal: unsafe repository`
+    - git config --global --add safe.directory /builds/projecttxa/txa-dsl/txa-network-contracts
+
+stages:
+  - validate
+  - test
+
+gpg_validate:
+  stage: validate
+  extends:
+    - .gpg-validate
+
+unit-tests:
+  extends: .before_script
+  stage: test
+  tags: [docker]
+  only:
+    - merge_requests
+  except:
+    - develop@projecttxa/txa-dsl/txa-network-contracts
+    - master@projecttxa/txa-dsl/txa-network-contracts
+  script:
+    - forge test -vvv
+
+unit-tests-upstream:
+  extends: .before_script
+  stage: test
+  tags: [docker]
+  only:
+    - develop@projecttxa/txa-dsl/txa-network-contracts
+    - master@projecttxa/txa-dsl/txa-network-contracts
+  script:
+    - forge text -vvv
