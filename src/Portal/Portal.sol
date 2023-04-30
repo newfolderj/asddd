@@ -85,48 +85,48 @@ contract Portal {
     /**
      * Allows trader to deposit an ERC20 token.
      */
-    function depositToken(address token, uint256 amount) external {
+    function depositToken(address _token, uint256 _amount) external {
         // TODO: check if token is tradable
-        if (!IERC20(token).transferFrom(msg.sender, address(this), amount)) revert INSUFFICIENT_BALANCE_TOKEN();
+        if (!IERC20(_token).transferFrom(msg.sender, address(this), _amount)) revert INSUFFICIENT_BALANCE_TOKEN();
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
-            msg.sender, token, participatingInterface, amount, chainSequenceId, block.chainid
+            msg.sender, _token, participatingInterface, _amount, chainSequenceId, block.chainid
         );
         bytes32 utxo = keccak256(abi.encode(deposit));
         deposits[utxo] = deposit;
-        balances[utxo] = amount;
-        emit DepositUtxo(msg.sender, amount, token, participatingInterface, chainSequenceId, utxo);
+        balances[utxo] = _amount;
+        emit DepositUtxo(msg.sender, _amount, _token, participatingInterface, chainSequenceId, utxo);
         // Alpha compatibility
-        emit Deposit(msg.sender, amount, token, chainSequenceId);
+        emit Deposit(msg.sender, _amount, _token, chainSequenceId);
         chainSequenceId++;
     }
 
-    function requestSettlement(address token) external {
+    function requestSettlement(address _token) external {
         // TODO: check if token is tradable
-        uint256 id = IRollup(manager.rollup()).requestSettlement(token, msg.sender);
+        uint256 id = IRollup(manager.rollup()).requestSettlement(_token, msg.sender);
         settlementRequests[chainSequenceId] = StateUpdateLibrary.SettlementRequest(
-            msg.sender, token, participatingInterface, chainSequenceId, block.chainid, id
+            msg.sender, _token, participatingInterface, chainSequenceId, block.chainid, id
         );
-        emit SettlementRequested(id, msg.sender, token, chainSequenceId);
+        emit SettlementRequested(id, msg.sender, _token, chainSequenceId);
         chainSequenceId++;
     }
 
-    function writeObligation(bytes32 utxo, bytes32 deposit, address recipient, uint256 amount) external {
+    function writeObligation(bytes32 _utxo, bytes32 _deposit, address _recipient, uint256 _amount) external {
         if (msg.sender != manager.rollup()) revert CALLER_NOT_ROLLUP();
 
-        if (balances[deposit] < amount) revert INSUFFICIENT_BALANCE_OBLIGATION();
+        if (balances[_deposit] < _amount) revert INSUFFICIENT_BALANCE_OBLIGATION();
 
-        if (claimed[utxo]) revert UTXO_ALREADY_CLAIMED();
+        if (claimed[_utxo]) revert UTXO_ALREADY_CLAIMED();
 
-        address token = deposits[deposit].asset;
-        availableToWithdraw[recipient][token] += amount;
+        address token = deposits[_deposit].asset;
+        availableToWithdraw[_recipient][token] += _amount;
         unchecked {
-            balances[deposit] -= amount;
+            balances[_deposit] -= _amount;
         }
-        emit ObligationWritten(deposits[deposit].trader, recipient, token, amount);
+        emit ObligationWritten(deposits[_deposit].trader, _recipient, token, _amount);
     }
 
-    function getAvailableBalance(address trader, address token) external view returns (uint256) {
-        return availableToWithdraw[trader][token];
+    function getAvailableBalance(address _trader, address _token) external view returns (uint256) {
+        return availableToWithdraw[_trader][_token];
     }
 
     function withdraw(uint256 _amount, address _token) external {
