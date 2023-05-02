@@ -6,19 +6,23 @@ import "./IRollup.sol";
 import "../Portal/IPortal.sol";
 import "../Manager/IManager.sol";
 import "../StateUpdateLibrary.sol";
+import "../util/Id.sol";
 import "@openzeppelin/utils/cryptography/MerkleProof.sol";
 
 /**
  * The Rollup contract accepts settlement data reports from validators.
  */
 contract Rollup is IRollup {
-    uint256 public epoch = 0;
-    mapping(uint256 => bytes32) public proposedStateRoot;
-    mapping(uint256 => bytes32) public confirmedStateRoot;
+    using IdLib for Id;
+
+    Id public epoch = ID_ZERO;
+    mapping(Id => bytes32) public proposedStateRoot;
+    mapping(Id => bytes32) public confirmedStateRoot;
 
     error CALLER_NOT_VALIDATOR();
     error EMPTY_STATE_ROOT();
     error INVALID_PROOF_SETTLEMENT();
+    error INVALID_STATE_UPDATE_SETTLEMENT();
     error INPUTS_LENGTH_MISMATCH_SETTLEMENT();
     error INPUTS_HASH_MISMATCH_SETTLEMENT();
     error INPUT_PARAMS_MISMATCH_SETTLEMENT();
@@ -28,103 +32,95 @@ contract Rollup is IRollup {
     address internal immutable participatingInterface;
 
     // For compatability with Tacen Alpha
-    uint256 public lastSettlementIdProcessed = 1;
-    uint256 public nextRequestId = 2;
-    event ObligationsWritten(
-        uint256 id,
-        address requester,
-        address token,
-        uint256 cleared
-    );
+    Id public lastSettlementIdProcessed = ID_ONE;
+    Id public nextRequestId = Id.wrap(2);
+
+    event ObligationsWritten(Id id, address requester, address token, uint256 cleared);
 
     constructor(address _participatingInterface, address _manager) {
         participatingInterface = _participatingInterface;
         manager = IManager(_manager);
     }
 
-    /**
-     * Called by the validator to propose a state root.
-     */
-    function proposeStateRoot(
-        bytes32 stateRoot
-    ) external {
+    function processSettlement(
+        bytes32 _stateRoot,
+        StateUpdateLibrary.SignedStateUpdate calldata _settlementAcknowledgement,
+        bytes32[] calldata _proof,
+        StateUpdateLibrary.UTXO[] calldata _inputs
+    )
+        external
+    {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
-        confirmedStateRoot[epoch] = stateRoot;
-        epoch++;
+        confirmedStateRoot[epoch] = _stateRoot;
+        _processSettlement(_settlementAcknowledgement, epoch, _proof, _inputs);
+        epoch.increment();
     }
 
     /**
      * Called by anyone to complete a settlement.
      */
-    function processSettlement(
-        StateUpdateLibrary.SettlementAcknowledgement
-            calldata _settlementAcknowledgement,
-        uint256 _stateRootId,
+    function _processSettlement(
+        StateUpdateLibrary.SignedStateUpdate calldata _signedUpdate,
+        Id _stateRootId,
         bytes32[] calldata _proof,
         StateUpdateLibrary.UTXO[] calldata _inputs
-    ) external {
+    )
+        internal
+    {
         bytes32 stateRoot = confirmedStateRoot[_stateRootId];
         if (stateRoot == 0) revert EMPTY_STATE_ROOT();
 
-        bool valid = MerkleProof.verify(
-            _proof,
-            stateRoot,
-            keccak256(abi.encode(_settlementAcknowledgement))
-        );
+        bool valid = MerkleProof.verify(_proof, stateRoot, keccak256(abi.encode(_signedUpdate)));
         if (!valid) revert INVALID_PROOF_SETTLEMENT();
 
-        if (_inputs.length != _settlementAcknowledgement.inputs.length)
-            revert INPUTS_LENGTH_MISMATCH_SETTLEMENT();
+        if (_signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Settlement) {
+            revert INVALID_STATE_UPDATE_SETTLEMENT();
+        }
 
-        StateUpdateLibrary.SettlementRequest
-            calldata settlementRequest = _settlementAcknowledgement
-                .settlementRequest;
+        StateUpdateLibrary.Settlement memory settlementAcknowledgement =
+            abi.decode(_signedUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
+
+        if (_inputs.length != settlementAcknowledgement.inputs.length) {
+            revert INPUTS_LENGTH_MISMATCH_SETTLEMENT();
+        }
+
+        StateUpdateLibrary.SettlementRequest memory settlementRequest = settlementAcknowledgement.settlementRequest;
         if (
-            settlementRequest.chainId != block.chainid ||
-            settlementRequest.settlementId != lastSettlementIdProcessed + 1
+            settlementRequest.chainId != Id.wrap(block.chainid)
+                || settlementRequest.settlementId != lastSettlementIdProcessed.increment()
         ) revert INVALID_REQUEST_SETTLEMENT();
 
         unchecked {
-            for (uint i = 0; i < _inputs.length; i++) {
+            for (uint256 i = 0; i < _inputs.length; i++) {
                 StateUpdateLibrary.UTXO calldata input = _inputs[i];
                 bytes32 hashedInput = keccak256(abi.encode(input));
 
-                if (hashedInput != _settlementAcknowledgement.inputs[i])
+                if (hashedInput != settlementAcknowledgement.inputs[i]) {
                     revert INPUTS_HASH_MISMATCH_SETTLEMENT();
+                }
 
-                if (
-                    input.asset != settlementRequest.asset ||
-                    input.trader != settlementRequest.trader
-                ) revert INPUT_PARAMS_MISMATCH_SETTLEMENT();
+                if (input.asset != settlementRequest.asset || input.trader != settlementRequest.trader) {
+                    revert INPUT_PARAMS_MISMATCH_SETTLEMENT();
+                }
 
-                IPortal(manager.portal()).writeObligation(
-                    _inputs[i].depositUtxo,
-                    _inputs[i].trader,
-                    _inputs[i].amount
-                );
+                IPortal(manager.portal()).writeObligation(_inputs[i].depositUtxo, _inputs[i].trader, _inputs[i].amount);
             }
-            lastSettlementIdProcessed++;
+            lastSettlementIdProcessed = lastSettlementIdProcessed.increment();
         }
         emit ObligationsWritten(
             settlementRequest.settlementId,
             settlementRequest.trader,
             settlementRequest.asset,
-            IPortal(manager.portal()).getAvailableBalance(
-                settlementRequest.trader,
-                settlementRequest.asset
-            )
-        );
+            IPortal(manager.portal()).getAvailableBalance(settlementRequest.trader, settlementRequest.asset)
+            );
     }
 
-    function requestSettlement(
-        address _token,
-        address _trader
-    ) external returns (uint256) {
+    function requestSettlement(address _token, address _trader) external returns (uint256) {
         require(msg.sender == manager.portal(), "NOT_WALLET_SINGLETON");
         // settlementRequests[nextRequestId] = SettlementData(block.number, token, trader);
+        nextRequestId = nextRequestId.increment();
         unchecked {
-            nextRequestId++;
-            return nextRequestId - 1;
+            return Id.unwrap(nextRequestId) - 1;
         }
     }
 }

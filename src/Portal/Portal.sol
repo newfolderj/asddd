@@ -5,33 +5,31 @@ pragma solidity ^0.8.19;
 import "../StateUpdateLibrary.sol";
 import "../Manager/IManager.sol";
 import "../Rollup/IRollup.sol";
+import "../util/Id.sol";
 import "@openzeppelin/token/ERC20/IERC20.sol";
 
 /**
  * The Portal is the entry and exit point for all assets in the TXA network.
  */
 contract Portal {
+    using IdLib for Id;
+
     /**
      * Stores the next ID in the sequence that will be assigned to either a
      * Deposit or SettlementRequest which occurs on this chain.
      */
-    uint256 public chainSequenceId = 0;
-    uint256 public settlementId = 1;
+    Id public chainSequenceId = ID_ZERO;
+    Id public settlementId = ID_ONE;
     address immutable participatingInterface;
     IManager immutable manager;
 
     mapping(bytes32 => StateUpdateLibrary.Deposit) public deposits;
     mapping(bytes32 => uint256) public balances;
     mapping(bytes32 => bool) public claimed;
-    mapping(uint256 => StateUpdateLibrary.SettlementRequest) public settlementRequests;
+    mapping(Id => StateUpdateLibrary.SettlementRequest) public settlementRequests;
 
     event DepositUtxo(
-        address wallet,
-        uint256 amount,
-        address token,
-        address participatingInterface,
-        uint256 chainSequenceId,
-        bytes32 utxo
+        address wallet, uint256 amount, address token, address participatingInterface, Id chainSequenceId, bytes32 utxo
     );
 
     error CALLER_NOT_ROLLUP();
@@ -43,8 +41,8 @@ contract Portal {
     error UTXO_ALREADY_CLAIMED();
 
     // Alpha compatibility
-    event Deposit(address wallet, uint256 amount, address token, uint256 chainSequenceId);
-    event SettlementRequested(uint256 settlementID, address trader, address token, uint256 chainSequenceId);
+    event Deposit(address wallet, uint256 amount, address token, Id chainSequenceId);
+    event SettlementRequested(uint256 settlementID, address trader, address token, Id chainSequenceId);
     event ObligationWritten(address deliverer, address recipient, address token, uint256 amount);
     event Withdraw(address wallet, uint256 amount, address token);
 
@@ -71,7 +69,7 @@ contract Portal {
      */
     function depositNativeAsset() external payable {
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
-            msg.sender, address(0), participatingInterface, msg.value, chainSequenceId, block.chainid
+            msg.sender, address(0), participatingInterface, msg.value, chainSequenceId, Id.wrap(block.chainid)
         );
         bytes32 utxo = keccak256(abi.encode(deposit));
         deposits[utxo] = deposit;
@@ -79,7 +77,7 @@ contract Portal {
         emit DepositUtxo(msg.sender, msg.value, address(0), participatingInterface, chainSequenceId, utxo);
         // Alpha compatibility
         emit Deposit(msg.sender, msg.value, address(0), chainSequenceId);
-        chainSequenceId++;
+        chainSequenceId = chainSequenceId.increment();
     }
 
     /**
@@ -89,7 +87,7 @@ contract Portal {
         // TODO: check if token is tradable
         if (!IERC20(_token).transferFrom(msg.sender, address(this), _amount)) revert INSUFFICIENT_BALANCE_TOKEN();
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
-            msg.sender, _token, participatingInterface, _amount, chainSequenceId, block.chainid
+            msg.sender, _token, participatingInterface, _amount, chainSequenceId, Id.wrap(block.chainid)
         );
         bytes32 utxo = keccak256(abi.encode(deposit));
         deposits[utxo] = deposit;
@@ -97,17 +95,17 @@ contract Portal {
         emit DepositUtxo(msg.sender, _amount, _token, participatingInterface, chainSequenceId, utxo);
         // Alpha compatibility
         emit Deposit(msg.sender, _amount, _token, chainSequenceId);
-        chainSequenceId++;
+        chainSequenceId = chainSequenceId.increment();
     }
 
     function requestSettlement(address _token) external {
         // TODO: check if token is tradable
         uint256 id = IRollup(manager.rollup()).requestSettlement(_token, msg.sender);
         settlementRequests[chainSequenceId] = StateUpdateLibrary.SettlementRequest(
-            msg.sender, _token, participatingInterface, chainSequenceId, block.chainid, id
+            msg.sender, _token, participatingInterface, chainSequenceId, Id.wrap(block.chainid), Id.wrap(id)
         );
         emit SettlementRequested(id, msg.sender, _token, chainSequenceId);
-        chainSequenceId++;
+        chainSequenceId = chainSequenceId.increment();
     }
 
     function writeObligation(bytes32 _utxo, bytes32 _deposit, address _recipient, uint256 _amount) external {

@@ -9,8 +9,10 @@ import "../StateUpdateLibrary.sol";
  * Used by the Participating Interface to publish data.
  */
 contract StateUpdateStore {
-    uint256 public lastSequenceId = 0;
-    mapping(uint256 => uint256) public lastChainSequenceId;
+    using IdLib for Id;
+
+    Id public lastSequenceId = ID_ZERO;
+    mapping(Id => Id) public lastChainSequenceId;
     address immutable participatingInterface;
 
     constructor(address _participatingInterface) {
@@ -55,10 +57,9 @@ contract StateUpdateStore {
      */
     function validateSequence(StateUpdateLibrary.SignedStateUpdate[] calldata stateUpdates) internal pure returns(bool) {
         for (uint256 i = 0; i < stateUpdates.length - 1; i++) {
-            uint256 currentSequenceId = stateUpdates[i].stateUpdate.sequenceId;
-            uint256 nextSequenceId = stateUpdates[i + 1].stateUpdate.sequenceId;
-
-            if (currentSequenceId > nextSequenceId) {
+            Id currentSequenceId = stateUpdates[i].stateUpdate.sequenceId;
+            Id nextSequenceId = stateUpdates[i + 1].stateUpdate.sequenceId;
+            if (!nextSequenceId.isSubsequent(currentSequenceId)) {
                 return false;
             }
         }
@@ -68,7 +69,7 @@ contract StateUpdateStore {
 
     function reportStateUpdates(StateUpdateLibrary.SignedStateUpdate[] calldata stateUpdates, bytes32 root) external {
         // First StateUpdate must be next ID after last recorded sequence ID
-        require(stateUpdates[0].stateUpdate.sequenceId == lastSequenceId + 1, "reportStateUpdates: First reported state update has incorrect sequence ID");
+        require(stateUpdates[0].stateUpdate.sequenceId.isSubsequent(lastSequenceId), "reportStateUpdates: First reported state update has incorrect sequence ID");
 
         // Iterate through reported state updates
         for(uint256 i = 0; i < stateUpdates.length; i++) {
@@ -92,11 +93,11 @@ contract StateUpdateStore {
             if(stateUpdate.typeIdentifier == StateUpdateLibrary.TYPE_ID_DepositAcknowledgement) {
                 StateUpdateLibrary.DepositAcknowledgement memory depositAcknowledgement = abi.decode(stateUpdate.structData, (StateUpdateLibrary.DepositAcknowledgement));
                 validateDepositAcknowledgement(depositAcknowledgement);
-                lastChainSequenceId[depositAcknowledgement.deposit.chainId]++;
-            } else if (stateUpdate.typeIdentifier == StateUpdateLibrary.TYPE_ID_SettlementAcknowledgement) {
-                StateUpdateLibrary.SettlementAcknowledgement memory settlementAcknowledgement = abi.decode(stateUpdate.structData, (StateUpdateLibrary.SettlementAcknowledgement));
+                incrementLastChainSequenceId(depositAcknowledgement.deposit.chainId);
+            } else if (stateUpdate.typeIdentifier == StateUpdateLibrary.TYPE_ID_Settlement) {
+                StateUpdateLibrary.Settlement memory settlementAcknowledgement = abi.decode(stateUpdate.structData, (StateUpdateLibrary.Settlement));
                 validateSettlementAcknowledgement(settlementAcknowledgement);
-                lastChainSequenceId[settlementAcknowledgement.settlementRequest.chainId]++;
+                incrementLastChainSequenceId(settlementAcknowledgement.settlementRequest.chainId);
             } else if (stateUpdate.typeIdentifier == StateUpdateLibrary.TYPE_ID_Trade) {
                 StateUpdateLibrary.Trade memory trade = abi.decode(stateUpdate.structData, (StateUpdateLibrary.Trade));
                 validateTrade(trade);
@@ -108,14 +109,18 @@ contract StateUpdateStore {
     }
 
     function validateDepositAcknowledgement(StateUpdateLibrary.DepositAcknowledgement memory depositAcknowledgement) internal view {
-        require(depositAcknowledgement.deposit.chainSequenceId == lastChainSequenceId[depositAcknowledgement.deposit.chainId] + 1, "validateDepositAcknowledgement: DepositAcknowledgement is not ordered by chain sequence ID");
+        require(depositAcknowledgement.deposit.chainSequenceId.isSubsequent(lastChainSequenceId[depositAcknowledgement.deposit.chainId]), "validateDepositAcknowledgement: DepositAcknowledgement is not ordered by chain sequence ID");
     }
 
-    function validateSettlementAcknowledgement(StateUpdateLibrary.SettlementAcknowledgement memory settlementAcknowledgement) internal view {
-        require(settlementAcknowledgement.settlementRequest.chainSequenceId == lastChainSequenceId[settlementAcknowledgement.settlementRequest.chainId] + 1, "validateSettlementAcknowledgement: SettlementAcknowledgement is not ordered by chain sequence ID");
+    function validateSettlementAcknowledgement(StateUpdateLibrary.Settlement memory settlement) internal view {
+        require(settlement.settlementRequest.chainSequenceId.isSubsequent(lastChainSequenceId[settlement.settlementRequest.chainId]), "validateSettlementAcknowledgement: SettlementAcknowledgement is not ordered by chain sequence ID");
     }
 
     function validateTrade(StateUpdateLibrary.Trade memory trade) internal pure {
         require(trade.params.orderA.price == trade.params.orderB.price, "validateTrade: Price in orders doesn't match");
+    }
+
+    function incrementLastChainSequenceId(Id chainId) internal {
+        lastChainSequenceId[chainId] = lastChainSequenceId[chainId].increment();
     }
 }

@@ -2,10 +2,12 @@
 // Copyright © 2023 TXA PTE. LTD.
 pragma solidity ^0.8.19;
 
+import "./util/Id.sol";
+
 library StateUpdateLibrary {
     uint8 public constant TYPE_ID_DepositAcknowledgement = 0x00;
     uint8 public constant TYPE_ID_Trade = 0x01;
-    uint8 public constant TYPE_ID_SettlementAcknowledgement = 0x02;
+    uint8 public constant TYPE_ID_Settlement = 0x02;
     uint8 public constant TYPE_ID_InitializeSettings = 0x03;
     uint8 public constant TYPE_ID_Ping = 0x04;
     uint8 public constant TYPE_ID_NewProduct = 0x05;
@@ -18,7 +20,7 @@ library StateUpdateLibrary {
 
     struct StateUpdate {
         uint8 typeIdentifier;
-        uint256 sequenceId;
+        Id sequenceId;
         address participatingInterface;
         bytes structData;
     }
@@ -57,7 +59,7 @@ library StateUpdateLibrary {
         bytes32[] outputsB;
     }
 
-    struct SettlementAcknowledgement {
+    struct Settlement {
         SettlementRequest settlementRequest;
         bytes32[] inputs;
     }
@@ -89,17 +91,17 @@ library StateUpdateLibrary {
         address asset;
         address participatingInterface;
         uint256 amount;
-        uint256 chainSequenceId;
-        uint256 chainId;
+        Id chainSequenceId;
+        Id chainId;
     }
 
     struct SettlementRequest {
         address trader;
         address asset;
         address participatingInterface;
-        uint256 chainSequenceId;
-        uint256 chainId;
-        uint256 settlementId;
+        Id chainSequenceId;
+        Id chainId;
+        Id settlementId;
     }
 
     struct TradeParams {
