@@ -8,6 +8,8 @@ import "../src/Portal/Portal.sol";
 import "@openzeppelin/token/ERC20/ERC20.sol";
 
 contract PortalTest is Test {
+    using IdLib for Id;
+    
     address internal participatingInterface;
     address internal admin;
     address internal validator;
@@ -25,7 +27,7 @@ contract PortalTest is Test {
         uint256 amount,
         address token,
         address participatingInterface,
-        uint256 chainSequenceId,
+        Id chainSequenceId,
         bytes32 utxo
     );
 
@@ -52,11 +54,11 @@ contract PortalTest is Test {
     function test_depositNativeAsset() external {
         uint256 aliceBalanceBefore = alice.balance;
         uint256 portalBalanceBefore = address(portal).balance;
-        uint256 chainSequenceIdBefore = portal.chainSequenceId();
+        Id chainSequenceIdBefore = portal.chainSequenceId();
         uint256 amount = 0.5 ether;
 
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
-            alice, address(0), participatingInterface, amount, chainSequenceIdBefore, block.chainid
+            alice, address(0), participatingInterface, amount, chainSequenceIdBefore, Id.wrap(block.chainid)
         );
         bytes32 utxo = keccak256(abi.encode(deposit));
 
@@ -69,23 +71,24 @@ contract PortalTest is Test {
         uint256 portalBalanceAfter = address(portal).balance;
         assertEq(aliceBalanceBefore - aliceBalanceAfter, amount);
         assertEq(portalBalanceAfter - portalBalanceBefore, amount);
-        assertEq(chainSequenceIdBefore + 1, portal.chainSequenceId());
+        assertTrue(chainSequenceIdBefore.increment() == portal.chainSequenceId());
         assertEq(portal.balances(utxo), amount);
     }
 
     function test_depositNativeAssetUniqueness() external {
         uint256 amount = 0.5 ether;
+        Id chainSequenceIdBefore = portal.chainSequenceId();
         StateUpdateLibrary.Deposit memory deposit =
-            StateUpdateLibrary.Deposit(alice, address(0), participatingInterface, amount, 0, block.chainid);
+            StateUpdateLibrary.Deposit(alice, address(0), participatingInterface, amount, chainSequenceIdBefore, Id.wrap(block.chainid));
         vm.prank(alice);
         portal.depositNativeAsset{value: amount}();
 
         // Second deposit should have different UTXO hash and chain sequence ID
-        deposit = StateUpdateLibrary.Deposit(alice, address(0), participatingInterface, amount, 1, block.chainid);
+        deposit = StateUpdateLibrary.Deposit(alice, address(0), participatingInterface, amount, chainSequenceIdBefore.increment(), Id.wrap(block.chainid));
         bytes32 utxo = keccak256(abi.encode(deposit));
         vm.prank(alice);
         vm.expectEmit(true, true, true, true);
-        emit DepositUtxo(alice, amount, address(0), participatingInterface, 1, utxo);
+        emit DepositUtxo(alice, amount, address(0), participatingInterface, chainSequenceIdBefore.increment(), utxo);
         portal.depositNativeAsset{value: amount}();
     }
 
@@ -94,10 +97,10 @@ contract PortalTest is Test {
         deal({token: address(token), to: alice, give: amount});
         uint256 aliceBalanceBefore = token.balanceOf(alice);
         uint256 portalBalanceBefore = token.balanceOf(address(portal));
-        uint256 chainSequenceIdBefore = portal.chainSequenceId();
+        Id chainSequenceIdBefore = portal.chainSequenceId();
 
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
-            alice, address(token), participatingInterface, amount, chainSequenceIdBefore, block.chainid
+            alice, address(token), participatingInterface, amount, chainSequenceIdBefore, Id.wrap(block.chainid)
         );
         bytes32 utxo = keccak256(abi.encode(deposit));
 
@@ -112,7 +115,7 @@ contract PortalTest is Test {
         uint256 portalBalanceAfter = token.balanceOf(address(portal));
         assertEq(aliceBalanceBefore - aliceBalanceAfter, amount);
         assertEq(portalBalanceAfter - portalBalanceBefore, amount);
-        assertEq(chainSequenceIdBefore + 1, portal.chainSequenceId());
+        assertTrue(chainSequenceIdBefore.increment() == portal.chainSequenceId());
         assertEq(portal.balances(utxo), amount);
     }
 }
