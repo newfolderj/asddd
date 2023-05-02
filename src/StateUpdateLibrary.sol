@@ -27,7 +27,9 @@ library StateUpdateLibrary {
 
     struct SignedStateUpdate {
         StateUpdate stateUpdate;
-        Signature sig;
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
     }
 
     /**
@@ -72,7 +74,7 @@ library StateUpdateLibrary {
         bytes32 depositUtxo;
         address participatingInterface;
         address asset;
-        uint256 chainId;
+        Id chainId;
     }
 
     struct NewProduct {
