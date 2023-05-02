@@ -49,4 +49,4 @@ unit-tests-upstream:
     - develop@projecttxa/txa-dsl/txa-network-contracts
     - master@projecttxa/txa-dsl/txa-network-contracts
   script:
-    - forge text -vvv
+    - forge test -vvv
