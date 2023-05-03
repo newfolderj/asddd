@@ -1,9 +1,10 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity >=0.8.19 <0.9.0;
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright © 2023 TXA PTE. LTD.
+pragma solidity ^0.8.19;
 
 import { Test } from "forge-std/Test.sol";
 
-import "../src/Manager/Manager.sol";
+import "../src/Manager/BaseManager.sol";
 import "../src/Portal/Portal.sol";
 import "@openzeppelin/token/ERC20/ERC20.sol";
 
@@ -14,7 +15,7 @@ contract PortalTest is Test {
     address internal admin;
     address internal validator;
 
-    Manager internal manager;
+    BaseManager internal manager;
     Portal internal portal;
 
     address internal alice;
@@ -36,7 +37,7 @@ contract PortalTest is Test {
         admin = vm.addr(0xAD);
         validator = vm.addr(0xDA);
 
-        manager = new Manager({
+        manager = new BaseManager({
             _participatingInterface: participatingInterface, 
             _admin: admin,
             _validator: validator
