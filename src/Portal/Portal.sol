@@ -2,6 +2,7 @@
 // Copyright © 2023 TXA PTE. LTD.
 pragma solidity ^0.8.19;
 
+import "./IPortal.sol";
 import "../StateUpdateLibrary.sol";
 import "../Manager/IManager.sol";
 import "../Rollup/IRollup.sol";
@@ -11,7 +12,7 @@ import "@openzeppelin/token/ERC20/IERC20.sol";
 /**
  * The Portal is the entry and exit point for all assets in the TXA network.
  */
-contract Portal {
+contract Portal is IPortal {
     using IdLib for Id;
 
     /**
@@ -19,7 +20,6 @@ contract Portal {
      * Deposit or SettlementRequest which occurs on this chain.
      */
     Id public chainSequenceId = ID_ZERO;
-    Id public settlementId = ID_ONE;
     address immutable participatingInterface;
     IManager immutable manager;
 
@@ -100,7 +100,7 @@ contract Portal {
 
     function requestSettlement(address _token) external {
         // TODO: check if token is tradable
-        uint256 id = IRollup(manager.rollup()).requestSettlement(_token, msg.sender);
+        uint256 id = IRollup(manager.rollup()).requestSettlement({ token: _token, trader: msg.sender });
         settlementRequests[chainSequenceId] = StateUpdateLibrary.SettlementRequest(
             msg.sender, _token, participatingInterface, chainSequenceId, Id.wrap(block.chainid), Id.wrap(id)
         );
@@ -123,10 +123,6 @@ contract Portal {
         emit ObligationWritten(deposits[_deposit].trader, _recipient, token, _amount);
     }
 
-    function getAvailableBalance(address _trader, address _token) external view returns (uint256) {
-        return availableToWithdraw[_trader][_token];
-    }
-
     function withdraw(uint256 _amount, address _token) external {
         if (availableToWithdraw[msg.sender][_token] < _amount) revert INSUFFICIENT_BALANCE_WITHDRAW();
 
@@ -141,5 +137,13 @@ contract Portal {
             if (!IERC20(_token).transfer(msg.sender, _amount)) revert TOKEN_TRANSFER_FAILED_WITHDRAW();
         }
         emit Withdraw(msg.sender, _amount, _token);
+    }
+
+    function getAvailableBalance(address _trader, address _token) external view returns (uint256) {
+        return availableToWithdraw[_trader][_token];
+    }
+
+    function isValidSettlementRequest(uint256 _chainSequenceId, bytes32 _settlementHash) external view returns (bool) {
+        return keccak256(abi.encode(settlementRequests[Id.wrap(_chainSequenceId)])) == _settlementHash;
     }
 }

@@ -26,6 +26,7 @@ contract Rollup is IRollup {
     error INPUTS_LENGTH_MISMATCH_SETTLEMENT();
     error INPUTS_HASH_MISMATCH_SETTLEMENT();
     error INPUT_PARAMS_MISMATCH_SETTLEMENT();
+    error INVALID_SEQUENCE_SETTLEMENT();
     error INVALID_REQUEST_SETTLEMENT();
 
     IManager internal immutable manager;
@@ -70,7 +71,7 @@ contract Rollup is IRollup {
         bytes32 stateRoot = confirmedStateRoot[_stateRootId];
         if (stateRoot == 0) revert EMPTY_STATE_ROOT();
 
-        bool valid = MerkleProof.verify(_proof, stateRoot, keccak256(abi.encode(_signedUpdate)));
+        bool valid = MerkleProof.verifyCalldata(_proof, stateRoot, keccak256(abi.encode(_signedUpdate)));
         if (!valid) revert INVALID_PROOF_SETTLEMENT();
 
         if (_signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Settlement) {
@@ -85,9 +86,16 @@ contract Rollup is IRollup {
         }
 
         StateUpdateLibrary.SettlementRequest memory settlementRequest = settlementAcknowledgement.settlementRequest;
+
+        if (settlementRequest.settlementId != lastSettlementIdProcessed.increment()) {
+            revert INVALID_SEQUENCE_SETTLEMENT();
+        }
+
         if (
-            settlementRequest.chainId != Id.wrap(block.chainid)
-                || settlementRequest.settlementId != lastSettlementIdProcessed.increment()
+            !IPortal(manager.portal()).isValidSettlementRequest({
+                chainSequenceId: Id.unwrap(settlementRequest.chainSequenceId),
+                settlementHash: keccak256(abi.encode(settlementRequest))
+            }) || settlementRequest.chainId != Id.wrap(block.chainid)
         ) revert INVALID_REQUEST_SETTLEMENT();
 
         unchecked {
@@ -103,7 +111,12 @@ contract Rollup is IRollup {
                     revert INPUT_PARAMS_MISMATCH_SETTLEMENT();
                 }
 
-                IPortal(manager.portal()).writeObligation(_inputs[i].depositUtxo, _inputs[i].trader, _inputs[i].amount);
+                IPortal(manager.portal()).writeObligation({
+                    utxo: hashedInput,
+                    deposit: _inputs[i].depositUtxo,
+                    recipient: _inputs[i].trader,
+                    amount: _inputs[i].amount
+                });
             }
             lastSettlementIdProcessed = lastSettlementIdProcessed.increment();
         }
@@ -117,7 +130,6 @@ contract Rollup is IRollup {
 
     function requestSettlement(address _token, address _trader) external returns (uint256) {
         require(msg.sender == manager.portal(), "NOT_WALLET_SINGLETON");
-        // settlementRequests[nextRequestId] = SettlementData(block.number, token, trader);
         nextRequestId = nextRequestId.increment();
         unchecked {
             return Id.unwrap(nextRequestId) - 1;

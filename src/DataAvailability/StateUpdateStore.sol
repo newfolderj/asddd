@@ -3,19 +3,20 @@
 pragma solidity ^0.8.19;
 
 import "../StateUpdateLibrary.sol";
+import "../util/Signature.sol";
 
 /**
  * Meant to be deployed on a very-high throughput chain like a Polygon Supernet.
  * Used by the Participating Interface to publish data.
  */
-contract StateUpdateStore {
+contract StateUpdateStore is Signature {
     using IdLib for Id;
 
     Id public lastSequenceId = ID_ZERO;
     mapping(Id => Id) public lastChainSequenceId;
     address immutable participatingInterface;
 
-    constructor(address _participatingInterface) {
+    constructor(address _participatingInterface) Signature(_participatingInterface) {
         participatingInterface = _participatingInterface;
     }
 
@@ -38,12 +39,9 @@ contract StateUpdateStore {
         for (uint256 i = 0; i < stateUpdates.length; i++) {
             StateUpdateLibrary.SignedStateUpdate memory signedStateUpdate = stateUpdates[i];
             StateUpdateLibrary.StateUpdate memory stateUpdate = signedStateUpdate.stateUpdate;
-            StateUpdateLibrary.Signature memory sig = signedStateUpdate.sig;
 
-            bytes32 stateUpdateHash = keccak256(abi.encode(stateUpdate));
-            bytes32 messageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", stateUpdateHash));
-
-            address recoveredAddress = ecrecover(messageHash, sig.v, sig.r, sig.s);
+            bytes32 messageHash = typeHashStateUpdate(stateUpdate);
+            address recoveredAddress = ecrecover(messageHash, signedStateUpdate.v, signedStateUpdate.r, signedStateUpdate.s);
 
             if (recoveredAddress != participatingInterface) {
                 return false;
@@ -75,12 +73,10 @@ contract StateUpdateStore {
         for(uint256 i = 0; i < stateUpdates.length; i++) {
             StateUpdateLibrary.SignedStateUpdate memory signedStateUpdate = stateUpdates[i];
             StateUpdateLibrary.StateUpdate memory stateUpdate = signedStateUpdate.stateUpdate;
-            StateUpdateLibrary.Signature memory sig = signedStateUpdate.sig;
 
             // Validate signature
-            bytes32 stateUpdateHash = keccak256(abi.encode(stateUpdate));
-            bytes32 messageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", stateUpdateHash));
-            address recoveredAddress = ecrecover(messageHash, sig.v, sig.r, sig.s);
+            bytes32 messageHash = typeHashStateUpdate(stateUpdate);
+            address recoveredAddress = ecrecover(messageHash, signedStateUpdate.v, signedStateUpdate.r, signedStateUpdate.s);
             require(recoveredAddress == participatingInterface, "Recovered address does not match participating interface address");
 
             // Validate that sequence IDs are ordered
