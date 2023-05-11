@@ -5,7 +5,12 @@ out/
 # Ignores development broadcast logs
 !/broadcast
 /broadcast/*/31337/
+/broadcast/*/2500/
+/broadcast/*/2501/
 /broadcast/**/dry-run/
 
 # Dotenv file
 .env
+
+
+/node_modules

@@ -13,6 +13,10 @@
   solc = "0.8.19"
   src = "src"
   test = "test"
+  fs_permissions = [
+    { access = "read-write", path = "./axelar/out/relayer.json" },
+    { access = "read-write", path = "./axelar/out/receiver.json" }
+  ]
 
 [profile.ci]
   fuzz = { runs = 10_000 }

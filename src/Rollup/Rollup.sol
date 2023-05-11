@@ -28,6 +28,7 @@ contract Rollup is IRollup {
     error INPUT_PARAMS_MISMATCH_SETTLEMENT();
     error INVALID_SEQUENCE_SETTLEMENT();
     error INVALID_REQUEST_SETTLEMENT();
+    error EPOCH_NOT_CONFIRMED();
 
     IManager internal immutable manager;
     address internal immutable participatingInterface;
@@ -49,12 +50,18 @@ contract Rollup is IRollup {
         bytes32[] calldata _proof,
         StateUpdateLibrary.UTXO[] calldata _inputs
     )
-        external
+        external virtual
     {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
         confirmedStateRoot[epoch] = _stateRoot;
         _processSettlement(_settlementAcknowledgement, epoch, _proof, _inputs);
-        epoch.increment();
+        epoch = epoch.increment();
+    }
+
+    function proposeStateRoot(bytes32 _stateRoot) external {
+        if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
+        confirmedStateRoot[epoch] = _stateRoot;
+        epoch = epoch.increment();
     }
 
     /**
@@ -128,11 +135,20 @@ contract Rollup is IRollup {
             );
     }
 
-    function requestSettlement(address _token, address _trader) external returns (uint256) {
+    function requestSettlement(address, address) external returns (uint256) {
         require(msg.sender == manager.portal(), "NOT_WALLET_SINGLETON");
         nextRequestId = nextRequestId.increment();
         unchecked {
             return Id.unwrap(nextRequestId) - 1;
         }
+    }
+
+    function getConfirmedStateRoot(uint256 _epoch) external view returns (bytes32 root) {
+        root = confirmedStateRoot[Id.wrap(_epoch)];
+        if(root == "") revert EPOCH_NOT_CONFIRMED();
+    }
+
+    function getCurrentEpoch() external view returns (uint256) {
+        return Id.unwrap(epoch);
     }
 }

@@ -1,11 +1,10 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity >=0.8.19 <0.9.0;
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright © 2023 TXA PTE. LTD.
+pragma solidity ^0.8.19;
 
 import { Test } from "forge-std/Test.sol";
 
-import "../src/Manager/Manager.sol";
-// import "../src/Portal/Portal.sol";
-// import "../src/Portal/Rollup.sol";
+import "../src/Manager/BaseManager.sol";
 import "../src/util/Signature.sol";
 import "@openzeppelin/token/ERC20/ERC20.sol";
 import "@murky/Merkle.sol";
@@ -18,7 +17,7 @@ contract RollupTest is Test {
     address internal admin;
     address internal validator;
 
-    Manager internal manager;
+    BaseManager internal manager;
     Portal internal portal;
     Rollup internal rollup;
 
@@ -38,6 +37,7 @@ contract RollupTest is Test {
         uint256 _stateUpdateId
     )
         internal
+        pure
         returns (StateUpdateLibrary.UTXO memory)
     {
         return StateUpdateLibrary.UTXO(
@@ -60,6 +60,7 @@ contract RollupTest is Test {
         uint256 _stateUpdateId
     )
         internal
+        view
         returns (StateUpdateLibrary.StateUpdate memory)
     {
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
@@ -82,6 +83,7 @@ contract RollupTest is Test {
         uint256 _stateUpdateId
     )
         internal
+        view
         returns (StateUpdateLibrary.StateUpdate memory)
     {
         StateUpdateLibrary.UTXO memory utxo = depositUtxo(_deposit, _stateUpdateId);
@@ -105,6 +107,7 @@ contract RollupTest is Test {
         bytes32[] memory inputs
     )
         internal
+        view
         returns (StateUpdateLibrary.StateUpdate memory)
     {
         StateUpdateLibrary.SettlementRequest memory settlementRequest = StateUpdateLibrary.SettlementRequest(
@@ -121,6 +124,7 @@ contract RollupTest is Test {
 
     function signStateUpdate(StateUpdateLibrary.StateUpdate memory _stateUpdate)
         internal
+        view
         returns (StateUpdateLibrary.SignedStateUpdate memory)
     {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(piKey, sigUtil.typeHashStateUpdate(_stateUpdate));
@@ -132,7 +136,7 @@ contract RollupTest is Test {
         admin = vm.addr(0xAD);
         validator = vm.addr(0xDA);
 
-        manager = new Manager({
+        manager = new BaseManager({
             _participatingInterface: participatingInterface, 
             _admin: admin,
             _validator: validator
@@ -157,7 +161,7 @@ contract RollupTest is Test {
         // Alice makes the first deposit
         uint256 amount = 0.5 ether;
         vm.prank(alice);
-        portal.depositNativeAsset{value: amount}();
+        portal.depositNativeAsset{ value: amount }();
 
         // Create corresponding Deposit and UTXO objects
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
@@ -168,8 +172,8 @@ contract RollupTest is Test {
 
         // Bob makes some deposits
         vm.startPrank(bob);
-        portal.depositNativeAsset{value: 1 ether}();
-        portal.depositNativeAsset{value: 1.5 ether}();
+        portal.depositNativeAsset{ value: 1 ether }();
+        portal.depositNativeAsset{ value: 1.5 ether }();
         vm.stopPrank();
 
         // Alice requests settlement
@@ -208,6 +212,6 @@ contract RollupTest is Test {
 
         // Alice can now withdraw original deposit
         vm.prank(alice);
-        portal.withdraw({_amount: amount, _token: address(0)});
+        portal.withdraw({ _amount: amount, _token: address(0) });
     }
 }

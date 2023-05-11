@@ -1,2 +1,3 @@
 @openzeppelin/=lib/openzeppelin-contracts/contracts/
 @murky/=lib/murky/src/
+@axelar-gmp-sdk-solidity/=lib/axelar-gmp-sdk-solidity/
