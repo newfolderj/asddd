@@ -113,7 +113,7 @@ contract StateUpdateStore is Signature {
     }
 
     function validateTrade(StateUpdateLibrary.Trade memory trade) internal pure {
-        require(trade.params.orderA.price == trade.params.orderB.price, "validateTrade: Price in orders doesn't match");
+        require(trade.params.orderA.order.price == trade.params.orderB.order.price, "validateTrade: Price in orders doesn't match");
     }
 
     function incrementLastChainSequenceId(Id chainId) internal {

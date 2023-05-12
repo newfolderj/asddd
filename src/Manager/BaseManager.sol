@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 
 import "./Manager.sol";
 import "../Rollup/Rollup.sol";
+import "../Rollup/FraudEngine.sol";
 import "./IBaseManager.sol";
 import "../CrossChain/Relayer.sol";
 
@@ -20,7 +21,7 @@ contract BaseManager is Manager, IBaseManager {
     )
         Manager(_participatingInterface, _admin, _validator)
     { 
-        rollup = address(new Rollup(_participatingInterface, address(this)));
+        rollup = address(new FraudEngine(_participatingInterface, address(this)));
     }
 
     function deployRelayer(

@@ -27,6 +27,16 @@ contract Signature {
         )
     );
 
+    bytes32 public constant ORDER_TYPEHASH = keccak256(
+        abi.encodePacked(
+            "Order(Product product,bool side,uint256 size,uint256 price)",
+            "Product(address assetA,uint256 chainIdA,address assetB,uint256 chainIdB)"
+        )
+    );
+
+    bytes32 public constant PRODUCT_TYPEHASH =
+        keccak256(abi.encodePacked("Product(address assetA,uint256 chainIdA,address assetB,uint256 chainIdB)"));
+
     function hashStateUpdate(StateUpdateLibrary.StateUpdate memory _stateUpdate) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
@@ -41,5 +51,20 @@ contract Signature {
 
     function typeHashStateUpdate(StateUpdateLibrary.StateUpdate memory _stateUpdate) public view returns (bytes32) {
         return keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, hashStateUpdate(_stateUpdate)));
+    }
+
+    function typeHashOrder(StateUpdateLibrary.Order memory _order) public view returns (bytes32) {
+        return keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, hashOrder(_order)));
+    }
+
+    function hashOrder(StateUpdateLibrary.Order memory _order) internal pure returns (bytes32) {
+        return
+            keccak256(abi.encode(ORDER_TYPEHASH, hashProduct(_order.product), _order.side, _order.size, _order.price));
+    }
+
+    function hashProduct(StateUpdateLibrary.Product memory _product) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(PRODUCT_TYPEHASH, _product.assetA, _product.chainIdA, _product.assetB, _product.chainIdB)
+        );
     }
 }

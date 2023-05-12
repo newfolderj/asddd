@@ -22,28 +22,4 @@ contract ChildRollup is Rollup, IChildRollup {
         confirmedStateRoot[epoch] = _stateRoot;
         epoch = epoch.increment();
     }
-
-    function processSettlement(
-        bytes32,
-        StateUpdateLibrary.SignedStateUpdate calldata,
-        bytes32[] calldata,
-        StateUpdateLibrary.UTXO[] calldata
-    )
-        external
-        pure
-        override
-    {
-        revert();
-    }
-
-    function processSettlement(
-        Id _epoch,
-        StateUpdateLibrary.SignedStateUpdate calldata _settlementAcknowledgement,
-        bytes32[] calldata _proof,
-        StateUpdateLibrary.UTXO[] calldata _inputs
-    )
-        external
-    {
-        _processSettlement(_settlementAcknowledgement, _epoch, _proof, _inputs);
-    }
 }
