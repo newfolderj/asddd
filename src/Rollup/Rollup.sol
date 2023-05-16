@@ -15,8 +15,11 @@ import "@openzeppelin/utils/cryptography/MerkleProof.sol";
 contract Rollup is IRollup {
     using IdLib for Id;
 
-    Id public epoch = ID_ZERO;
+    Id public epoch = ID_ONE;
+    Id public lastConfirmedEpoch = ID_ZERO;
     mapping(Id => bytes32) public proposedStateRoot;
+    mapping(bytes32 => uint256) public proposalBlock;
+    mapping(bytes32 => bool) public fraudulent;
     mapping(Id => bytes32) public confirmedStateRoot;
 
     error CALLER_NOT_VALIDATOR();
@@ -32,6 +35,7 @@ contract Rollup is IRollup {
 
     IManager internal immutable manager;
     address internal immutable participatingInterface;
+    uint256 public constant CONFIRMATION_BLOCKS = 50_000;
 
     // For compatability with Tacen Alpha
     Id public lastSettlementIdProcessed = ID_ONE;
@@ -44,36 +48,34 @@ contract Rollup is IRollup {
         manager = IManager(_manager);
     }
 
-    function processSettlement(
-        bytes32 _stateRoot,
-        StateUpdateLibrary.SignedStateUpdate calldata _settlementAcknowledgement,
-        bytes32[] calldata _proof,
-        StateUpdateLibrary.UTXO[] calldata _inputs
-    )
-        external virtual
-    {
+    function proposeStateRoot(bytes32 _stateRoot) external {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
-        confirmedStateRoot[epoch] = _stateRoot;
-        _processSettlement(_settlementAcknowledgement, epoch, _proof, _inputs);
+        proposedStateRoot[epoch] = _stateRoot;
+        proposalBlock[_stateRoot] = block.number;
         epoch = epoch.increment();
     }
 
-    function proposeStateRoot(bytes32 _stateRoot) external {
-        if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
-        confirmedStateRoot[epoch] = _stateRoot;
-        epoch = epoch.increment();
+    function confirmStateRoot() external {
+        bytes32 stateRoot = proposedStateRoot[lastConfirmedEpoch.increment()];
+        uint256 blockNumber = proposalBlock[stateRoot];
+
+        if (block.number < blockNumber + CONFIRMATION_BLOCKS) revert();
+        if (fraudulent[stateRoot]) revert();
+
+        lastConfirmedEpoch = lastConfirmedEpoch.increment();
+        confirmedStateRoot[lastConfirmedEpoch] = stateRoot;
     }
 
     /**
      * Called by anyone to complete a settlement.
      */
-    function _processSettlement(
+    function processSettlement(
         StateUpdateLibrary.SignedStateUpdate calldata _signedUpdate,
         Id _stateRootId,
         bytes32[] calldata _proof,
         StateUpdateLibrary.UTXO[] calldata _inputs
     )
-        internal
+        external
     {
         bytes32 stateRoot = confirmedStateRoot[_stateRootId];
         if (stateRoot == 0) revert EMPTY_STATE_ROOT();
@@ -132,7 +134,7 @@ contract Rollup is IRollup {
             settlementRequest.trader,
             settlementRequest.asset,
             IPortal(manager.portal()).getAvailableBalance(settlementRequest.trader, settlementRequest.asset)
-            );
+        );
     }
 
     function requestSettlement(address, address) external returns (uint256) {
@@ -145,7 +147,7 @@ contract Rollup is IRollup {
 
     function getConfirmedStateRoot(uint256 _epoch) external view returns (bytes32 root) {
         root = confirmedStateRoot[Id.wrap(_epoch)];
-        if(root == "") revert EPOCH_NOT_CONFIRMED();
+        if (root == "") revert EPOCH_NOT_CONFIRMED();
     }
 
     function getCurrentEpoch() external view returns (uint256) {

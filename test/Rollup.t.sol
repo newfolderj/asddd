@@ -2,156 +2,13 @@
 // Copyright © 2023 TXA PTE. LTD.
 pragma solidity ^0.8.19;
 
-import { Test } from "forge-std/Test.sol";
+import "./util/BaseTest.sol";
 
-import "../src/Manager/BaseManager.sol";
-import "../src/util/Signature.sol";
-import "@openzeppelin/token/ERC20/ERC20.sol";
-import "@murky/Merkle.sol";
+contract RollupTest is BaseTest {
+    // using IdLib for Id;
 
-contract RollupTest is Test {
-    using IdLib for Id;
-
-    uint256 internal piKey = 0xEC;
-    address internal participatingInterface;
-    address internal admin;
-    address internal validator;
-
-    BaseManager internal manager;
-    Portal internal portal;
-    Rollup internal rollup;
-
-    Signature internal sigUtil;
-
-    address internal alice;
-    address internal bob;
-
-    ERC20 internal token;
-
-    event DepositUtxo(
-        address wallet, uint256 amount, address token, address participatingInterface, Id chainSequenceId, bytes32 utxo
-    );
-
-    function depositUtxo(
-        StateUpdateLibrary.Deposit memory _deposit,
-        uint256 _stateUpdateId
-    )
-        internal
-        pure
-        returns (StateUpdateLibrary.UTXO memory)
-    {
-        return StateUpdateLibrary.UTXO(
-            _deposit.trader,
-            _deposit.amount,
-            _stateUpdateId,
-            bytes32(0x0000000000000000000000000000000000000000000000000000000000000000),
-            keccak256(abi.encode(_deposit)),
-            _deposit.participatingInterface,
-            _deposit.asset,
-            _deposit.chainId
-        );
-    }
-
-    function depositStateUpdate(
-        address _trader,
-        address _token,
-        uint256 _amount,
-        Id _chainSequenceId,
-        uint256 _stateUpdateId
-    )
-        internal
-        view
-        returns (StateUpdateLibrary.StateUpdate memory)
-    {
-        StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
-            _trader, _token, participatingInterface, _amount, _chainSequenceId, Id.wrap(block.chainid)
-        );
-        StateUpdateLibrary.UTXO memory utxo = depositUtxo(deposit, _stateUpdateId);
-        StateUpdateLibrary.DepositAcknowledgement memory depositAck = StateUpdateLibrary.DepositAcknowledgement(
-            deposit, keccak256(abi.encode(deposit)), keccak256(abi.encode(utxo))
-        );
-        return StateUpdateLibrary.StateUpdate(
-            StateUpdateLibrary.TYPE_ID_DepositAcknowledgement,
-            Id.wrap(_stateUpdateId),
-            participatingInterface,
-            abi.encode(depositAck)
-        );
-    }
-
-    function depositStateUpdate(
-        StateUpdateLibrary.Deposit memory _deposit,
-        uint256 _stateUpdateId
-    )
-        internal
-        view
-        returns (StateUpdateLibrary.StateUpdate memory)
-    {
-        StateUpdateLibrary.UTXO memory utxo = depositUtxo(_deposit, _stateUpdateId);
-        StateUpdateLibrary.DepositAcknowledgement memory depositAck = StateUpdateLibrary.DepositAcknowledgement(
-            _deposit, keccak256(abi.encode(_deposit)), keccak256(abi.encode(utxo))
-        );
-        return StateUpdateLibrary.StateUpdate(
-            StateUpdateLibrary.TYPE_ID_DepositAcknowledgement,
-            Id.wrap(_stateUpdateId),
-            participatingInterface,
-            abi.encode(depositAck)
-        );
-    }
-
-    function settlementStateUpdate(
-        address _trader,
-        address _token,
-        Id _chainSequenceId,
-        Id _settlementId,
-        uint256 _stateUpdateId,
-        bytes32[] memory inputs
-    )
-        internal
-        view
-        returns (StateUpdateLibrary.StateUpdate memory)
-    {
-        StateUpdateLibrary.SettlementRequest memory settlementRequest = StateUpdateLibrary.SettlementRequest(
-            _trader, _token, participatingInterface, _chainSequenceId, Id.wrap(block.chainid), _settlementId
-        );
-        StateUpdateLibrary.Settlement memory settlement = StateUpdateLibrary.Settlement(settlementRequest, inputs);
-        return StateUpdateLibrary.StateUpdate(
-            StateUpdateLibrary.TYPE_ID_Settlement,
-            Id.wrap(_stateUpdateId),
-            participatingInterface,
-            abi.encode(settlement)
-        );
-    }
-
-    function signStateUpdate(StateUpdateLibrary.StateUpdate memory _stateUpdate)
-        internal
-        view
-        returns (StateUpdateLibrary.SignedStateUpdate memory)
-    {
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(piKey, sigUtil.typeHashStateUpdate(_stateUpdate));
-        return StateUpdateLibrary.SignedStateUpdate(_stateUpdate, v, r, s);
-    }
-
-    function setUp() public virtual {
-        participatingInterface = vm.addr(piKey);
-        admin = vm.addr(0xAD);
-        validator = vm.addr(0xDA);
-
-        manager = new BaseManager({
-            _participatingInterface: participatingInterface, 
-            _admin: admin,
-            _validator: validator
-        });
-        portal = Portal(manager.portal());
-        rollup = Rollup(manager.rollup());
-
-        alice = vm.addr(0xA11CE);
-        bob = vm.addr(0xB0B);
-        vm.deal(alice, 10 ether);
-        vm.deal(bob, 10 ether);
-
-        token = new ERC20("TestToken", "TST");
-
-        sigUtil = new Signature(participatingInterface);
+    function setUp() public override {
+        super.setUp();
     }
 
     function test_processSettlement() external {
@@ -167,7 +24,7 @@ contract RollupTest is Test {
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
             alice, address(0), participatingInterface, amount, ID_ZERO, Id.wrap(block.chainid)
         );
-        inputs[0] = depositUtxo(deposit, 0);
+        inputs[0] = depositToUtxo(deposit, 0);
         hashedInputs[0] = keccak256(abi.encode(inputs[0]));
 
         // Bob makes some deposits
@@ -187,8 +44,8 @@ contract RollupTest is Test {
 
         bytes32[] memory proof;
         bytes32 stateRoot;
-        // Construct merkle tree of signed state updates
 
+        // Construct merkle tree of signed state updates
         Merkle m = new Merkle();
         bytes32[] memory data = new bytes32[](4);
         data[0] = keccak256(abi.encode((signStateUpdate(depositStateUpdate(deposit, 0)))));
@@ -201,11 +58,21 @@ contract RollupTest is Test {
         proof = m.getProof(data, 3);
         stateRoot = m.getRoot(data);
 
+        // Propose state root as validator
+        vm.prank(validator);
+        rollup.proposeStateRoot(stateRoot);
+
+        // Simulate passage of time
+        vm.roll(block.number + rollup.CONFIRMATION_BLOCKS());
+
+        // Confirm state root
+        rollup.confirmStateRoot();
+
         // Report settlement as the validator
         vm.prank(validator);
         rollup.processSettlement({
-            _stateRoot: stateRoot,
-            _settlementAcknowledgement: stateUpdate,
+            _stateRootId: ID_ONE,
+            _signedUpdate: stateUpdate,
             _proof: proof,
             _inputs: inputs
         });

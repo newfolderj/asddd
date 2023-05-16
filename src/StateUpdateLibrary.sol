@@ -108,8 +108,8 @@ library StateUpdateLibrary {
 
     struct TradeParams {
         address participatingInterface;
-        LimitOrder orderA;
-        LimitOrder orderB;
+        SignedOrder orderA;
+        SignedOrder orderB;
         Product product;
         uint256 size;
         uint256 price;
@@ -120,6 +120,20 @@ library StateUpdateLibrary {
         uint256 chainIdA;
         address assetB;
         uint256 chainIdB;
+    }
+
+    struct SignedOrder {
+        Order order;
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+    }
+
+    struct Order {
+        Product product;
+        bool side;
+        uint256 size;
+        uint256 price;
     }
 
     struct LimitOrder {
