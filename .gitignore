@@ -2,15 +2,24 @@
 cache/
 out/
 
-# Ignores development broadcast logs
-!/broadcast
+# Ignores all broadcast logs
+/broadcast
 /broadcast/*/31337/
 /broadcast/*/2500/
 /broadcast/*/2501/
 /broadcast/**/dry-run/
 
+
 # Dotenv file
 .env
+
+# forge-deploy
+/generated
+/deployments/localhost
+/deployments/31337
+
+# forge-deploy cli binary
+/forge-deploy
 
 
 /node_modules
