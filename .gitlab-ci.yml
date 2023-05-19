@@ -9,7 +9,7 @@ include:
     file: "/templates/docker.yml"
 
 variables:
-    IMAGE_TAG: "$CI_REGISTRY_IMAGE/txa-network-contracts-cliquebait:latest"
+    IMAGE_TAG: "$CI_REGISTRY_IMAGE/txa-network-contracts:latest"
     GPG_FILE: "settlements.csv"
     DOCKER_TLS_CERTDIR: "/certs"
     GIT_SUBMODULE_STRATEGY: recursive
@@ -23,6 +23,7 @@ variables:
 stages:
   - validate
   - test
+  - test-build
 
 gpg_validate:
   stage: validate
@@ -50,3 +51,17 @@ unit-tests-upstream:
     - master@projecttxa/txa-dsl/txa-network-contracts
   script:
     - forge test -vvv
+
+test-build:
+  stage: test-build
+  needs: [unit-tests]
+  except:
+    - develop@projecttxa/txa-dsl/txa-network-contracts
+    - master@projecttxa/txa-dsl/txa-network-contracts
+  only:
+    - merge_requests
+  extends:
+    - .docker-base
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $IMAGE_TAG .
