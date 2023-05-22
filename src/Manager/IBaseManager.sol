@@ -3,5 +3,6 @@
 pragma solidity ^0.8.19;
 
 interface IBaseManager {
+    function collateral() external view returns (address);
     function getReceiverAddress(uint256 _chainId) external view returns (address);
 }

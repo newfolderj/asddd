@@ -25,7 +25,10 @@ contract DeployBaseChain is Script {
         manager = new BaseManager({
             _participatingInterface: participatingInterface, 
             _admin: admin,
-            _validator: validator
+            _validator: validator,
+            // TODO: should be deployed in script or passed as env var
+            _stablecoin: address(0),
+            _protocolToken: address(0)
         });
         // manager.deployRelayer({
         //     _axelarGateway: vm.envAddress("AXELAR_GATEWAY"),

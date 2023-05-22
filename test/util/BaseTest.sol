@@ -22,6 +22,7 @@ contract BaseTest is Test {
     BaseManager internal manager;
     Portal internal portal;
     Rollup internal rollup;
+    Collateral internal collateral;
 
     Signature internal sigUtil;
     Merkle internal merkleLib;
@@ -30,6 +31,8 @@ contract BaseTest is Test {
     address internal bob;
 
     ERC20 internal token;
+    ERC20 internal stablecoin;
+    ERC20 internal protocolToken;
 
     event DepositUtxo(
         address wallet, uint256 amount, address token, address participatingInterface, Id chainSequenceId, bytes32 utxo
@@ -208,13 +211,19 @@ contract BaseTest is Test {
         admin = vm.addr(0xAD);
         validator = vm.addr(0xDA);
 
+        stablecoin = new ERC20("Stablecoin", "USDT");
+        protocolToken = new ERC20("ProtocolToken", "TXA");
+
         manager = new BaseManager({
             _participatingInterface: participatingInterface, 
             _admin: admin,
-            _validator: validator
+            _validator: validator,
+            _stablecoin: address(stablecoin),
+            _protocolToken: address(protocolToken)
         });
         portal = Portal(manager.portal());
         rollup = Rollup(manager.rollup());
+        collateral = Collateral(manager.collateral());
 
         alice = vm.addr(aliceKey);
         bob = vm.addr(bobKey);
@@ -225,5 +234,13 @@ contract BaseTest is Test {
 
         sigUtil = new Signature(participatingInterface);
         merkleLib = new Merkle();
+
+        deal({ token: address(protocolToken), to: validator, give: 1 ether });
+        deal({ token: address(stablecoin), to: validator, give: 1 ether });
+        vm.startPrank(validator);
+        protocolToken.approve(manager.collateral(), 1 ether);
+        stablecoin.approve(manager.collateral(), 1 ether);
+        collateral.stake(1 ether);
+        vm.stopPrank();
     }
 }

@@ -4,12 +4,14 @@ pragma solidity ^0.8.19;
 
 import "./Manager.sol";
 import "../Rollup/Rollup.sol";
+import "../Rollup/Collateral.sol";
 import "../Rollup/FraudEngine.sol";
 import "./IBaseManager.sol";
 import "../CrossChain/Relayer.sol";
 
 contract BaseManager is Manager, IBaseManager {
     address public immutable rollup;
+    address public immutable collateral;
     address public relayer;
 
     mapping(uint256 => address) public receivers;
@@ -17,11 +19,14 @@ contract BaseManager is Manager, IBaseManager {
     constructor(
         address _participatingInterface,
         address _admin,
-        address _validator
+        address _validator,
+        address _stablecoin,
+        address _protocolToken
     )
         Manager(_participatingInterface, _admin, _validator)
-    { 
+    {
         rollup = address(new FraudEngine(_participatingInterface, address(this)));
+        collateral = address(new Collateral(_participatingInterface, address(this), _stablecoin, _protocolToken));
     }
 
     function deployRelayer(
@@ -56,5 +61,10 @@ contract BaseManager is Manager, IBaseManager {
 
     function getReceiverAddress(uint256 _chainId) external view returns (address) {
         return receivers[_chainId];
+    }
+
+    // TODO: move to Oracle contract
+    function getPrice(address, address) external view returns (uint256) {
+        return 1;
     }
 }
