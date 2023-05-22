@@ -3,8 +3,10 @@
 pragma solidity ^0.8.19;
 
 import "./IRollup.sol";
+import "./ICollateral.sol";
 import "../Portal/IPortal.sol";
 import "../Manager/IManager.sol";
+import "../Manager/IBaseManager.sol";
 import "../StateUpdateLibrary.sol";
 import "../util/Id.sol";
 import "@openzeppelin/utils/cryptography/MerkleProof.sol";
@@ -32,6 +34,7 @@ contract Rollup is IRollup {
     error INVALID_SEQUENCE_SETTLEMENT();
     error INVALID_REQUEST_SETTLEMENT();
     error EPOCH_NOT_CONFIRMED();
+    error CALLER_NOT_PORTAL(address sender, address expected);
 
     IManager internal immutable manager;
     address internal immutable participatingInterface;
@@ -50,6 +53,7 @@ contract Rollup is IRollup {
 
     function proposeStateRoot(bytes32 _stateRoot) external {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
+        ICollateral(IBaseManager(address(manager)).collateral()).lockForStateRootProposal();
         proposedStateRoot[epoch] = _stateRoot;
         proposalBlock[_stateRoot] = block.number;
         epoch = epoch.increment();
@@ -109,6 +113,7 @@ contract Rollup is IRollup {
 
         unchecked {
             for (uint256 i = 0; i < _inputs.length; i++) {
+                // TODO: Calculate total amount of collateral required for this asset
                 StateUpdateLibrary.UTXO calldata input = _inputs[i];
                 bytes32 hashedInput = keccak256(abi.encode(input));
 
@@ -129,6 +134,15 @@ contract Rollup is IRollup {
             }
             lastSettlementIdProcessed = lastSettlementIdProcessed.increment();
         }
+        // TODO: query oracle for price of requested asset in USD
+        // convert total amount of requested asset to USD
+        // calculate corresponding protocol token amount
+        // call Collateral contract to lock stablecoin and protocol token
+
+        // For now:
+        // Lock 1:1 requested asset
+        // Lock 15% of above as protocol token
+        // Burn 0.05% of above as protocol token
         emit ObligationsWritten(
             settlementRequest.settlementId,
             settlementRequest.trader,
@@ -138,7 +152,7 @@ contract Rollup is IRollup {
     }
 
     function requestSettlement(address, address) external returns (uint256) {
-        require(msg.sender == manager.portal(), "NOT_WALLET_SINGLETON");
+        if(msg.sender != manager.portal()) revert CALLER_NOT_PORTAL(msg.sender, manager.portal());
         nextRequestId = nextRequestId.increment();
         unchecked {
             return Id.unwrap(nextRequestId) - 1;

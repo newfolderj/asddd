@@ -112,6 +112,8 @@ contract Relayer is AxelarExecutable {
         gateway.callContract(chainName, reciever.toString(), abi.encode(payload));
     }
 
+    // TODO: relay obligation ( bytes32 utxo hash -> amount, address )
+
     // Axelar
     function _execute(
         string calldata _sourceChain,
