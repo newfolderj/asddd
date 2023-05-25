@@ -2,29 +2,27 @@
 // Copyright © 2023 TXA PTE. LTD.
 pragma solidity ^0.8.19;
 
-import "./Rollup.sol";
+import "./IRollup.sol";
+import "../Manager/IManager.sol";
 import "../util/Signature.sol";
+import "@openzeppelin/utils/cryptography/MerkleProof.sol";
 
-/**
- * The Rollup contract accepts settlement data reports from validators.
- */
-contract FraudEngine is Rollup, Signature {
+contract FraudEngine is Signature {
     using IdLib for Id;
 
     error INVALID_MERKLE_PROOF();
 
-    constructor(
-        address _participatingInterface,
-        address _manager
-    )
-        Rollup(_participatingInterface, _manager)
-        Signature(_participatingInterface)
-    { }
+    IManager immutable manager;
+    address immutable participatingInterface;
+
+    constructor(address _participatingInterface, address _manager) Signature(_participatingInterface) {
+        manager = IManager(_manager);
+        participatingInterface = _participatingInterface;
+    }
 
     modifier marksFraudulent(Id _epoch) {
         _;
-        if (fraudulent[proposedStateRoot[_epoch]]) revert();
-        fraudulent[proposedStateRoot[_epoch]] = true;
+        IRollup(manager.rollup()).markFraudulent(Id.unwrap(_epoch));
     }
 
     function proveSignatureFraud(
@@ -327,25 +325,56 @@ contract FraudEngine is Rollup, Signature {
         // prove firstUpdate.ID <= secondUpdate.ID
     }
 
+    // Avoids stack too deep error
+    struct FeeInputProofParams {
+        Id _inputEpoch;
+        // Trade or Settlement attempting to use the input
+        StateUpdateLibrary.SignedStateUpdate _inputUpdate;
+        uint256 _inputIndex;
+        bool _tradeOrSettlement;
+        bool _inputSide;
+        Id _epochOutput;
+        // State update where the corresponding output was generated as a fee
+        StateUpdateLibrary.SignedStateUpdate _outputUpdate;
+        uint256 _outputIndex;
+        bool _outputSide;
+    }
+
     // Show that a fee output was used as an input
-    // TODO: stack too deep
-    // function proveFeeInput(
-    //     // Trade or Settlement attempting to use the input
-    //     Id _inputEpoch,
-    //     StateUpdateLibrary.SignedStateUpdate calldata _inputUpdate,
-    //     bytes32[] calldata _inputUpdateProof,
-    //     uint256 _inputIndex,
-    //     bool _tradeOrSettlement,
-    //     bool _inputSide,
-    //     // State update where the corresponding output was generated as a fee
-    //     Id _epochOutput,
-    //     StateUpdateLibrary.SignedStateUpdate calldata _outputUpdate,
-    //     bytes32[] calldata _outputUpdateProof,
-    //     uint256 _outputIndex,
-    //     bool _outputSide
-    // )
-    //     external
-    // { }
+    function proveFeeInput(
+        FeeInputProofParams calldata _params,
+        bytes32[] calldata _inputUpdateProof,
+        bytes32[] calldata _outputUpdateProof
+    )
+        external
+    { }
+
+    // Proves that a fee output was improperly generated
+    function proveInvalidFee(
+        Id _epoch,
+        StateUpdateLibrary.SignedStateUpdate calldata _invalidUpdate,
+        bytes32[] calldata _invalidUpdateProof,
+        bool _side,
+        uint256 _outputIndex,
+        StateUpdateLibrary.UTXO calldata _output,
+        uint256 _feeOutputIndex,
+        StateUpdateLibrary.UTXO calldata _feeOutput,
+        uint256 _inputIndex,
+        StateUpdateLibrary.UTXO calldata _input
+    )
+        external
+    { 
+        // prove inclusion of update in root
+        // validate that update is a trade
+        // prove input, output, and fee output are in trade
+        // determine maker and taker
+        // validate that input and output/feeOutput match
+        // get fee rate
+        // (get canonical fee rate?)
+        // mulitply input amount by fee rate
+        // assert output = input - calculatedFee
+        // assert feeOutput = calculatedFee
+    }
 
     function proveStateUpdateInRoot(
         Id _epoch,
@@ -355,8 +384,7 @@ contract FraudEngine is Rollup, Signature {
         internal
         view
     {
-        bytes32 stateRoot = proposedStateRoot[_epoch];
-
+        bytes32 stateRoot = IRollup(manager.rollup()).getProposedStateRoot(Id.unwrap(_epoch));
         // prove element is in stateRoot
         bool valid = MerkleProof.verifyCalldata(_proof, stateRoot, keccak256(abi.encode(_stateUpdate)));
         if (!valid) revert INVALID_MERKLE_PROOF();
