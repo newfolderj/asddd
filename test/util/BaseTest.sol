@@ -23,6 +23,7 @@ contract BaseTest is Test {
     Portal internal portal;
     Rollup internal rollup;
     Collateral internal collateral;
+    FraudEngine internal fraudEngine;
 
     Signature internal sigUtil;
     Merkle internal merkleLib;
@@ -224,6 +225,7 @@ contract BaseTest is Test {
         portal = Portal(manager.portal());
         rollup = Rollup(manager.rollup());
         collateral = Collateral(manager.collateral());
+        fraudEngine = FraudEngine(manager.fraudEngine());
 
         alice = vm.addr(aliceKey);
         bob = vm.addr(bobKey);

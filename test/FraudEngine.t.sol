@@ -8,7 +8,6 @@ contract FraudEngineTest is BaseTest {
     using IdLib for Id;
 
     uint256 internal wrongKey = 0xEF;
-    FraudEngine internal fraudEngine;
 
     function invalidSignStateUpdate(StateUpdateLibrary.StateUpdate memory _stateUpdate)
         internal
@@ -21,7 +20,6 @@ contract FraudEngineTest is BaseTest {
 
     function setUp() public override {
         super.setUp();
-        fraudEngine = FraudEngine(address(rollup));
     }
 
     function signOrder(
@@ -80,7 +78,7 @@ contract FraudEngineTest is BaseTest {
         fraudEngine.proveSignatureFraud({ _epoch: ID_ONE, _invalidUpdate: invalidUpdate, _proof: proof });
 
         // State root should be flagged as fraudulent
-        assert(rollup.fraudulent(stateRoot));
+        assert(rollup.fraudulent(ID_ONE, stateRoot));
 
         // Simulate passage of time
         vm.roll(block.number + rollup.CONFIRMATION_BLOCKS());
@@ -183,7 +181,7 @@ contract FraudEngineTest is BaseTest {
         });
 
         // State root should be flagged as fraudulent
-        assert(rollup.fraudulent(merkleLib.getRoot(data)));
+        assert(rollup.fraudulent(ID_ONE, merkleLib.getRoot(data)));
     }
 
     function test_reportAssetMismatchTrade() external {
@@ -268,7 +266,7 @@ contract FraudEngineTest is BaseTest {
         });
 
         // State root should be flagged as fraudulent
-        assert(rollup.fraudulent(merkleLib.getRoot(data)));
+        assert(rollup.fraudulent(ID_ONE, merkleLib.getRoot(data)));
     }
 
     function test_reportDoubleSpendInput() external {
@@ -362,7 +360,7 @@ contract FraudEngineTest is BaseTest {
         fraudEngine.proveDoubleSpendInput(doubleSpendProof);
 
         // State root should be flagged as fraudulent
-        assert(rollup.fraudulent(merkleLib.getRoot(data)));
+        assert(rollup.fraudulent(ID_ONE, merkleLib.getRoot(data)));
     }
 
     function test_reportDoubleSpendOutput() external {
@@ -457,6 +455,6 @@ contract FraudEngineTest is BaseTest {
         fraudEngine.proveDoubleSpendOutput(doubleSpendProof);
 
         // State root should be flagged as fraudulent
-        assert(rollup.fraudulent(merkleLib.getRoot(data)));
+        assert(rollup.fraudulent(ID_ONE, merkleLib.getRoot(data)));
     }
 }

@@ -21,7 +21,7 @@ contract Rollup is IRollup {
     Id public lastConfirmedEpoch = ID_ZERO;
     mapping(Id => bytes32) public proposedStateRoot;
     mapping(bytes32 => uint256) public proposalBlock;
-    mapping(bytes32 => bool) public fraudulent;
+    mapping(Id => mapping(bytes32 => bool)) public fraudulent;
     mapping(Id => bytes32) public confirmedStateRoot;
 
     error CALLER_NOT_VALIDATOR();
@@ -60,13 +60,14 @@ contract Rollup is IRollup {
     }
 
     function confirmStateRoot() external {
-        bytes32 stateRoot = proposedStateRoot[lastConfirmedEpoch.increment()];
+        lastConfirmedEpoch = lastConfirmedEpoch.increment();
+
+        bytes32 stateRoot = proposedStateRoot[lastConfirmedEpoch];
         uint256 blockNumber = proposalBlock[stateRoot];
 
         if (block.number < blockNumber + CONFIRMATION_BLOCKS) revert();
-        if (fraudulent[stateRoot]) revert();
+        if (fraudulent[lastConfirmedEpoch][stateRoot]) revert();
 
-        lastConfirmedEpoch = lastConfirmedEpoch.increment();
         confirmedStateRoot[lastConfirmedEpoch] = stateRoot;
     }
 
@@ -152,16 +153,27 @@ contract Rollup is IRollup {
     }
 
     function requestSettlement(address, address) external returns (uint256) {
-        if(msg.sender != manager.portal()) revert CALLER_NOT_PORTAL(msg.sender, manager.portal());
+        if (msg.sender != manager.portal()) revert CALLER_NOT_PORTAL(msg.sender, manager.portal());
         nextRequestId = nextRequestId.increment();
         unchecked {
             return Id.unwrap(nextRequestId) - 1;
         }
     }
 
+    function markFraudulent(uint256 _epoch) external {
+        if(msg.sender != IBaseManager(address(manager)).fraudEngine()) revert();
+        // if (fraudulent[proposedStateRoot[_epoch]]) revert();
+        fraudulent[Id.wrap(_epoch)][proposedStateRoot[Id.wrap(_epoch)]] = true;
+    }
+
     function getConfirmedStateRoot(uint256 _epoch) external view returns (bytes32 root) {
         root = confirmedStateRoot[Id.wrap(_epoch)];
         if (root == "") revert EPOCH_NOT_CONFIRMED();
+    }
+
+    function getProposedStateRoot(uint256 _epoch) external view returns (bytes32 root) {
+        root = proposedStateRoot[Id.wrap(_epoch)];
+        if (root == "") revert();
     }
 
     function getCurrentEpoch() external view returns (uint256) {

@@ -11,6 +11,7 @@ import "../CrossChain/Relayer.sol";
 
 contract BaseManager is Manager, IBaseManager {
     address public immutable rollup;
+    address public immutable fraudEngine;
     address public immutable collateral;
     address public relayer;
 
@@ -25,7 +26,8 @@ contract BaseManager is Manager, IBaseManager {
     )
         Manager(_participatingInterface, _admin, _validator)
     {
-        rollup = address(new FraudEngine(_participatingInterface, address(this)));
+        rollup = address(new Rollup(_participatingInterface, address(this)));
+        fraudEngine = address(new FraudEngine(_participatingInterface, address(this)));
         collateral = address(new Collateral(_participatingInterface, address(this), _stablecoin, _protocolToken));
     }
 
