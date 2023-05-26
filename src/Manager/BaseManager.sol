@@ -8,11 +8,13 @@ import "../Rollup/Collateral.sol";
 import "../Rollup/FraudEngine.sol";
 import "./IBaseManager.sol";
 import "../CrossChain/Relayer.sol";
+import "../Portal/WalletDelegation.sol";
 
 contract BaseManager is Manager, IBaseManager {
     address public immutable rollup;
     address public immutable fraudEngine;
     address public immutable collateral;
+    address public immutable walletDelegation;
     address public relayer;
 
     mapping(uint256 => address) public receivers;
@@ -29,6 +31,7 @@ contract BaseManager is Manager, IBaseManager {
         rollup = address(new Rollup(_participatingInterface, address(this)));
         fraudEngine = address(new FraudEngine(_participatingInterface, address(this)));
         collateral = address(new Collateral(_participatingInterface, address(this), _stablecoin, _protocolToken));
+        walletDelegation = address(new WalletDelegation(_participatingInterface, address(this)));
     }
 
     function deployRelayer(

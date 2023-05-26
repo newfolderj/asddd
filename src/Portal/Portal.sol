@@ -5,6 +5,7 @@ pragma solidity ^0.8.19;
 import "./IPortal.sol";
 import "../StateUpdateLibrary.sol";
 import "../Manager/IManager.sol";
+import "../Manager/IBaseManager.sol";
 import "../Rollup/IRollup.sol";
 import "../util/Id.sol";
 import "@openzeppelin/token/ERC20/IERC20.sol";
@@ -131,12 +132,21 @@ contract Portal is IPortal {
         }
 
         if (_token == address(0)) {
-            (bool success,) = msg.sender.call{value: _amount}("");
+            (bool success,) = msg.sender.call{ value: _amount }("");
             if (!success) revert TRANSFER_FAILED_WITHDRAW();
         } else {
             if (!IERC20(_token).transfer(msg.sender, _amount)) revert TOKEN_TRANSFER_FAILED_WITHDRAW();
         }
         emit Withdraw(msg.sender, _amount, _token);
+    }
+
+    // Called by other contracts to assign a chain sequence number to an event
+    function sequenceEvent() external returns (uint256 _chainSequenceId) {
+        // Can only be called by WalletDelegation and FeeManager
+        // On a child chain, this call should fail
+        if(msg.sender != IBaseManager(address(manager)).walletDelegation()) revert();
+        _chainSequenceId = Id.unwrap(chainSequenceId);
+        chainSequenceId = chainSequenceId.increment();
     }
 
     function getAvailableBalance(address _trader, address _token) external view returns (uint256) {
