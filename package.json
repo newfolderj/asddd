@@ -7,9 +7,11 @@
     "url": "https://gitlab.com/arseniy-tacen"
   },
   "devDependencies": {
+    "@typechain/ethers-v5": "^11.0.0",
     "prettier": "^2.8.7",
     "solhint": "^3.4.0",
     "ts-node": "^10.9.1",
+    "typechain": "^8.2.0",
     "typescript": "^5.0.4"
   },
   "keywords": [],
@@ -20,7 +22,8 @@
     "lint:sol": "forge fmt --check && npm solhint \"{script,src,test}/**/*.sol\"",
     "prettier:check": "prettier --check \"**/*.{json,md,yml}\"",
     "prettier:write": "prettier --write \"**/*.{json,md,yml}\"",
-    "axelar:deploy": "ts-node axelar/index.ts"
+    "axelar:deploy": "ts-node axelar/index.ts",
+    "typechain": "npx typechain --target=ethers-v5 ./out/Portal.sol/Portal.json"
   },
   "dependencies": {
     "@axelar-network/axelar-local-dev": "github:axelarnetwork/axelar-local-dev"
