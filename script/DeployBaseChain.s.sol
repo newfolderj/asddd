@@ -13,7 +13,9 @@ contract DeployBaseChain is Script {
     BaseManager internal manager;
 
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        uint256 deployerPrivateKey = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
+        uint256 alicePk = 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d;
+        uint256 bobPk = 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a;
         // string[] memory chainNames = new string[](1);
         // Id[] memory chainIds = new Id[](1);
         // chainNames[0] = "Polygon";
@@ -36,6 +38,17 @@ contract DeployBaseChain is Script {
         //     _chainNames: chainNames,
         //     _chainIds: chainIds
         // });
+        vm.stopBroadcast();
+
+        Portal portal = Portal(manager.portal());
+
+        // Depoist native asset as Alice and bob
+        vm.startBroadcast(alicePk);
+        portal.depositNativeAsset{ value: 1 ether }();
+        vm.stopBroadcast();
+
+        vm.startBroadcast(bobPk);
+        portal.depositNativeAsset{ value: 1 ether }();
         vm.stopBroadcast();
 
         string memory obj1 = '{"manager":"","portal":"","rollup":""}';
