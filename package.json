@@ -12,7 +12,8 @@
     "solhint": "^3.4.0",
     "ts-node": "^10.9.1",
     "typechain": "^8.2.0",
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "husky": "^8.0.0"
   },
   "keywords": [],
   "private": true,
@@ -23,7 +24,8 @@
     "prettier:check": "prettier --check \"**/*.{json,md,yml}\"",
     "prettier:write": "prettier --write \"**/*.{json,md,yml}\"",
     "axelar:deploy": "ts-node axelar/index.ts",
-    "typechain": "npx typechain --target=ethers-v5 ./out/Portal.sol/Portal.json"
+    "typechain": "npx typechain --target=ethers-v5 ./out/Portal.sol/Portal.json",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@axelar-network/axelar-local-dev": "github:axelarnetwork/axelar-local-dev"
