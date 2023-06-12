@@ -198,6 +198,24 @@ contract BaseTest is Test {
         );
     }
 
+    function feeStateUpdate(
+        uint256 _feeSequenceId,
+        uint256 _newMakerFee,
+        uint256 _newTakerFee,
+        uint256 _lastFeeUpdate,
+        uint256 _stateUpdateId
+    )
+        internal
+        view
+        returns (StateUpdateLibrary.StateUpdate memory)
+    {
+        StateUpdateLibrary.FeeUpdate memory feeUpdate =
+            StateUpdateLibrary.FeeUpdate(_feeSequenceId, _newMakerFee, _newTakerFee, _lastFeeUpdate);
+        return StateUpdateLibrary.StateUpdate(
+            StateUpdateLibrary.TYPE_ID_FeeUpdate, Id.wrap(_stateUpdateId), participatingInterface, abi.encode(feeUpdate)
+        );
+    }
+
     function signStateUpdate(StateUpdateLibrary.StateUpdate memory _stateUpdate)
         internal
         view

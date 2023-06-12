@@ -3,14 +3,15 @@
 pragma solidity ^0.8.19;
 
 import "./Manager.sol";
+import "./FeeManager.sol";
+import "./IBaseManager.sol";
 import "../Rollup/Rollup.sol";
 import "../Rollup/Collateral.sol";
 import "../Rollup/FraudEngine.sol";
-import "./IBaseManager.sol";
 import "../CrossChain/Relayer.sol";
 import "../Portal/WalletDelegation.sol";
 
-contract BaseManager is Manager, IBaseManager {
+contract BaseManager is Manager, IBaseManager, FeeManager {
     address public immutable rollup;
     address public immutable fraudEngine;
     address public immutable collateral;
@@ -62,6 +63,16 @@ contract BaseManager is Manager, IBaseManager {
         for (uint256 i = 0; i < _chainIds.length; i++) {
             receivers[_chainIds[i]] = _receivers[i];
         }
+    }
+
+    function proposeFees(uint256 _makerFee, uint256 _takerFee) external override {
+        if (msg.sender != admin) revert();
+        _proposeFees(_makerFee, _takerFee);
+    }
+
+    function updateFees() external override {
+        if (msg.sender != admin) revert();
+        _updateFees();
     }
 
     function getReceiverAddress(uint256 _chainId) external view returns (address) {

@@ -327,17 +327,16 @@ contract FraudEngine is Signature {
 
     // Avoids stack too deep error
     struct FeeInputProofParams {
-        Id _inputEpoch;
+        Id inputEpoch;
         // Trade or Settlement attempting to use the input
-        StateUpdateLibrary.SignedStateUpdate _inputUpdate;
-        uint256 _inputIndex;
-        bool _tradeOrSettlement;
-        bool _inputSide;
-        Id _epochOutput;
+        StateUpdateLibrary.SignedStateUpdate inputUpdate;
+        uint256 inputIndex;
+        bool tradeOrSettlement;
+        bool inputSide;
         // State update where the corresponding output was generated as a fee
-        StateUpdateLibrary.SignedStateUpdate _outputUpdate;
-        uint256 _outputIndex;
-        bool _outputSide;
+        Id outputEpoch;
+        StateUpdateLibrary.SignedStateUpdate outputUpdate;
+        uint256 outputIndex;
     }
 
     // Show that a fee output was used as an input
@@ -346,14 +345,53 @@ contract FraudEngine is Signature {
         bytes32[] calldata _inputUpdateProof,
         bytes32[] calldata _outputUpdateProof
     )
-        external
-    { }
+        external marksFraudulent(_params.inputEpoch)
+    {
+        // prove inclusion of trade that uses fee as input in root
+        proveStateUpdateInRoot({
+            _epoch: _params.inputEpoch,
+            _stateUpdate: _params.inputUpdate,
+            _proof: _inputUpdateProof
+        });
+        bytes32 utxo;
+        if (_params.tradeOrSettlement) {
+            if (_params.inputUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Trade) revert();
+            StateUpdateLibrary.Trade memory invalidTrade =
+                abi.decode(_params.inputUpdate.stateUpdate.structData, (StateUpdateLibrary.Trade));
+            // Get input UTXO from trade
+            utxo = getUtxoFromTrade({
+                _trade: invalidTrade,
+                _index: _params.inputIndex,
+                _side: _params.inputSide,
+                _inputsOrOutputs: true
+            });
+        } else {
+            if (_params.inputUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Settlement) revert();
+            StateUpdateLibrary.Settlement memory settlement =
+                abi.decode(_params.inputUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
+            // Get input UTXO from settlement
+            utxo = settlement.inputs[_params.inputIndex];
+        }
+
+        // prove inclusion of trade that has above input as a fee output
+        proveStateUpdateInRoot({
+            _epoch: _params.outputEpoch,
+            _stateUpdate: _params.outputUpdate,
+            _proof: _outputUpdateProof
+        });
+        // Get trade
+        if (_params.outputUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Trade) revert();
+        StateUpdateLibrary.Trade memory trade =
+            abi.decode(_params.outputUpdate.stateUpdate.structData, (StateUpdateLibrary.Trade));
+        // Assert that above input is a fee output of the trade
+        if (trade.feeOutputs[_params.outputIndex] != utxo) revert();
+    }
 
     // Proves that a fee output was improperly generated
     function proveInvalidFee(
-        Id _epoch,
-        StateUpdateLibrary.SignedStateUpdate calldata _invalidUpdate,
-        bytes32[] calldata _invalidUpdateProof,
+        Id _tradeEpoch,
+        StateUpdateLibrary.SignedStateUpdate calldata _trade,
+        bytes32[] calldata _tradeProof,
         bool _side,
         uint256 _outputIndex,
         StateUpdateLibrary.UTXO calldata _output,
@@ -363,18 +401,69 @@ contract FraudEngine is Signature {
         StateUpdateLibrary.UTXO calldata _input
     )
         external
-    { 
-        // prove inclusion of update in root
+    {
+        // prove inclusion of trade in root
+        proveStateUpdateInRoot({ _epoch: _tradeEpoch, _stateUpdate: _trade, _proof: _tradeProof });
         // validate that update is a trade
+        if (_trade.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Trade) revert();
+        StateUpdateLibrary.Trade memory trade = abi.decode(_trade.stateUpdate.structData, (StateUpdateLibrary.Trade));
         // prove input, output, and fee output are in trade
-        // determine maker and taker
+
+        // TODO: determine maker and taker
         // validate that input and output/feeOutput match
-        // get fee rate
-        // (get canonical fee rate?)
+        // get fee rate using feeSequenceId
         // mulitply input amount by fee rate
         // assert output = input - calculatedFee
-        // assert feeOutput = calculatedFee
+        // assert feeOutput != calculatedFee
     }
+
+    // Prove that a Trade should be using a different Fee Sequence Id
+    function proveTradeFeeId(
+        Id _tradeEpoch,
+        StateUpdateLibrary.SignedStateUpdate calldata _trade,
+        bytes32[] calldata _tradeProof,
+        // Optional if first condition is triggered
+        Id _feeEpoch,
+        StateUpdateLibrary.SignedStateUpdate calldata _fee,
+        bytes32[] calldata _feeProof,
+        // Optional if 1st or 2nd failure condition is triggered
+        Id _canonFeeEpoch,
+        StateUpdateLibrary.SignedStateUpdate calldata _canonFee,
+        bytes32[] calldata _canonFeeProof
+    )
+        external
+        marksFraudulent(_tradeEpoch)
+    {
+        // prove inclusion of trade in root
+        proveStateUpdateInRoot({ _epoch: _tradeEpoch, _stateUpdate: _trade, _proof: _tradeProof });
+        // Get trade
+        if (_trade.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Trade) revert();
+        StateUpdateLibrary.Trade memory trade = abi.decode(_trade.stateUpdate.structData, (StateUpdateLibrary.Trade));
+        // Failure condition 1: Fee Update referenced by trade is after trade in sequence
+        if (trade.feeUpdateId >= _trade.stateUpdate.sequenceId) return;
+
+        // Prove trade references fee update
+        if (trade.feeUpdateId != _fee.stateUpdate.sequenceId) revert();
+        // prove inclusion of fee update in root
+        proveStateUpdateInRoot({ _epoch: _feeEpoch, _stateUpdate: _fee, _proof: _feeProof });
+        // Failure Condition 2: State update referenced by trade is not a fee update
+        if (_fee.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_FeeUpdate) return;
+
+        // prove inclusion of canon fee in root
+        proveStateUpdateInRoot({ _epoch: _canonFeeEpoch, _stateUpdate: _canonFee, _proof: _canonFeeProof });
+        if (_canonFee.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_FeeUpdate) revert();
+        // Failure Condition 3: Canon fee is more recent than referenced fee
+        if (
+            _trade.stateUpdate.sequenceId > _canonFee.stateUpdate.sequenceId
+                && _canonFee.stateUpdate.sequenceId > _fee.stateUpdate.sequenceId
+        ) return;
+
+        // Reached the end without triggering any failure conditions
+        revert();
+    }
+
+    // Prove that state update referenced by a fee is not a fee update
+    function proveFeeInvalidStateUpdateId() external { }
 
     function proveStateUpdateInRoot(
         Id _epoch,
@@ -388,6 +477,22 @@ contract FraudEngine is Signature {
         // prove element is in stateRoot
         bool valid = MerkleProof.verifyCalldata(_proof, stateRoot, keccak256(abi.encode(_stateUpdate)));
         if (!valid) revert INVALID_MERKLE_PROOF();
+    }
+
+    function getUtxoFromTrade(
+        StateUpdateLibrary.Trade memory _trade,
+        uint256 _index,
+        bool _side,
+        bool _inputsOrOutputs
+    )
+        internal
+        pure
+        returns (bytes32)
+    {
+        bytes32[] memory hashes = _side
+            ? (_inputsOrOutputs ? _trade.inputsA : _trade.outputsA)
+            : (_inputsOrOutputs ? _trade.inputsB : _trade.outputsB);
+        return hashes[_index];
     }
 
     function proveUtxoInTrade(
