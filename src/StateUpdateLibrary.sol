@@ -8,9 +8,10 @@ library StateUpdateLibrary {
     uint8 public constant TYPE_ID_DepositAcknowledgement = 0x00;
     uint8 public constant TYPE_ID_Trade = 0x01;
     uint8 public constant TYPE_ID_Settlement = 0x02;
-    uint8 public constant TYPE_ID_InitializeSettings = 0x03;
-    uint8 public constant TYPE_ID_Ping = 0x04;
-    uint8 public constant TYPE_ID_NewProduct = 0x05;
+    uint8 public constant TYPE_ID_FeeUpdate = 0x03;
+    // uint8 public constant TYPE_ID_InitializeSettings = 0x03;
+    // uint8 public constant TYPE_ID_Ping = 0x04;
+    // uint8 public constant TYPE_ID_NewProduct = 0x05;
 
     struct Signature {
         uint8 v;
@@ -38,6 +39,8 @@ library StateUpdateLibrary {
      * 2. DepositAcknowledgement
      * 3. Trade
      * 4. SettlementAcknowledgement
+     * 5. FeeUpdate
+     * 6. DelegationAcknowledgement
      */
     struct InitializeSettings {
         address tradeSigningKey;
@@ -47,6 +50,14 @@ library StateUpdateLibrary {
         uint256 feeDenominator;
     }
 
+    struct FeeUpdate {
+        uint256 feeSequenceId;
+        uint256 newMakerFee;
+        uint256 newTakerFee;
+        // State Update ID which has the FeeUpdate with feeSquenceId - 1
+        uint256 lastFeeUpdate;
+    }
+
     struct DepositAcknowledgement {
         Deposit deposit;
         bytes32 depositUtxo;
@@ -54,11 +65,13 @@ library StateUpdateLibrary {
     }
 
     struct Trade {
+        Id feeUpdateId; // Sequence ID of FeeUpdate canonical to this trade
         TradeParams params;
         bytes32[] inputsA;
         bytes32[] inputsB;
         bytes32[] outputsA;
         bytes32[] outputsB;
+        bytes32[] feeOutputs;
     }
 
     struct Settlement {

@@ -3,17 +3,30 @@
 pragma solidity ^0.8.19;
 
 import "@openzeppelin/utils/math/Math.sol";
+import "../util/Id.sol";
 
 abstract contract FeeManager {
-    uint256 public constant BASE = 10;
-    uint256 public constant DENOMINATOR = 10**BASE;
-    uint256 public constant ONE_PERCENT_NUMERATOR = 10**(BASE - 2);     // 1.00%
-    uint256 public constant ONE_BPS_NUMERATOR = 10**(BASE - 4);         // 0.01%
+    using IdLib for Id;
 
-    uint256 public constant MAX_FEE_NUMERATOR = 5 * (10**(BASE - 3));   // 0.50%
-    uint256 public constant MIN_FEE_NUMERATOR = ONE_BPS_NUMERATOR;      // 0.01%
-    uint256 makerFee = 5 * ONE_BPS_NUMERATOR;
-    uint256 takerFee = 5 * ONE_BPS_NUMERATOR;
+    struct TradingFees {
+        uint256 makerFee;
+        uint256 takerFee;
+    }
+
+    uint256 public constant BASE = 10;
+    uint256 public constant DENOMINATOR = 10 ** BASE;
+    uint256 public constant ONE_PERCENT_NUMERATOR = 10 ** (BASE - 2); // 1.00%
+    uint256 public constant ONE_BPS_NUMERATOR = 10 ** (BASE - 4); // 0.01%
+
+    uint256 public constant MAX_FEE_NUMERATOR = 5 * (10 ** (BASE - 3)); // 0.50%
+    uint256 public constant MIN_FEE_NUMERATOR = ONE_BPS_NUMERATOR; // 0.01%
+
+    uint256 proposalTime = type(uint256).max;
+    TradingFees public currentFees = TradingFees(1 * ONE_BPS_NUMERATOR, 5 * ONE_BPS_NUMERATOR);
+    TradingFees public proposedFees = currentFees;
+    Id public feeSequenceId = ID_ZERO;
+    mapping(Id => TradingFees) public feeHistory;
+    uint256 public constant FEE_TIMEOUT = 1 days;
 
     // Determines which percentage of fees go to the settlement layer.
     // Remaining goes to the participating interface.
@@ -22,27 +35,35 @@ abstract contract FeeManager {
     // Determines how much of settlement fee goes to the insurance fund.
     uint256 insuranceFundFee = 50 * ONE_PERCENT_NUMERATOR;
 
-    event UpdateMakerFee();
-    event UpdateTakerFee();
+    event FeesProposed(uint256 makerFee, uint256 takerFee);
+    event FeesUpdated(Id indexed feeSequenceId, uint256 makerFee, uint256 takerFee);
 
-    function setMakerFee(uint256 _makerFee) external virtual;
-    function setTakerFee(uint256 _takerFee) external virtual;
+    constructor() {
+        feeHistory[ID_ZERO] = currentFees;
+        emit FeesUpdated(ID_ZERO, currentFees.makerFee, currentFees.takerFee);
+    }
 
-    modifier withinFeeLimits(uint256 _fee) {
-        if(_fee > MAX_FEE_NUMERATOR) revert();
-        if(_fee < MIN_FEE_NUMERATOR) revert();
+    function proposeFees(uint256 _makerFee, uint256 _takerFee) external virtual;
+    function updateFees() external virtual;
+
+    modifier withinFeeLimits(uint256 _makerFee, uint256 _takerFee) {
+        if (_takerFee > MAX_FEE_NUMERATOR || _makerFee > MAX_FEE_NUMERATOR) revert();
+        if (_takerFee != 0 && _takerFee < MIN_FEE_NUMERATOR) revert();
+        if (_makerFee != 0 && _makerFee < MIN_FEE_NUMERATOR) revert();
         _;
     }
 
-    function _setMakerFee(uint256 _makerFee) withinFeeLimits(_makerFee) internal {
-        makerFee = _makerFee;
-        // TODO: get and bump chain sequence ID
-        emit UpdateMakerFee();
+    function _proposeFees(uint256 _makerFee, uint256 _takerFee) internal withinFeeLimits(_makerFee, _takerFee) {
+        proposedFees = TradingFees(_makerFee, _takerFee);
+        proposalTime = block.timestamp;
+        emit FeesProposed(_makerFee, _takerFee);
     }
 
-    function _setTakerFee(uint256 _takerFee) withinFeeLimits(_takerFee) internal {
-        takerFee = _takerFee;
-        // TODO: get and bump chain sequence ID
-        emit UpdateTakerFee();
+    function _updateFees() internal {
+        if (block.timestamp < proposalTime + FEE_TIMEOUT) revert();
+        currentFees = proposedFees;
+        feeSequenceId = feeSequenceId.increment();
+        feeHistory[feeSequenceId] = proposedFees;
+        emit FeesUpdated(feeSequenceId, proposedFees.makerFee, proposedFees.takerFee);
     }
 }

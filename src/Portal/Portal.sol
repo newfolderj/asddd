@@ -144,7 +144,10 @@ contract Portal is IPortal {
     function sequenceEvent() external returns (uint256 _chainSequenceId) {
         // Can only be called by WalletDelegation and FeeManager
         // On a child chain, this call should fail
-        if(msg.sender != IBaseManager(address(manager)).walletDelegation()) revert();
+        if (!(msg.sender == IBaseManager(address(manager)).walletDelegation() || msg.sender == address(manager))) {
+            revert();
+        }
+        // Return current ID before incrementing
         _chainSequenceId = Id.unwrap(chainSequenceId);
         chainSequenceId = chainSequenceId.increment();
     }

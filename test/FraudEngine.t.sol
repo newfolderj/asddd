@@ -140,12 +140,15 @@ contract FraudEngineTest is BaseTest {
             hashedOutputsB[0] = keccak256(abi.encode(outputsB[0]));
             outputsB[0] = utxoToTradeUtxo({ _input: inputsB[0], _stateUpdateIdTrade: 2, _recipient: alice });
 
+            bytes32[] memory feeOutputs = new bytes32[](1);
+
             // Create trade object
             uint256 size = 1 ether;
             uint256 price = 1;
             StateUpdateLibrary.Product memory product =
                 StateUpdateLibrary.Product(address(0), block.chainid, address(token), block.chainid);
             StateUpdateLibrary.Trade memory trade = StateUpdateLibrary.Trade(
+                ID_ZERO,
                 StateUpdateLibrary.TradeParams(
                     participatingInterface,
                     signOrder(StateUpdateLibrary.Order(product, true, size, price), aliceKey),
@@ -157,7 +160,8 @@ contract FraudEngineTest is BaseTest {
                 hashedInputsA,
                 hashedInputsB,
                 hashedOutputsA,
-                hashedOutputsB
+                hashedOutputsB,
+                feeOutputs
             );
             StateUpdateLibrary.StateUpdate memory tradeStateUpdate = tradeToStateUpdate(trade, 2);
             stateUpdate = signStateUpdate(tradeStateUpdate);
@@ -224,6 +228,7 @@ contract FraudEngineTest is BaseTest {
             bytes32[] memory hashedOutputsB = new bytes32[](1);
             hashedOutputsB[0] = keccak256(abi.encode(outputsB[0]));
             outputsB[0] = utxoToTradeUtxo({ _input: inputsB[0], _stateUpdateIdTrade: 2, _recipient: alice });
+            bytes32[] memory feeOutputs = new bytes32[](1);
 
             // Create trade object
             uint256 size = 1 ether;
@@ -231,6 +236,7 @@ contract FraudEngineTest is BaseTest {
             StateUpdateLibrary.Product memory product =
                 StateUpdateLibrary.Product(address(0), block.chainid, address(token), block.chainid);
             StateUpdateLibrary.Trade memory trade = StateUpdateLibrary.Trade(
+                ID_ZERO,
                 StateUpdateLibrary.TradeParams(
                     participatingInterface,
                     signOrder(StateUpdateLibrary.Order(product, true, size, price), aliceKey),
@@ -242,7 +248,8 @@ contract FraudEngineTest is BaseTest {
                 hashedInputsA,
                 hashedInputsB,
                 hashedOutputsA,
-                hashedOutputsB
+                hashedOutputsB,
+                feeOutputs
             );
             StateUpdateLibrary.StateUpdate memory tradeStateUpdate = tradeToStateUpdate(trade, 2);
             stateUpdate = signStateUpdate(tradeStateUpdate);
@@ -305,6 +312,7 @@ contract FraudEngineTest is BaseTest {
             bytes32[] memory hashedOutputsB = new bytes32[](1);
             hashedOutputsB[0] = keccak256(abi.encode(outputsB[0]));
             outputsB[0] = utxoToTradeUtxo({ _input: inputsB[0], _stateUpdateIdTrade: 2, _recipient: alice });
+            bytes32[] memory feeOutputs = new bytes32[](1);
 
             // Create trade object
             uint256 size = 1 ether;
@@ -312,6 +320,7 @@ contract FraudEngineTest is BaseTest {
             StateUpdateLibrary.Product memory product =
                 StateUpdateLibrary.Product(address(0), block.chainid, address(token), block.chainid);
             StateUpdateLibrary.Trade memory trade = StateUpdateLibrary.Trade(
+                ID_ZERO,
                 StateUpdateLibrary.TradeParams(
                     participatingInterface,
                     signOrder(StateUpdateLibrary.Order(product, true, size, price), aliceKey),
@@ -323,7 +332,8 @@ contract FraudEngineTest is BaseTest {
                 hashedInputsA,
                 hashedInputsB,
                 hashedOutputsA,
-                hashedOutputsB
+                hashedOutputsB,
+                feeOutputs
             );
             StateUpdateLibrary.StateUpdate memory t = tradeToStateUpdate(trade, 2);
             tradeStateUpdate = signStateUpdate(t);
@@ -400,6 +410,7 @@ contract FraudEngineTest is BaseTest {
             bytes32[] memory hashedOutputsB = new bytes32[](1);
             hashedOutputsB[0] = keccak256(abi.encode(outputsB[0]));
             outputsB[0] = utxoToTradeUtxo({ _input: inputsB[0], _stateUpdateIdTrade: 2, _recipient: alice });
+            bytes32[] memory feeOutputs = new bytes32[](1);
 
             // Create trade object
             uint256 size = 1 ether;
@@ -407,6 +418,7 @@ contract FraudEngineTest is BaseTest {
             StateUpdateLibrary.Product memory product =
                 StateUpdateLibrary.Product(address(0), block.chainid, address(token), block.chainid);
             StateUpdateLibrary.Trade memory trade = StateUpdateLibrary.Trade(
+                ID_ZERO,
                 StateUpdateLibrary.TradeParams(
                     participatingInterface,
                     signOrder(StateUpdateLibrary.Order(product, true, size, price), aliceKey),
@@ -418,7 +430,8 @@ contract FraudEngineTest is BaseTest {
                 hashedInputsA,
                 hashedInputsB,
                 hashedOutputsA,
-                hashedOutputsB
+                hashedOutputsB,
+                feeOutputs
             );
             StateUpdateLibrary.StateUpdate memory t = tradeToStateUpdate(trade, 2);
             tradeStateUpdate = signStateUpdate(t);
@@ -456,5 +469,345 @@ contract FraudEngineTest is BaseTest {
 
         // State root should be flagged as fraudulent
         assert(rollup.fraudulent(ID_ONE, merkleLib.getRoot(data)));
+    }
+
+    function test_proveTradeFeeIdCondition1() external {
+        // Condition 1: Fee update referenced by trade is after trade in sequence
+        // Propose state root with Trade that references a later state update as FeeUpdate
+        bytes32[] memory data = new bytes32[](2);
+        bytes32[] memory hashedInputsA = new bytes32[](1);
+        StateUpdateLibrary.SignedStateUpdate memory tradeStateUpdate;
+        uint256 tradeSequenceId = 0;
+        Id feeSequenceId = ID_ONE;
+        {
+            bytes32[] memory hashedInputsB = new bytes32[](1);
+            bytes32[] memory hashedOutputsA = new bytes32[](1);
+            bytes32[] memory hashedOutputsB = new bytes32[](1);
+            bytes32[] memory feeOutputs = new bytes32[](1);
+            // Create trade object
+            uint256 size = 1 ether;
+            uint256 price = 1;
+            StateUpdateLibrary.Product memory product =
+                StateUpdateLibrary.Product(address(0), block.chainid, address(token), block.chainid);
+            StateUpdateLibrary.Trade memory trade = StateUpdateLibrary.Trade(
+                feeSequenceId,
+                StateUpdateLibrary.TradeParams(
+                    participatingInterface,
+                    signOrder(StateUpdateLibrary.Order(product, true, size, price), aliceKey),
+                    signOrder(StateUpdateLibrary.Order(product, false, size, price), bobKey),
+                    product,
+                    size,
+                    price
+                ),
+                hashedInputsA,
+                hashedInputsB,
+                hashedOutputsA,
+                hashedOutputsB,
+                feeOutputs
+            );
+            StateUpdateLibrary.StateUpdate memory t = tradeToStateUpdate(trade, tradeSequenceId);
+            tradeStateUpdate = signStateUpdate(t);
+        }
+
+        data[0] = keccak256(abi.encode(tradeStateUpdate));
+        // Need minimum 2 leaves
+        data[1] = keccak256(abi.encode(0));
+
+        // Propose state root as validator
+        Id epoch = rollup.epoch();
+        vm.startPrank(validator);
+        rollup.proposeStateRoot(merkleLib.getRoot(data));
+        vm.stopPrank();
+
+        // Report fraud
+        bytes32[] memory proof = merkleLib.getProof(data, 0);
+
+        fraudEngine.proveTradeFeeId(
+            epoch,
+            tradeStateUpdate,
+            proof,
+            // Reuse above arguments since the function should return before checking them
+            epoch,
+            tradeStateUpdate,
+            proof,
+            epoch,
+            tradeStateUpdate,
+            proof
+        );
+
+        // State root should be flagged as fraudulent
+        assert(rollup.fraudulent(epoch, merkleLib.getRoot(data)));
+    }
+
+    function test_proveTradeFeeIdCondition2() external {
+        // Condition 2: State update referenced by fee is not a fee update
+
+        // Propose state root with Trade that references a state update which isn't a FeeUpdate
+        bytes32[] memory data = new bytes32[](2);
+
+        // Deposit state update that is before the Trade in sequence, to avoid condition 1
+        StateUpdateLibrary.SignedStateUpdate memory depositStateUpdate = signStateUpdate(
+            depositStateUpdate(
+                StateUpdateLibrary.Deposit(
+                    alice, address(0), participatingInterface, 1 ether, ID_ZERO, Id.wrap(block.chainid)
+                ),
+                0
+            )
+        );
+        data[0] = keccak256(abi.encode(depositStateUpdate));
+        // We don't check inputs/outputs for this type of fraud, so they can all be empty
+        bytes32[] memory empty = new bytes32[](1);
+        StateUpdateLibrary.SignedStateUpdate memory tradeStateUpdate;
+        {
+            uint256 tradeSequenceId = 1;
+            Id feeSequenceId = ID_ZERO;
+            // Create trade object
+            uint256 size = 1 ether;
+            uint256 price = 1;
+            StateUpdateLibrary.Product memory product =
+                StateUpdateLibrary.Product(address(0), block.chainid, address(token), block.chainid);
+            StateUpdateLibrary.Trade memory trade = StateUpdateLibrary.Trade(
+                feeSequenceId,
+                StateUpdateLibrary.TradeParams(
+                    participatingInterface,
+                    signOrder(StateUpdateLibrary.Order(product, true, size, price), aliceKey),
+                    signOrder(StateUpdateLibrary.Order(product, false, size, price), bobKey),
+                    product,
+                    size,
+                    price
+                ),
+                empty,
+                empty,
+                empty,
+                empty,
+                empty
+            );
+            StateUpdateLibrary.StateUpdate memory t = tradeToStateUpdate(trade, tradeSequenceId);
+            tradeStateUpdate = signStateUpdate(t);
+        }
+
+        data[1] = keccak256(abi.encode(tradeStateUpdate));
+
+        // Propose state root as validator
+        Id epoch = rollup.epoch();
+        vm.startPrank(validator);
+        rollup.proposeStateRoot(merkleLib.getRoot(data));
+        vm.stopPrank();
+
+        // Report fraud
+        bytes32[] memory tradeProof = merkleLib.getProof(data, 1);
+        bytes32[] memory feeProof = merkleLib.getProof(data, 0);
+        fraudEngine.proveTradeFeeId(
+            epoch,
+            tradeStateUpdate,
+            tradeProof,
+            epoch,
+            depositStateUpdate,
+            feeProof,
+            // Reuse above arguments since the function should return before checking them
+            epoch,
+            depositStateUpdate,
+            feeProof
+        );
+
+        // State root should be flagged as fraudulent
+        assert(rollup.fraudulent(epoch, merkleLib.getRoot(data)));
+    }
+
+    function test_proveTradeFeeIdCondition3() external {
+        // Condition 3: Canon fee for trade is more recent than referenced fee
+        // Propose state root with FeeUpdate0, FeeUpdate1, Trade. Trade references FeeUpdate0.
+        bytes32[] memory data = new bytes32[](3);
+
+        // First FeeUpdate
+        StateUpdateLibrary.SignedStateUpdate memory oldFeeStateUpdate = signStateUpdate(
+            feeStateUpdate({ _feeSequenceId: 0, _newMakerFee: 0, _newTakerFee: 0, _lastFeeUpdate: 0, _stateUpdateId: 0 })
+        );
+        StateUpdateLibrary.SignedStateUpdate memory canonFeeStateUpdate = signStateUpdate(
+            feeStateUpdate({ _feeSequenceId: 1, _newMakerFee: 0, _newTakerFee: 0, _lastFeeUpdate: 0, _stateUpdateId: 1 })
+        );
+        data[0] = keccak256(abi.encode(oldFeeStateUpdate));
+        data[1] = keccak256(abi.encode(canonFeeStateUpdate));
+
+        // We don't check inputs/outputs for this type of fraud, so they can all be empty
+        bytes32[] memory empty = new bytes32[](1);
+        StateUpdateLibrary.SignedStateUpdate memory tradeStateUpdate;
+        {
+            uint256 tradeSequenceId = 2;
+            // References FeeUpdate at sequence ID 0, even though sequence ID 1 is more recent.
+            Id feeSequenceId = ID_ZERO;
+            // Create trade object
+            uint256 size = 1 ether;
+            uint256 price = 1;
+            StateUpdateLibrary.Product memory product =
+                StateUpdateLibrary.Product(address(0), block.chainid, address(token), block.chainid);
+            StateUpdateLibrary.Trade memory trade = StateUpdateLibrary.Trade(
+                feeSequenceId,
+                StateUpdateLibrary.TradeParams(
+                    participatingInterface,
+                    signOrder(StateUpdateLibrary.Order(product, true, size, price), aliceKey),
+                    signOrder(StateUpdateLibrary.Order(product, false, size, price), bobKey),
+                    product,
+                    size,
+                    price
+                ),
+                empty,
+                empty,
+                empty,
+                empty,
+                empty
+            );
+            StateUpdateLibrary.StateUpdate memory t = tradeToStateUpdate(trade, tradeSequenceId);
+            tradeStateUpdate = signStateUpdate(t);
+        }
+
+        data[2] = keccak256(abi.encode(tradeStateUpdate));
+
+        // Propose state root as validator
+        Id epoch = rollup.epoch();
+        vm.startPrank(validator);
+        rollup.proposeStateRoot(merkleLib.getRoot(data));
+        vm.stopPrank();
+
+        // Report fraud
+        bytes32[] memory tradeProof = merkleLib.getProof(data, 2);
+        bytes32[] memory oldFeeProof = merkleLib.getProof(data, 0);
+        bytes32[] memory canonFeeProof = merkleLib.getProof(data, 1);
+        fraudEngine.proveTradeFeeId(
+            epoch,
+            tradeStateUpdate,
+            tradeProof,
+            epoch,
+            oldFeeStateUpdate,
+            oldFeeProof,
+            epoch,
+            canonFeeStateUpdate,
+            canonFeeProof
+        );
+
+        // State root should be flagged as fraudulent
+        assert(rollup.fraudulent(epoch, merkleLib.getRoot(data)));
+    }
+
+    function test_proveFeeInput() external {
+        // Create a trade that generates a fee output
+        // Create a subsequent trade that attempts to use the fee output as an input
+        // Create a subsequent settlement that attempts to use the fee output as an input
+        bytes32[] memory data = new bytes32[](2);
+
+        bytes32[] memory empty = new bytes32[](1);
+        bytes32[] memory feeOutputs = new bytes32[](1);
+        feeOutputs[0] = keccak256(abi.encode(0));
+        StateUpdateLibrary.SignedStateUpdate memory tradeStateUpdate;
+        {
+            uint256 tradeSequenceId = 0;
+            // Create trade object
+            uint256 size = 1 ether;
+            uint256 price = 1;
+            StateUpdateLibrary.Product memory product =
+                StateUpdateLibrary.Product(address(0), block.chainid, address(token), block.chainid);
+            StateUpdateLibrary.Trade memory trade = StateUpdateLibrary.Trade(
+                ID_ZERO,
+                StateUpdateLibrary.TradeParams(
+                    participatingInterface,
+                    signOrder(StateUpdateLibrary.Order(product, true, size, price), aliceKey),
+                    signOrder(StateUpdateLibrary.Order(product, false, size, price), bobKey),
+                    product,
+                    size,
+                    price
+                ),
+                empty,
+                empty,
+                empty,
+                empty,
+                feeOutputs
+            );
+            StateUpdateLibrary.StateUpdate memory t = tradeToStateUpdate(trade, tradeSequenceId);
+            tradeStateUpdate = signStateUpdate(t);
+        }
+
+        StateUpdateLibrary.SignedStateUpdate memory invalidTradeStateUpdate;
+        {
+            uint256 tradeSequenceId = 1;
+            // Create trade object
+            uint256 size = 1 ether;
+            uint256 price = 1;
+            StateUpdateLibrary.Product memory product =
+                StateUpdateLibrary.Product(address(0), block.chainid, address(token), block.chainid);
+            StateUpdateLibrary.Trade memory trade = StateUpdateLibrary.Trade(
+                ID_ZERO,
+                StateUpdateLibrary.TradeParams(
+                    participatingInterface,
+                    signOrder(StateUpdateLibrary.Order(product, true, size, price), aliceKey),
+                    signOrder(StateUpdateLibrary.Order(product, false, size, price), bobKey),
+                    product,
+                    size,
+                    price
+                ),
+                // using the fee output from last trade as an input
+                feeOutputs,
+                empty,
+                empty,
+                empty,
+                empty
+            );
+            StateUpdateLibrary.StateUpdate memory t = tradeToStateUpdate(trade, tradeSequenceId);
+            invalidTradeStateUpdate = signStateUpdate(t);
+        }
+
+        data[0] = keccak256(abi.encode(tradeStateUpdate));
+        data[1] = keccak256(abi.encode(invalidTradeStateUpdate));
+
+        bytes32[] memory _outputUpdateProof = merkleLib.getProof(data, 0);
+        Id epoch = rollup.epoch();
+        {
+            uint256 snapshot = vm.snapshot();
+
+            // Propose state root as validator
+            vm.startPrank(validator);
+            rollup.proposeStateRoot(merkleLib.getRoot(data));
+            vm.stopPrank();
+
+            // struct FeeInputProofParams {
+            //     Id inputEpoch;
+            //     StateUpdateLibrary.SignedStateUpdate inputUpdate;
+            //     uint256 inputIndex;
+            //     bool tradeOrSettlement;
+            //     bool inputSide;
+            //     Id outputEpoch;
+            //     StateUpdateLibrary.SignedStateUpdate outputUpdate;
+            //     uint256 outputIndex;
+            // }
+            FraudEngine.FeeInputProofParams memory params = FraudEngine.FeeInputProofParams(
+                epoch, invalidTradeStateUpdate, 0, true, true, epoch, tradeStateUpdate, 0
+            );
+
+            fraudEngine.proveFeeInput(params, merkleLib.getProof(data, 1), _outputUpdateProof);
+
+            // State root should be flagged as fraudulent
+            assert(rollup.fraudulent(epoch, merkleLib.getRoot(data)));
+
+            // Revert to snapshot and repeat test for settlement
+            vm.revertTo(snapshot);
+        }
+        // Create settlement state update that uses fee output as an input
+        StateUpdateLibrary.StateUpdate memory settlementAck =
+            settlementStateUpdate(alice, address(0), ID_ZERO, ID_ZERO, 1, feeOutputs);
+        StateUpdateLibrary.SignedStateUpdate memory invalidSettlementStateUpdate = signStateUpdate(settlementAck);
+        data[1] = keccak256(abi.encode(invalidSettlementStateUpdate));
+
+        // Propose state root as validator
+        vm.startPrank(validator);
+        rollup.proposeStateRoot(merkleLib.getRoot(data));
+        vm.stopPrank();
+
+        FraudEngine.FeeInputProofParams memory params = FraudEngine.FeeInputProofParams(
+            epoch, invalidSettlementStateUpdate, 0, false, true, epoch, tradeStateUpdate, 0
+        );
+
+        fraudEngine.proveFeeInput(params, merkleLib.getProof(data, 1), merkleLib.getProof(data, 0));
+
+        // State root should be flagged as fraudulent
+        assert(rollup.fraudulent(epoch, merkleLib.getRoot(data)));
     }
 }
