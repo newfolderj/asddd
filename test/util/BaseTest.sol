@@ -5,6 +5,8 @@ pragma solidity ^0.8.19;
 import { Test } from "forge-std/Test.sol";
 
 import "../../src/Manager/BaseManager.sol";
+import "../../src/Rollup/Collateral.sol";
+import "../../src/Rollup/FraudEngine.sol";
 import "../../src/util/Signature.sol";
 import "@openzeppelin/token/ERC20/ERC20.sol";
 import "@murky/Merkle.sol";
@@ -242,8 +244,12 @@ contract BaseTest is Test {
         });
         portal = Portal(manager.portal());
         rollup = Rollup(manager.rollup());
-        collateral = Collateral(manager.collateral());
-        fraudEngine = FraudEngine(manager.fraudEngine());
+        vm.startPrank(admin);
+        fraudEngine = new FraudEngine(participatingInterface, address(manager));
+        collateral = new Collateral(participatingInterface, address(manager), address(stablecoin), address(protocolToken));
+        manager.setFraudEngine(address(fraudEngine));
+        manager.setCollateral(address(collateral));
+        vm.stopPrank();
 
         alice = vm.addr(aliceKey);
         bob = vm.addr(bobKey);
