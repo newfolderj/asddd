@@ -13,7 +13,11 @@ import type {
   Signer,
   utils,
 } from "ethers";
-import type { FunctionFragment, Result } from "@ethersproject/abi";
+import type {
+  FunctionFragment,
+  Result,
+  EventFragment,
+} from "@ethersproject/abi";
 import type { Listener, Provider } from "@ethersproject/providers";
 import type {
   TypedEventFilter,
@@ -24,48 +28,115 @@ import type {
 
 export interface BaseManagerInterface extends utils.Interface {
   functions: {
+    "BASE()": FunctionFragment;
+    "DENOMINATOR()": FunctionFragment;
+    "FEE_TIMEOUT()": FunctionFragment;
+    "MAX_FEE_NUMERATOR()": FunctionFragment;
+    "MIN_FEE_NUMERATOR()": FunctionFragment;
+    "ONE_BPS_NUMERATOR()": FunctionFragment;
+    "ONE_PERCENT_NUMERATOR()": FunctionFragment;
     "admin()": FunctionFragment;
     "collateral()": FunctionFragment;
+    "currentFees()": FunctionFragment;
     "deployRelayer(address,address,string[],uint256[])": FunctionFragment;
+    "feeHistory(uint256)": FunctionFragment;
+    "feeSequenceId()": FunctionFragment;
     "fraudEngine()": FunctionFragment;
     "getPrice(address,address)": FunctionFragment;
     "getReceiverAddress(uint256)": FunctionFragment;
     "isValidator(address)": FunctionFragment;
     "portal()": FunctionFragment;
+    "proposeFees(uint256,uint256)": FunctionFragment;
+    "proposedFees()": FunctionFragment;
     "receivers(uint256)": FunctionFragment;
     "relayer()": FunctionFragment;
     "rollup()": FunctionFragment;
+    "setCollateral(address)": FunctionFragment;
+    "setFraudEngine(address)": FunctionFragment;
     "setReceivers(uint256[],address[])": FunctionFragment;
+    "updateFees()": FunctionFragment;
     "validator()": FunctionFragment;
     "walletDelegation()": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
+      | "BASE"
+      | "DENOMINATOR"
+      | "FEE_TIMEOUT"
+      | "MAX_FEE_NUMERATOR"
+      | "MIN_FEE_NUMERATOR"
+      | "ONE_BPS_NUMERATOR"
+      | "ONE_PERCENT_NUMERATOR"
       | "admin"
       | "collateral"
+      | "currentFees"
       | "deployRelayer"
+      | "feeHistory"
+      | "feeSequenceId"
       | "fraudEngine"
       | "getPrice"
       | "getReceiverAddress"
       | "isValidator"
       | "portal"
+      | "proposeFees"
+      | "proposedFees"
       | "receivers"
       | "relayer"
       | "rollup"
+      | "setCollateral"
+      | "setFraudEngine"
       | "setReceivers"
+      | "updateFees"
       | "validator"
       | "walletDelegation"
   ): FunctionFragment;
 
+  encodeFunctionData(functionFragment: "BASE", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "DENOMINATOR",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "FEE_TIMEOUT",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "MAX_FEE_NUMERATOR",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "MIN_FEE_NUMERATOR",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "ONE_BPS_NUMERATOR",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "ONE_PERCENT_NUMERATOR",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "admin", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "collateral",
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "currentFees",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "deployRelayer",
     values: [string, string, string[], BigNumberish[]]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "feeHistory",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "feeSequenceId",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "fraudEngine",
@@ -82,14 +153,34 @@ export interface BaseManagerInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "isValidator", values: [string]): string;
   encodeFunctionData(functionFragment: "portal", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "proposeFees",
+    values: [BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "proposedFees",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "receivers",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "relayer", values?: undefined): string;
   encodeFunctionData(functionFragment: "rollup", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "setCollateral",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setFraudEngine",
+    values: [string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setReceivers",
     values: [BigNumberish[], string[]]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "updateFees",
+    values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "validator", values?: undefined): string;
   encodeFunctionData(
@@ -97,10 +188,44 @@ export interface BaseManagerInterface extends utils.Interface {
     values?: undefined
   ): string;
 
+  decodeFunctionResult(functionFragment: "BASE", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "DENOMINATOR",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "FEE_TIMEOUT",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "MAX_FEE_NUMERATOR",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "MIN_FEE_NUMERATOR",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "ONE_BPS_NUMERATOR",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "ONE_PERCENT_NUMERATOR",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "admin", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "collateral", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "currentFees",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "deployRelayer",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "feeHistory", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "feeSequenceId",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -117,21 +242,67 @@ export interface BaseManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "portal", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "proposeFees",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "proposedFees",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "receivers", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "relayer", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "rollup", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "setCollateral",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setFraudEngine",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "setReceivers",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "updateFees", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "validator", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "walletDelegation",
     data: BytesLike
   ): Result;
 
-  events: {};
+  events: {
+    "FeesProposed(uint256,uint256)": EventFragment;
+    "FeesUpdated(uint256,uint256,uint256)": EventFragment;
+  };
+
+  getEvent(nameOrSignatureOrTopic: "FeesProposed"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "FeesUpdated"): EventFragment;
 }
+
+export interface FeesProposedEventObject {
+  makerFee: BigNumber;
+  takerFee: BigNumber;
+}
+export type FeesProposedEvent = TypedEvent<
+  [BigNumber, BigNumber],
+  FeesProposedEventObject
+>;
+
+export type FeesProposedEventFilter = TypedEventFilter<FeesProposedEvent>;
+
+export interface FeesUpdatedEventObject {
+  feeSequenceId: BigNumber;
+  makerFee: BigNumber;
+  takerFee: BigNumber;
+}
+export type FeesUpdatedEvent = TypedEvent<
+  [BigNumber, BigNumber, BigNumber],
+  FeesUpdatedEventObject
+>;
+
+export type FeesUpdatedEventFilter = TypedEventFilter<FeesUpdatedEvent>;
 
 export interface BaseManager extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -160,9 +331,29 @@ export interface BaseManager extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
+    BASE(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    DENOMINATOR(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    FEE_TIMEOUT(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    MAX_FEE_NUMERATOR(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    MIN_FEE_NUMERATOR(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    ONE_BPS_NUMERATOR(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     admin(overrides?: CallOverrides): Promise<[string]>;
 
     collateral(overrides?: CallOverrides): Promise<[string]>;
+
+    currentFees(
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
+    >;
 
     deployRelayer(
       _axelarGateway: string,
@@ -171,6 +362,15 @@ export interface BaseManager extends BaseContract {
       _chainIds: BigNumberish[],
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
+
+    feeHistory(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
+    >;
+
+    feeSequenceId(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     fraudEngine(overrides?: CallOverrides): Promise<[string]>;
 
@@ -192,15 +392,41 @@ export interface BaseManager extends BaseContract {
 
     portal(overrides?: CallOverrides): Promise<[string]>;
 
+    proposeFees(
+      _makerFee: BigNumberish,
+      _takerFee: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    proposedFees(
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
+    >;
+
     receivers(arg0: BigNumberish, overrides?: CallOverrides): Promise<[string]>;
 
     relayer(overrides?: CallOverrides): Promise<[string]>;
 
     rollup(overrides?: CallOverrides): Promise<[string]>;
 
+    setCollateral(
+      _collateral: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    setFraudEngine(
+      _fraudEngine: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     setReceivers(
       _chainIds: BigNumberish[],
       _receivers: string[],
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    updateFees(
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
@@ -209,9 +435,29 @@ export interface BaseManager extends BaseContract {
     walletDelegation(overrides?: CallOverrides): Promise<[string]>;
   };
 
+  BASE(overrides?: CallOverrides): Promise<BigNumber>;
+
+  DENOMINATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+  FEE_TIMEOUT(overrides?: CallOverrides): Promise<BigNumber>;
+
+  MAX_FEE_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+  MIN_FEE_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+  ONE_BPS_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+  ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
   admin(overrides?: CallOverrides): Promise<string>;
 
   collateral(overrides?: CallOverrides): Promise<string>;
+
+  currentFees(
+    overrides?: CallOverrides
+  ): Promise<
+    [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
+  >;
 
   deployRelayer(
     _axelarGateway: string,
@@ -220,6 +466,15 @@ export interface BaseManager extends BaseContract {
     _chainIds: BigNumberish[],
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
+
+  feeHistory(
+    arg0: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<
+    [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
+  >;
+
+  feeSequenceId(overrides?: CallOverrides): Promise<BigNumber>;
 
   fraudEngine(overrides?: CallOverrides): Promise<string>;
 
@@ -238,15 +493,41 @@ export interface BaseManager extends BaseContract {
 
   portal(overrides?: CallOverrides): Promise<string>;
 
+  proposeFees(
+    _makerFee: BigNumberish,
+    _takerFee: BigNumberish,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  proposedFees(
+    overrides?: CallOverrides
+  ): Promise<
+    [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
+  >;
+
   receivers(arg0: BigNumberish, overrides?: CallOverrides): Promise<string>;
 
   relayer(overrides?: CallOverrides): Promise<string>;
 
   rollup(overrides?: CallOverrides): Promise<string>;
 
+  setCollateral(
+    _collateral: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  setFraudEngine(
+    _fraudEngine: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
   setReceivers(
     _chainIds: BigNumberish[],
     _receivers: string[],
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  updateFees(
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
@@ -255,9 +536,29 @@ export interface BaseManager extends BaseContract {
   walletDelegation(overrides?: CallOverrides): Promise<string>;
 
   callStatic: {
+    BASE(overrides?: CallOverrides): Promise<BigNumber>;
+
+    DENOMINATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+    FEE_TIMEOUT(overrides?: CallOverrides): Promise<BigNumber>;
+
+    MAX_FEE_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+    MIN_FEE_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+    ONE_BPS_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+    ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
     admin(overrides?: CallOverrides): Promise<string>;
 
     collateral(overrides?: CallOverrides): Promise<string>;
+
+    currentFees(
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
+    >;
 
     deployRelayer(
       _axelarGateway: string,
@@ -266,6 +567,15 @@ export interface BaseManager extends BaseContract {
       _chainIds: BigNumberish[],
       overrides?: CallOverrides
     ): Promise<void>;
+
+    feeHistory(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
+    >;
+
+    feeSequenceId(overrides?: CallOverrides): Promise<BigNumber>;
 
     fraudEngine(overrides?: CallOverrides): Promise<string>;
 
@@ -287,11 +597,33 @@ export interface BaseManager extends BaseContract {
 
     portal(overrides?: CallOverrides): Promise<string>;
 
+    proposeFees(
+      _makerFee: BigNumberish,
+      _takerFee: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    proposedFees(
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
+    >;
+
     receivers(arg0: BigNumberish, overrides?: CallOverrides): Promise<string>;
 
     relayer(overrides?: CallOverrides): Promise<string>;
 
     rollup(overrides?: CallOverrides): Promise<string>;
+
+    setCollateral(
+      _collateral: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setFraudEngine(
+      _fraudEngine: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     setReceivers(
       _chainIds: BigNumberish[],
@@ -299,17 +631,52 @@ export interface BaseManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    updateFees(overrides?: CallOverrides): Promise<void>;
+
     validator(overrides?: CallOverrides): Promise<string>;
 
     walletDelegation(overrides?: CallOverrides): Promise<string>;
   };
 
-  filters: {};
+  filters: {
+    "FeesProposed(uint256,uint256)"(
+      makerFee?: null,
+      takerFee?: null
+    ): FeesProposedEventFilter;
+    FeesProposed(makerFee?: null, takerFee?: null): FeesProposedEventFilter;
+
+    "FeesUpdated(uint256,uint256,uint256)"(
+      feeSequenceId?: BigNumberish | null,
+      makerFee?: null,
+      takerFee?: null
+    ): FeesUpdatedEventFilter;
+    FeesUpdated(
+      feeSequenceId?: BigNumberish | null,
+      makerFee?: null,
+      takerFee?: null
+    ): FeesUpdatedEventFilter;
+  };
 
   estimateGas: {
+    BASE(overrides?: CallOverrides): Promise<BigNumber>;
+
+    DENOMINATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+    FEE_TIMEOUT(overrides?: CallOverrides): Promise<BigNumber>;
+
+    MAX_FEE_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+    MIN_FEE_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+    ONE_BPS_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+    ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
     admin(overrides?: CallOverrides): Promise<BigNumber>;
 
     collateral(overrides?: CallOverrides): Promise<BigNumber>;
+
+    currentFees(overrides?: CallOverrides): Promise<BigNumber>;
 
     deployRelayer(
       _axelarGateway: string,
@@ -318,6 +685,13 @@ export interface BaseManager extends BaseContract {
       _chainIds: BigNumberish[],
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
+
+    feeHistory(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    feeSequenceId(overrides?: CallOverrides): Promise<BigNumber>;
 
     fraudEngine(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -339,6 +713,14 @@ export interface BaseManager extends BaseContract {
 
     portal(overrides?: CallOverrides): Promise<BigNumber>;
 
+    proposeFees(
+      _makerFee: BigNumberish,
+      _takerFee: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
+    proposedFees(overrides?: CallOverrides): Promise<BigNumber>;
+
     receivers(
       arg0: BigNumberish,
       overrides?: CallOverrides
@@ -348,11 +730,23 @@ export interface BaseManager extends BaseContract {
 
     rollup(overrides?: CallOverrides): Promise<BigNumber>;
 
+    setCollateral(
+      _collateral: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
+    setFraudEngine(
+      _fraudEngine: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
     setReceivers(
       _chainIds: BigNumberish[],
       _receivers: string[],
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
+
+    updateFees(overrides?: Overrides & { from?: string }): Promise<BigNumber>;
 
     validator(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -360,9 +754,27 @@ export interface BaseManager extends BaseContract {
   };
 
   populateTransaction: {
+    BASE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    DENOMINATOR(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    FEE_TIMEOUT(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    MAX_FEE_NUMERATOR(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    MIN_FEE_NUMERATOR(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    ONE_BPS_NUMERATOR(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    ONE_PERCENT_NUMERATOR(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     admin(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     collateral(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    currentFees(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     deployRelayer(
       _axelarGateway: string,
@@ -371,6 +783,13 @@ export interface BaseManager extends BaseContract {
       _chainIds: BigNumberish[],
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
+
+    feeHistory(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    feeSequenceId(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     fraudEngine(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
@@ -392,6 +811,14 @@ export interface BaseManager extends BaseContract {
 
     portal(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    proposeFees(
+      _makerFee: BigNumberish,
+      _takerFee: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    proposedFees(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     receivers(
       arg0: BigNumberish,
       overrides?: CallOverrides
@@ -401,9 +828,23 @@ export interface BaseManager extends BaseContract {
 
     rollup(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    setCollateral(
+      _collateral: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    setFraudEngine(
+      _fraudEngine: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
     setReceivers(
       _chainIds: BigNumberish[],
       _receivers: string[],
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    updateFees(
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 

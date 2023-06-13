@@ -51,6 +51,14 @@ contract DeployBaseChain is Script {
         portal.depositNativeAsset{ value: 1 ether }();
         vm.stopBroadcast();
 
+        vm.startBroadcast(alicePk);
+        portal.requestSettlement(address(0));
+        vm.stopBroadcast();
+
+        vm.startBroadcast(bobPk);
+        portal.requestSettlement(address(0));
+        vm.stopBroadcast();
+
         string memory obj1 = '{"manager":"","portal":"","rollup":""}';
         vm.serializeAddress(obj1, "portal", manager.portal());
         vm.serializeAddress(obj1, "rollup", manager.rollup());

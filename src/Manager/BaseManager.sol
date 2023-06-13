@@ -6,15 +6,15 @@ import "./Manager.sol";
 import "./FeeManager.sol";
 import "./IBaseManager.sol";
 import "../Rollup/Rollup.sol";
-import "../Rollup/Collateral.sol";
-import "../Rollup/FraudEngine.sol";
+// import "../Rollup/Collateral.sol";
+// import "../Rollup/FraudEngine.sol";
 import "../CrossChain/Relayer.sol";
 import "../Portal/WalletDelegation.sol";
 
 contract BaseManager is Manager, IBaseManager, FeeManager {
     address public immutable rollup;
-    address public immutable fraudEngine;
-    address public immutable collateral;
+    address public fraudEngine;
+    address public collateral;
     address public immutable walletDelegation;
     address public relayer;
 
@@ -30,8 +30,6 @@ contract BaseManager is Manager, IBaseManager, FeeManager {
         Manager(_participatingInterface, _admin, _validator)
     {
         rollup = address(new Rollup(_participatingInterface, address(this)));
-        fraudEngine = address(new FraudEngine(_participatingInterface, address(this)));
-        collateral = address(new Collateral(_participatingInterface, address(this), _stablecoin, _protocolToken));
         walletDelegation = address(new WalletDelegation(_participatingInterface, address(this)));
     }
 
@@ -54,6 +52,18 @@ contract BaseManager is Manager, IBaseManager, FeeManager {
             _chainIds
             )
         );
+    }
+
+    function setFraudEngine(address _fraudEngine) external {
+        if (msg.sender != admin) revert();
+        if (fraudEngine != address(0)) revert();
+        fraudEngine = _fraudEngine;
+    }
+
+    function setCollateral(address _collateral) external {
+        if (msg.sender != admin) revert();
+        if (collateral != address(0)) revert();
+        collateral = _collateral;
     }
 
     function setReceivers(uint256[] calldata _chainIds, address[] calldata _receivers) external {
