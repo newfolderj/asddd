@@ -39,7 +39,7 @@ contract RollupTest is BaseTest {
 
         // Create settlement request object
         StateUpdateLibrary.StateUpdate memory settlementAck =
-            settlementStateUpdate(deposit.trader, deposit.asset, Id.wrap(3), Id.wrap(2), 3, hashedInputs);
+            settlementStateUpdate(deposit.trader, deposit.asset, Id.wrap(3), Id.wrap(2), 3, amount);
         StateUpdateLibrary.SignedStateUpdate memory stateUpdate = signStateUpdate(settlementAck);
 
         bytes32[] memory proof;
@@ -73,8 +73,7 @@ contract RollupTest is BaseTest {
         rollup.processSettlement({
             _stateRootId: ID_ONE,
             _signedUpdate: stateUpdate,
-            _proof: proof,
-            _inputs: inputs
+            _proof: proof
         });
 
         // Alice can now withdraw original deposit

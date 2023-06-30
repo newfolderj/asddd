@@ -32,7 +32,6 @@ contract PortalTest is BaseTest {
         assertEq(aliceBalanceBefore - aliceBalanceAfter, amount);
         assertEq(portalBalanceAfter - portalBalanceBefore, amount);
         assertTrue(chainSequenceIdBefore.increment() == portal.chainSequenceId());
-        assertEq(portal.balances(utxo), amount);
     }
 
     function test_depositNativeAssetUniqueness() external {
@@ -79,6 +78,5 @@ contract PortalTest is BaseTest {
         assertEq(aliceBalanceBefore - aliceBalanceAfter, amount);
         assertEq(portalBalanceAfter - portalBalanceBefore, amount);
         assertTrue(chainSequenceIdBefore.increment() == portal.chainSequenceId());
-        assertEq(portal.balances(utxo), amount);
     }
 }

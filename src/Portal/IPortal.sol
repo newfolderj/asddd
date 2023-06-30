@@ -3,7 +3,7 @@
 pragma solidity ^0.8.19;
 
 interface IPortal {
-    function writeObligation(bytes32 utxo, bytes32 deposit, address recipient, uint256 amount) external;
+    function writeObligation(address token, address recipient, uint256 amount) external;
 
     function sequenceEvent() external returns (uint256);
 

@@ -29,10 +29,9 @@ import type {
 
 export interface PortalInterface extends utils.Interface {
   functions: {
-    "availableToWithdraw(address,address)": FunctionFragment;
-    "balances(bytes32)": FunctionFragment;
     "chainSequenceId()": FunctionFragment;
     "claimed(bytes32)": FunctionFragment;
+    "collateralized(address)": FunctionFragment;
     "depositNativeAsset()": FunctionFragment;
     "depositToken(address,uint256)": FunctionFragment;
     "deposits(bytes32)": FunctionFragment;
@@ -40,17 +39,17 @@ export interface PortalInterface extends utils.Interface {
     "isValidSettlementRequest(uint256,bytes32)": FunctionFragment;
     "requestSettlement(address)": FunctionFragment;
     "sequenceEvent()": FunctionFragment;
+    "settled(address,address)": FunctionFragment;
     "settlementRequests(uint256)": FunctionFragment;
     "withdraw(uint256,address)": FunctionFragment;
-    "writeObligation(bytes32,bytes32,address,uint256)": FunctionFragment;
+    "writeObligation(address,address,uint256)": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
-      | "availableToWithdraw"
-      | "balances"
       | "chainSequenceId"
       | "claimed"
+      | "collateralized"
       | "depositNativeAsset"
       | "depositToken"
       | "deposits"
@@ -58,21 +57,21 @@ export interface PortalInterface extends utils.Interface {
       | "isValidSettlementRequest"
       | "requestSettlement"
       | "sequenceEvent"
+      | "settled"
       | "settlementRequests"
       | "withdraw"
       | "writeObligation"
   ): FunctionFragment;
 
   encodeFunctionData(
-    functionFragment: "availableToWithdraw",
-    values: [string, string]
-  ): string;
-  encodeFunctionData(functionFragment: "balances", values: [BytesLike]): string;
-  encodeFunctionData(
     functionFragment: "chainSequenceId",
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "claimed", values: [BytesLike]): string;
+  encodeFunctionData(
+    functionFragment: "collateralized",
+    values: [string]
+  ): string;
   encodeFunctionData(
     functionFragment: "depositNativeAsset",
     values?: undefined
@@ -99,6 +98,10 @@ export interface PortalInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "settled",
+    values: [string, string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "settlementRequests",
     values: [BigNumberish]
   ): string;
@@ -108,19 +111,18 @@ export interface PortalInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "writeObligation",
-    values: [BytesLike, BytesLike, string, BigNumberish]
+    values: [string, string, BigNumberish]
   ): string;
 
-  decodeFunctionResult(
-    functionFragment: "availableToWithdraw",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "balances", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "chainSequenceId",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "claimed", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "collateralized",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "depositNativeAsset",
     data: BytesLike
@@ -146,6 +148,7 @@ export interface PortalInterface extends utils.Interface {
     functionFragment: "sequenceEvent",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "settled", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "settlementRequests",
     data: BytesLike
@@ -266,17 +269,14 @@ export interface Portal extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    availableToWithdraw(
-      arg0: string,
-      arg1: string,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
-    balances(arg0: BytesLike, overrides?: CallOverrides): Promise<[BigNumber]>;
-
     chainSequenceId(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     claimed(arg0: BytesLike, overrides?: CallOverrides): Promise<[boolean]>;
+
+    collateralized(
+      arg0: string,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
 
     depositNativeAsset(
       overrides?: PayableOverrides & { from?: string }
@@ -323,6 +323,12 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
+    settled(
+      arg0: string,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     settlementRequests(
       arg0: BigNumberish,
       overrides?: CallOverrides
@@ -344,25 +350,18 @@ export interface Portal extends BaseContract {
     ): Promise<ContractTransaction>;
 
     writeObligation(
-      _utxo: BytesLike,
-      _deposit: BytesLike,
+      _token: string,
       _recipient: string,
       _amount: BigNumberish,
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
   };
 
-  availableToWithdraw(
-    arg0: string,
-    arg1: string,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
-
-  balances(arg0: BytesLike, overrides?: CallOverrides): Promise<BigNumber>;
-
   chainSequenceId(overrides?: CallOverrides): Promise<BigNumber>;
 
   claimed(arg0: BytesLike, overrides?: CallOverrides): Promise<boolean>;
+
+  collateralized(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
   depositNativeAsset(
     overrides?: PayableOverrides & { from?: string }
@@ -409,6 +408,12 @@ export interface Portal extends BaseContract {
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
+  settled(
+    arg0: string,
+    arg1: string,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   settlementRequests(
     arg0: BigNumberish,
     overrides?: CallOverrides
@@ -430,25 +435,18 @@ export interface Portal extends BaseContract {
   ): Promise<ContractTransaction>;
 
   writeObligation(
-    _utxo: BytesLike,
-    _deposit: BytesLike,
+    _token: string,
     _recipient: string,
     _amount: BigNumberish,
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    availableToWithdraw(
-      arg0: string,
-      arg1: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    balances(arg0: BytesLike, overrides?: CallOverrides): Promise<BigNumber>;
-
     chainSequenceId(overrides?: CallOverrides): Promise<BigNumber>;
 
     claimed(arg0: BytesLike, overrides?: CallOverrides): Promise<boolean>;
+
+    collateralized(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     depositNativeAsset(overrides?: CallOverrides): Promise<void>;
 
@@ -488,6 +486,12 @@ export interface Portal extends BaseContract {
 
     sequenceEvent(overrides?: CallOverrides): Promise<BigNumber>;
 
+    settled(
+      arg0: string,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     settlementRequests(
       arg0: BigNumberish,
       overrides?: CallOverrides
@@ -509,8 +513,7 @@ export interface Portal extends BaseContract {
     ): Promise<void>;
 
     writeObligation(
-      _utxo: BytesLike,
-      _deposit: BytesLike,
+      _token: string,
       _recipient: string,
       _amount: BigNumberish,
       overrides?: CallOverrides
@@ -583,17 +586,11 @@ export interface Portal extends BaseContract {
   };
 
   estimateGas: {
-    availableToWithdraw(
-      arg0: string,
-      arg1: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    balances(arg0: BytesLike, overrides?: CallOverrides): Promise<BigNumber>;
-
     chainSequenceId(overrides?: CallOverrides): Promise<BigNumber>;
 
     claimed(arg0: BytesLike, overrides?: CallOverrides): Promise<BigNumber>;
+
+    collateralized(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     depositNativeAsset(
       overrides?: PayableOverrides & { from?: string }
@@ -628,6 +625,12 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
+    settled(
+      arg0: string,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     settlementRequests(
       arg0: BigNumberish,
       overrides?: CallOverrides
@@ -640,8 +643,7 @@ export interface Portal extends BaseContract {
     ): Promise<BigNumber>;
 
     writeObligation(
-      _utxo: BytesLike,
-      _deposit: BytesLike,
+      _token: string,
       _recipient: string,
       _amount: BigNumberish,
       overrides?: Overrides & { from?: string }
@@ -649,21 +651,15 @@ export interface Portal extends BaseContract {
   };
 
   populateTransaction: {
-    availableToWithdraw(
-      arg0: string,
-      arg1: string,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    balances(
-      arg0: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
     chainSequenceId(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     claimed(
       arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    collateralized(
+      arg0: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -703,6 +699,12 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
+    settled(
+      arg0: string,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     settlementRequests(
       arg0: BigNumberish,
       overrides?: CallOverrides
@@ -715,8 +717,7 @@ export interface Portal extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     writeObligation(
-      _utxo: BytesLike,
-      _deposit: BytesLike,
+      _token: string,
       _recipient: string,
       _amount: BigNumberish,
       overrides?: Overrides & { from?: string }

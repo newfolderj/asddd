@@ -30,12 +30,12 @@ contract Signature {
     bytes32 public constant ORDER_TYPEHASH = keccak256(
         abi.encodePacked(
             "Order(Product product,bool side,uint256 size,uint256 price)",
-            "Product(address assetA,uint256 chainIdA,address assetB,uint256 chainIdB)"
+            "Product(address baseAsset,uint256 baseAssetChainId,address counterAsset,uint256 counterAssetChainId)"
         )
     );
 
     bytes32 public constant PRODUCT_TYPEHASH =
-        keccak256(abi.encodePacked("Product(address assetA,uint256 chainIdA,address assetB,uint256 chainIdB)"));
+        keccak256(abi.encodePacked("Product(address baseAsset,uint256 baseAssetChainId,address counterAsset,uint256 counterAssetChainId)"));
 
     function hashStateUpdate(StateUpdateLibrary.StateUpdate memory _stateUpdate) internal pure returns (bytes32) {
         return keccak256(
@@ -64,7 +64,7 @@ contract Signature {
 
     function hashProduct(StateUpdateLibrary.Product memory _product) internal pure returns (bytes32) {
         return keccak256(
-            abi.encode(PRODUCT_TYPEHASH, _product.assetA, _product.chainIdA, _product.assetB, _product.chainIdB)
+            abi.encode(PRODUCT_TYPEHASH, _product.baseAsset, _product.baseAssetChainId, _product.counterAsset, _product.counterAssetChainId)
         );
     }
 }

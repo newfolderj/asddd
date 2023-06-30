@@ -117,6 +117,7 @@ contract BaseTest is Test {
         );
     }
 
+    // Note that this does not properly set balance or deposit root
     function depositStateUpdate(
         address _trader,
         address _token,
@@ -131,9 +132,10 @@ contract BaseTest is Test {
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
             _trader, _token, participatingInterface, _amount, _chainSequenceId, Id.wrap(block.chainid)
         );
-        StateUpdateLibrary.UTXO memory utxo = depositToUtxo(deposit, _stateUpdateId);
+        StateUpdateLibrary.Balance memory balance =
+            StateUpdateLibrary.Balance(_trader, _token, Id.wrap(block.chainid), _amount);
         StateUpdateLibrary.DepositAcknowledgement memory depositAck = StateUpdateLibrary.DepositAcknowledgement(
-            deposit, keccak256(abi.encode(deposit)), keccak256(abi.encode(utxo))
+            deposit, ID_ZERO, balance, balance, ID_ZERO, keccak256(abi.encode(0)), keccak256(abi.encode(0))
         );
         return StateUpdateLibrary.StateUpdate(
             StateUpdateLibrary.TYPE_ID_DepositAcknowledgement,
@@ -143,6 +145,7 @@ contract BaseTest is Test {
         );
     }
 
+    // Note that this does not properly set balance or deposit root
     function depositStateUpdate(
         StateUpdateLibrary.Deposit memory _deposit,
         uint256 _stateUpdateId
@@ -151,9 +154,10 @@ contract BaseTest is Test {
         view
         returns (StateUpdateLibrary.StateUpdate memory)
     {
-        StateUpdateLibrary.UTXO memory utxo = depositToUtxo(_deposit, _stateUpdateId);
+        StateUpdateLibrary.Balance memory balance =
+            StateUpdateLibrary.Balance(_deposit.trader, _deposit.asset, Id.wrap(block.chainid), _deposit.amount);
         StateUpdateLibrary.DepositAcknowledgement memory depositAck = StateUpdateLibrary.DepositAcknowledgement(
-            _deposit, keccak256(abi.encode(_deposit)), keccak256(abi.encode(utxo))
+            _deposit, ID_ZERO, balance, balance, ID_ZERO, keccak256(abi.encode(0)), keccak256(abi.encode(0))
         );
         return StateUpdateLibrary.StateUpdate(
             StateUpdateLibrary.TYPE_ID_DepositAcknowledgement,
@@ -182,7 +186,7 @@ contract BaseTest is Test {
         Id _chainSequenceId,
         Id _settlementId,
         uint256 _stateUpdateId,
-        bytes32[] memory inputs
+        uint256 _amount
     )
         internal
         view
@@ -191,7 +195,12 @@ contract BaseTest is Test {
         StateUpdateLibrary.SettlementRequest memory settlementRequest = StateUpdateLibrary.SettlementRequest(
             _trader, _token, participatingInterface, _chainSequenceId, Id.wrap(block.chainid), _settlementId
         );
-        StateUpdateLibrary.Settlement memory settlement = StateUpdateLibrary.Settlement(settlementRequest, inputs);
+        StateUpdateLibrary.Settlement memory settlement = StateUpdateLibrary.Settlement(
+            settlementRequest,
+            ID_ZERO,
+            StateUpdateLibrary.Balance(_trader, _token, Id.wrap(block.chainid), _amount),
+            StateUpdateLibrary.Balance(_trader, _token, Id.wrap(block.chainid), 0)
+        );
         return StateUpdateLibrary.StateUpdate(
             StateUpdateLibrary.TYPE_ID_Settlement,
             Id.wrap(_stateUpdateId),
@@ -246,7 +255,8 @@ contract BaseTest is Test {
         rollup = Rollup(manager.rollup());
         vm.startPrank(admin);
         fraudEngine = new FraudEngine(participatingInterface, address(manager));
-        collateral = new Collateral(participatingInterface, address(manager), address(stablecoin), address(protocolToken));
+        collateral =
+            new Collateral(participatingInterface, address(manager), address(stablecoin), address(protocolToken));
         manager.setFraudEngine(address(fraudEngine));
         manager.setCollateral(address(collateral));
         vm.stopPrank();
@@ -261,12 +271,12 @@ contract BaseTest is Test {
         sigUtil = new Signature(participatingInterface);
         merkleLib = new Merkle();
 
-        deal({ token: address(protocolToken), to: validator, give: 1 ether });
-        deal({ token: address(stablecoin), to: validator, give: 1 ether });
+        deal({ token: address(protocolToken), to: validator, give: 100 ether });
+        deal({ token: address(stablecoin), to: validator, give: 200 ether });
         vm.startPrank(validator);
-        protocolToken.approve(manager.collateral(), 1 ether);
-        stablecoin.approve(manager.collateral(), 1 ether);
-        collateral.stake(1 ether);
+        protocolToken.approve(manager.collateral(), 100 ether);
+        stablecoin.approve(manager.collateral(), 200 ether);
+        collateral.stake(200 ether);
         vm.stopPrank();
     }
 }

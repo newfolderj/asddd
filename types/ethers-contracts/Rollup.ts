@@ -59,37 +59,6 @@ export declare namespace StateUpdateLibrary {
     r: string;
     s: string;
   };
-
-  export type UTXOStruct = {
-    trader: string;
-    amount: BigNumberish;
-    stateUpdateId: BigNumberish;
-    parentUtxo: BytesLike;
-    depositUtxo: BytesLike;
-    participatingInterface: string;
-    asset: string;
-    chainId: BigNumberish;
-  };
-
-  export type UTXOStructOutput = [
-    string,
-    BigNumber,
-    BigNumber,
-    string,
-    string,
-    string,
-    string,
-    BigNumber
-  ] & {
-    trader: string;
-    amount: BigNumber;
-    stateUpdateId: BigNumber;
-    parentUtxo: string;
-    depositUtxo: string;
-    participatingInterface: string;
-    asset: string;
-    chainId: BigNumber;
-  };
 }
 
 export interface RollupInterface extends utils.Interface {
@@ -106,7 +75,7 @@ export interface RollupInterface extends utils.Interface {
     "lastSettlementIdProcessed()": FunctionFragment;
     "markFraudulent(uint256)": FunctionFragment;
     "nextRequestId()": FunctionFragment;
-    "processSettlement(((uint8,uint256,address,bytes),uint8,bytes32,bytes32),uint256,bytes32[],(address,uint256,uint256,bytes32,bytes32,address,address,uint256)[])": FunctionFragment;
+    "processSettlement(((uint8,uint256,address,bytes),uint8,bytes32,bytes32),uint256,bytes32[])": FunctionFragment;
     "proposalBlock(bytes32)": FunctionFragment;
     "proposeStateRoot(bytes32)": FunctionFragment;
     "proposedStateRoot(uint256)": FunctionFragment;
@@ -184,8 +153,7 @@ export interface RollupInterface extends utils.Interface {
     values: [
       StateUpdateLibrary.SignedStateUpdateStruct,
       BigNumberish,
-      BytesLike[],
-      StateUpdateLibrary.UTXOStruct[]
+      BytesLike[]
     ]
   ): string;
   encodeFunctionData(
@@ -362,7 +330,6 @@ export interface Rollup extends BaseContract {
       _signedUpdate: StateUpdateLibrary.SignedStateUpdateStruct,
       _stateRootId: BigNumberish,
       _proof: BytesLike[],
-      _inputs: StateUpdateLibrary.UTXOStruct[],
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
@@ -434,7 +401,6 @@ export interface Rollup extends BaseContract {
     _signedUpdate: StateUpdateLibrary.SignedStateUpdateStruct,
     _stateRootId: BigNumberish,
     _proof: BytesLike[],
-    _inputs: StateUpdateLibrary.UTXOStruct[],
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
@@ -501,7 +467,6 @@ export interface Rollup extends BaseContract {
       _signedUpdate: StateUpdateLibrary.SignedStateUpdateStruct,
       _stateRootId: BigNumberish,
       _proof: BytesLike[],
-      _inputs: StateUpdateLibrary.UTXOStruct[],
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -589,7 +554,6 @@ export interface Rollup extends BaseContract {
       _signedUpdate: StateUpdateLibrary.SignedStateUpdateStruct,
       _stateRootId: BigNumberish,
       _proof: BytesLike[],
-      _inputs: StateUpdateLibrary.UTXOStruct[],
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
@@ -668,7 +632,6 @@ export interface Rollup extends BaseContract {
       _signedUpdate: StateUpdateLibrary.SignedStateUpdateStruct,
       _stateRootId: BigNumberish,
       _proof: BytesLike[],
-      _inputs: StateUpdateLibrary.UTXOStruct[],
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
