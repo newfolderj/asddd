@@ -80,6 +80,7 @@ export interface RollupInterface extends utils.Interface {
     "proposeStateRoot(bytes32)": FunctionFragment;
     "proposedStateRoot(uint256)": FunctionFragment;
     "requestSettlement(address,address)": FunctionFragment;
+    "submitSettlement(bytes32,((uint8,uint256,address,bytes),uint8,bytes32,bytes32),uint256,bytes32[])": FunctionFragment;
   };
 
   getFunction(
@@ -101,6 +102,7 @@ export interface RollupInterface extends utils.Interface {
       | "proposeStateRoot"
       | "proposedStateRoot"
       | "requestSettlement"
+      | "submitSettlement"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -172,6 +174,15 @@ export interface RollupInterface extends utils.Interface {
     functionFragment: "requestSettlement",
     values: [string, string]
   ): string;
+  encodeFunctionData(
+    functionFragment: "submitSettlement",
+    values: [
+      BytesLike,
+      StateUpdateLibrary.SignedStateUpdateStruct,
+      BigNumberish,
+      BytesLike[]
+    ]
+  ): string;
 
   decodeFunctionResult(
     functionFragment: "CONFIRMATION_BLOCKS",
@@ -233,6 +244,10 @@ export interface RollupInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "requestSettlement",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "submitSettlement",
     data: BytesLike
   ): Result;
 
@@ -353,6 +368,14 @@ export interface Rollup extends BaseContract {
       arg1: string,
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
+
+    submitSettlement(
+      _stateRoot: BytesLike,
+      _signedUpdate: StateUpdateLibrary.SignedStateUpdateStruct,
+      _stateRootId: BigNumberish,
+      _proof: BytesLike[],
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
   };
 
   CONFIRMATION_BLOCKS(overrides?: CallOverrides): Promise<BigNumber>;
@@ -419,6 +442,14 @@ export interface Rollup extends BaseContract {
   requestSettlement(
     arg0: string,
     arg1: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  submitSettlement(
+    _stateRoot: BytesLike,
+    _signedUpdate: StateUpdateLibrary.SignedStateUpdateStruct,
+    _stateRootId: BigNumberish,
+    _proof: BytesLike[],
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
@@ -490,6 +521,14 @@ export interface Rollup extends BaseContract {
       arg1: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    submitSettlement(
+      _stateRoot: BytesLike,
+      _signedUpdate: StateUpdateLibrary.SignedStateUpdateStruct,
+      _stateRootId: BigNumberish,
+      _proof: BytesLike[],
+      overrides?: CallOverrides
+    ): Promise<void>;
   };
 
   filters: {
@@ -577,6 +616,14 @@ export interface Rollup extends BaseContract {
       arg1: string,
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
+
+    submitSettlement(
+      _stateRoot: BytesLike,
+      _signedUpdate: StateUpdateLibrary.SignedStateUpdateStruct,
+      _stateRootId: BigNumberish,
+      _proof: BytesLike[],
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -653,6 +700,14 @@ export interface Rollup extends BaseContract {
     requestSettlement(
       arg0: string,
       arg1: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    submitSettlement(
+      _stateRoot: BytesLike,
+      _signedUpdate: StateUpdateLibrary.SignedStateUpdateStruct,
+      _stateRootId: BigNumberish,
+      _proof: BytesLike[],
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
   };

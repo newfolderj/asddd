@@ -139,6 +139,89 @@ contract Rollup is IRollup {
         );
     }
 
+    // Confirms a state root and processes a settlement in a single transaction.
+    // Used for testing validator's ability to construct state roots, will be removed.
+    function submitSettlement(
+        bytes32 _stateRoot,
+        StateUpdateLibrary.SignedStateUpdate calldata _signedUpdate,
+        Id _stateRootId,
+        bytes32[] calldata _proof
+    )
+        external
+    { 
+        epoch = epoch.increment();
+        lastConfirmedEpoch = lastConfirmedEpoch.increment();
+
+        confirmedStateRoot[lastConfirmedEpoch] = _stateRoot;
+
+        _processSettlement(_signedUpdate, _stateRootId, _proof);
+    }
+
+    function _processSettlement(
+        StateUpdateLibrary.SignedStateUpdate calldata _signedUpdate,
+        Id _stateRootId,
+        bytes32[] calldata _proof
+    )
+        internal
+    {
+        bytes32 stateRoot = confirmedStateRoot[_stateRootId];
+        if (stateRoot == 0) revert EMPTY_STATE_ROOT();
+
+        bool valid = MerkleProof.verifyCalldata(_proof, stateRoot, keccak256(abi.encode(_signedUpdate)));
+        if (!valid) revert INVALID_PROOF_SETTLEMENT();
+
+        if (_signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Settlement) {
+            revert INVALID_STATE_UPDATE_SETTLEMENT();
+        }
+
+        StateUpdateLibrary.Settlement memory settlement =
+            abi.decode(_signedUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
+
+        StateUpdateLibrary.SettlementRequest memory settlementRequest = settlement.settlementRequest;
+
+        if (settlementRequest.settlementId != lastSettlementIdProcessed.increment()) {
+            revert INVALID_SEQUENCE_SETTLEMENT();
+        }
+
+        if (
+            !IPortal(manager.portal()).isValidSettlementRequest({
+                chainSequenceId: Id.unwrap(settlementRequest.chainSequenceId),
+                settlementHash: keccak256(abi.encode(settlementRequest))
+            }) || settlementRequest.chainId != Id.wrap(block.chainid)
+        ) revert INVALID_REQUEST_SETTLEMENT();
+
+        if (
+            settlement.balanceBefore.asset != settlementRequest.asset
+                || settlement.balanceBefore.trader != settlementRequest.trader
+                || settlement.balanceBefore.chainId != Id.wrap(block.chainid)
+        ) {
+            revert INPUT_PARAMS_MISMATCH_SETTLEMENT();
+        }
+
+        IPortal(manager.portal()).writeObligation({
+            token: settlement.balanceBefore.asset,
+            recipient: settlement.balanceBefore.trader,
+            amount: settlement.balanceBefore.amount
+        });
+
+        lastSettlementIdProcessed = lastSettlementIdProcessed.increment();
+        // TODO: query oracle for price of requested asset in USD
+        // convert total amount of requested asset to USD
+        // calculate corresponding protocol token amount
+        // call Collateral contract to lock stablecoin and protocol token
+
+        // For now:
+        // Lock 1:1 requested asset
+        // Lock 15% of above as protocol token
+        // Burn 0.05% of above as protocol token
+        emit ObligationsWritten(
+            settlementRequest.settlementId,
+            settlementRequest.trader,
+            settlementRequest.asset,
+            IPortal(manager.portal()).getAvailableBalance(settlementRequest.trader, settlementRequest.asset)
+        );
+    }
+
     function requestSettlement(address, address) external returns (uint256) {
         if (msg.sender != manager.portal()) revert CALLER_NOT_PORTAL(msg.sender, manager.portal());
         nextRequestId = nextRequestId.increment();
