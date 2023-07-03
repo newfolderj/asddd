@@ -9,6 +9,7 @@ library StateUpdateLibrary {
     uint8 public constant TYPE_ID_Trade = 0x01;
     uint8 public constant TYPE_ID_Settlement = 0x02;
     uint8 public constant TYPE_ID_FeeUpdate = 0x03;
+    uint8 public constant TYPE_ID_DepositRejection = 0x00;
     // uint8 public constant TYPE_ID_InitializeSettings = 0x03;
     // uint8 public constant TYPE_ID_Ping = 0x04;
     // uint8 public constant TYPE_ID_NewProduct = 0x05;
@@ -60,23 +61,52 @@ library StateUpdateLibrary {
 
     struct DepositAcknowledgement {
         Deposit deposit;
-        bytes32 depositUtxo;
-        bytes32 output;
+        Id balanceBeforeId;
+        Balance balanceBefore;
+        Balance balanceAfter;
+        Id depositRootBeforeId;
+        bytes32 depositRootBefore;
+        bytes32 depositRootAfter;
+    }
+
+    struct DepositRejection {
+        Deposit deposit;
+        Id depositRootBeforeId;
+        bytes32 depositRootBefore;
+        bytes32 depositRootAfter;
+    }
+
+    struct Balance {
+        address trader;
+        address asset;
+        Id chainId;
+        uint256 amount;
     }
 
     struct Trade {
         Id feeUpdateId; // Sequence ID of FeeUpdate canonical to this trade
         TradeParams params;
-        bytes32[] inputsA;
-        bytes32[] inputsB;
-        bytes32[] outputsA;
-        bytes32[] outputsB;
-        bytes32[] feeOutputs;
+        Id makerBaseBalanceBeforeId;
+        Balance makerBaseBalanceBefore;
+        Id makerCounterBalanceBeforeId;
+        Balance makerCounterBalanceBefore;
+        Id takerBaseBalanceBeforeId;
+        Balance takerBaseBalanceBefore;
+        Id takerCounterBalanceBeforeId;
+        Balance takerCounterBalanceBefore;
+        Balance makerBaseBalanceAfter;
+        Balance makerCounterBalanceAfter;
+        Balance takerBaseBalanceAfter;
+        Balance takerCounterBalanceAfter;
+        Balance makerFee;
+        Balance takerFee;
     }
 
     struct Settlement {
         SettlementRequest settlementRequest;
-        bytes32[] inputs;
+        Id balanceBeforeId;
+        Balance balanceBefore;
+        Balance balanceAfter;
     }
 
     struct UTXO {
@@ -126,13 +156,15 @@ library StateUpdateLibrary {
         Product product;
         uint256 size;
         uint256 price;
+        address maker;
+        address taker;
     }
 
     struct Product {
-        address assetA;
-        uint256 chainIdA;
-        address assetB;
-        uint256 chainIdB;
+        address baseAsset;
+        uint256 baseAssetChainId;
+        address counterAsset;
+        uint256 counterAssetChainId;
     }
 
     struct SignedOrder {

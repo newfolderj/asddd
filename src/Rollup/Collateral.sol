@@ -17,11 +17,6 @@ import "@openzeppelin/token/ERC20/IERC20.sol";
 contract Collateral is ICollateral {
     using IdLib for Id;
 
-    /**
-     * Stores the next ID in the sequence that will be assigned to either a
-     * Deposit or SettlementRequest which occurs on this chain.
-     */
-    Id public chainSequenceId = ID_ZERO;
     address immutable participatingInterface;
     IManager immutable manager;
 
@@ -36,8 +31,8 @@ contract Collateral is ICollateral {
     // mapping(address => uint256) available;
     mapping(address => uint256) locked;
 
-    address immutable stablecoin;
-    address immutable protocolToken;
+    address public immutable stablecoin;
+    address public immutable protocolToken;
 
     CollateralToken stablecoinCollateral;
     CollateralToken protocolCollateral;
@@ -46,6 +41,7 @@ contract Collateral is ICollateral {
 
     // Amount of protocol token necessary to stake to propose a state root
     uint256 public constant PROTOCOL_STAKE_AMOUNT = 10_000;
+    uint256 public constant minimumStablecoinStake = 200;
 
     constructor(address _participatingInterface, address _manager, address _stablecoin, address _protocolToken) {
         participatingInterface = _participatingInterface;
@@ -86,6 +82,7 @@ contract Collateral is ICollateral {
     }
 
     function stake(uint256 _stablecoinAmount) external {
+        if(_stablecoinAmount < minimumStablecoinStake * (10 ** ERC20(stablecoin).decimals())) revert();
         // get rate of stablecoin token to protocol token from price oracle
         uint256 rate = IOracle(address(manager)).getPrice(address(stablecoin), address(protocolToken));
         // convert stablecoin amount to protocol token amount
@@ -97,6 +94,10 @@ contract Collateral is ICollateral {
         _stake(stablecoin, _stablecoinAmount);
         _stake(protocolToken, protocolStake);
         // _burn(protocolToken, burnAmount);
+    }
+
+    function stablecoinToProtocol(uint256 _stablecoinAmount) external view returns (uint256) {
+        return (_stablecoinAmount * 300) / 10000;
     }
 
     // Stakes an asset into either the stablecoin or protocol token pool
@@ -148,5 +149,21 @@ contract Collateral is ICollateral {
         // if the fee token is on a child chain, the message to allocate the fee amount needs to be relayed
         // For now, assume fee asset exists on this chain
         require(IERC20(_asset).transfer(msg.sender, _amount));
+    }
+
+    function totalProtocolStaked() external view returns (uint256) {
+        return total[protocolToken];
+    }
+
+    function totalStablecoinStaked() external view returns (uint256) {
+        return total[stablecoin];
+    }
+
+    function protocolStake(address staker) external view returns (uint256) {
+        return protocolCollateral.balanceOf(staker);
+    }
+
+    function stablecoinStaked(address staker) external view returns (uint256) {
+        return stablecoinCollateral.balanceOf(staker);
     }
 }

@@ -3,6 +3,7 @@
 pragma solidity ^0.8.19;
 
 import "./IPortal.sol";
+import "./Deposits.sol";
 import "../StateUpdateLibrary.sol";
 import "../Manager/IManager.sol";
 import "../Manager/IBaseManager.sol";
@@ -13,7 +14,7 @@ import "@openzeppelin/token/ERC20/IERC20.sol";
 /**
  * The Portal is the entry and exit point for all assets in the TXA network.
  */
-contract Portal is IPortal {
+contract Portal is IPortal, Deposits {
     using IdLib for Id;
 
     /**
@@ -24,8 +25,6 @@ contract Portal is IPortal {
     address immutable participatingInterface;
     IManager immutable manager;
 
-    mapping(bytes32 => StateUpdateLibrary.Deposit) public deposits;
-    mapping(bytes32 => uint256) public balances;
     mapping(bytes32 => bool) public claimed;
     mapping(Id => StateUpdateLibrary.SettlementRequest) public settlementRequests;
 
@@ -47,7 +46,8 @@ contract Portal is IPortal {
     event ObligationWritten(address deliverer, address recipient, address token, uint256 amount);
     event Withdraw(address wallet, uint256 amount, address token);
 
-    mapping(address => mapping(address => uint256)) public availableToWithdraw;
+    mapping(address => uint256) public collateralized;
+    mapping(address => mapping(address => uint256)) public settled;
 
     constructor(address _participatingInterface, address _manager) {
         participatingInterface = _participatingInterface;
@@ -74,7 +74,9 @@ contract Portal is IPortal {
         );
         bytes32 utxo = keccak256(abi.encode(deposit));
         deposits[utxo] = deposit;
-        balances[utxo] = msg.value;
+        unchecked {
+            collateralized[address(0)] += msg.value;
+        }
         emit DepositUtxo(msg.sender, msg.value, address(0), participatingInterface, chainSequenceId, utxo);
         // Alpha compatibility
         emit Deposit(msg.sender, msg.value, address(0), chainSequenceId);
@@ -86,13 +88,15 @@ contract Portal is IPortal {
      */
     function depositToken(address _token, uint256 _amount) external {
         // TODO: check if token is tradable
-        if (!IERC20(_token).transferFrom(msg.sender, address(this), _amount)) revert INSUFFICIENT_BALANCE_TOKEN();
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
             msg.sender, _token, participatingInterface, _amount, chainSequenceId, Id.wrap(block.chainid)
         );
         bytes32 utxo = keccak256(abi.encode(deposit));
         deposits[utxo] = deposit;
-        balances[utxo] = _amount;
+        unchecked {
+            collateralized[_token] += _amount;
+        }
+        if (!IERC20(_token).transferFrom(msg.sender, address(this), _amount)) revert INSUFFICIENT_BALANCE_TOKEN();
         emit DepositUtxo(msg.sender, _amount, _token, participatingInterface, chainSequenceId, utxo);
         // Alpha compatibility
         emit Deposit(msg.sender, _amount, _token, chainSequenceId);
@@ -109,26 +113,21 @@ contract Portal is IPortal {
         chainSequenceId = chainSequenceId.increment();
     }
 
-    function writeObligation(bytes32 _utxo, bytes32 _deposit, address _recipient, uint256 _amount) external {
+    function writeObligation(address _token, address _recipient, uint256 _amount) external {
         if (msg.sender != manager.rollup()) revert CALLER_NOT_ROLLUP();
 
-        if (balances[_deposit] < _amount) revert INSUFFICIENT_BALANCE_OBLIGATION();
+        if (collateralized[_token] < _amount) revert INSUFFICIENT_BALANCE_OBLIGATION();
 
-        if (claimed[_utxo]) revert UTXO_ALREADY_CLAIMED();
-
-        address token = deposits[_deposit].asset;
-        availableToWithdraw[_recipient][token] += _amount;
-        unchecked {
-            balances[_deposit] -= _amount;
-        }
-        emit ObligationWritten(deposits[_deposit].trader, _recipient, token, _amount);
+        collateralized[_token] -= _amount;
+        settled[_recipient][_token] += _amount;
+        emit ObligationWritten(address(0), _recipient, _token, _amount);
     }
 
     function withdraw(uint256 _amount, address _token) external {
-        if (availableToWithdraw[msg.sender][_token] < _amount) revert INSUFFICIENT_BALANCE_WITHDRAW();
+        if (settled[msg.sender][_token] < _amount) revert INSUFFICIENT_BALANCE_WITHDRAW();
 
         unchecked {
-            availableToWithdraw[msg.sender][_token] -= _amount;
+            settled[msg.sender][_token] -= _amount;
         }
 
         if (_token == address(0)) {
@@ -153,7 +152,7 @@ contract Portal is IPortal {
     }
 
     function getAvailableBalance(address _trader, address _token) external view returns (uint256) {
-        return availableToWithdraw[_trader][_token];
+        return settled[_trader][_token];
     }
 
     function isValidSettlementRequest(uint256 _chainSequenceId, bytes32 _settlementHash) external view returns (bool) {

@@ -77,8 +77,7 @@ contract Rollup is IRollup {
     function processSettlement(
         StateUpdateLibrary.SignedStateUpdate calldata _signedUpdate,
         Id _stateRootId,
-        bytes32[] calldata _proof,
-        StateUpdateLibrary.UTXO[] calldata _inputs
+        bytes32[] calldata _proof
     )
         external
     {
@@ -92,14 +91,10 @@ contract Rollup is IRollup {
             revert INVALID_STATE_UPDATE_SETTLEMENT();
         }
 
-        StateUpdateLibrary.Settlement memory settlementAcknowledgement =
+        StateUpdateLibrary.Settlement memory settlement =
             abi.decode(_signedUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
 
-        if (_inputs.length != settlementAcknowledgement.inputs.length) {
-            revert INPUTS_LENGTH_MISMATCH_SETTLEMENT();
-        }
-
-        StateUpdateLibrary.SettlementRequest memory settlementRequest = settlementAcknowledgement.settlementRequest;
+        StateUpdateLibrary.SettlementRequest memory settlementRequest = settlement.settlementRequest;
 
         if (settlementRequest.settlementId != lastSettlementIdProcessed.increment()) {
             revert INVALID_SEQUENCE_SETTLEMENT();
@@ -112,29 +107,21 @@ contract Rollup is IRollup {
             }) || settlementRequest.chainId != Id.wrap(block.chainid)
         ) revert INVALID_REQUEST_SETTLEMENT();
 
-        unchecked {
-            for (uint256 i = 0; i < _inputs.length; i++) {
-                // TODO: Calculate total amount of collateral required for this asset
-                StateUpdateLibrary.UTXO calldata input = _inputs[i];
-                bytes32 hashedInput = keccak256(abi.encode(input));
-
-                if (hashedInput != settlementAcknowledgement.inputs[i]) {
-                    revert INPUTS_HASH_MISMATCH_SETTLEMENT();
-                }
-
-                if (input.asset != settlementRequest.asset || input.trader != settlementRequest.trader) {
-                    revert INPUT_PARAMS_MISMATCH_SETTLEMENT();
-                }
-
-                IPortal(manager.portal()).writeObligation({
-                    utxo: hashedInput,
-                    deposit: _inputs[i].depositUtxo,
-                    recipient: _inputs[i].trader,
-                    amount: _inputs[i].amount
-                });
-            }
-            lastSettlementIdProcessed = lastSettlementIdProcessed.increment();
+        if (
+            settlement.balanceBefore.asset != settlementRequest.asset
+                || settlement.balanceBefore.trader != settlementRequest.trader
+                || settlement.balanceBefore.chainId != Id.wrap(block.chainid)
+        ) {
+            revert INPUT_PARAMS_MISMATCH_SETTLEMENT();
         }
+
+        IPortal(manager.portal()).writeObligation({
+            token: settlement.balanceBefore.asset,
+            recipient: settlement.balanceBefore.trader,
+            amount: settlement.balanceBefore.amount
+        });
+
+        lastSettlementIdProcessed = lastSettlementIdProcessed.increment();
         // TODO: query oracle for price of requested asset in USD
         // convert total amount of requested asset to USD
         // calculate corresponding protocol token amount
@@ -161,7 +148,7 @@ contract Rollup is IRollup {
     }
 
     function markFraudulent(uint256 _epoch) external {
-        if(msg.sender != IBaseManager(address(manager)).fraudEngine()) revert();
+        if (msg.sender != IBaseManager(address(manager)).fraudEngine()) revert();
         // if (fraudulent[proposedStateRoot[_epoch]]) revert();
         fraudulent[Id.wrap(_epoch)][proposedStateRoot[Id.wrap(_epoch)]] = true;
     }
