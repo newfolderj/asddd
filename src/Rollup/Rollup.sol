@@ -144,7 +144,6 @@ contract Rollup is IRollup {
     function submitSettlement(
         bytes32 _stateRoot,
         StateUpdateLibrary.SignedStateUpdate calldata _signedUpdate,
-        Id _stateRootId,
         bytes32[] calldata _proof
     )
         external
@@ -154,7 +153,7 @@ contract Rollup is IRollup {
 
         confirmedStateRoot[lastConfirmedEpoch] = _stateRoot;
 
-        _processSettlement(_signedUpdate, _stateRootId, _proof);
+        _processSettlement(_signedUpdate, lastConfirmedEpoch, _proof);
     }
 
     function _processSettlement(
