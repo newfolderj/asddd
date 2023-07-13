@@ -71,13 +71,20 @@ contract Relayer is AxelarExecutable {
 
         if (_chainNames.length != _chainIds.length) revert CHAIN_ARRAY_MISMATCH(_chainNames.length, _chainIds.length);
 
-        unchecked{
-            for(uint256 i = 0; i < _chainNames.length; i++) {
+        unchecked {
+            for (uint256 i = 0; i < _chainNames.length; i++) {
                 nameToChainId[keccak256(abi.encode(_chainNames[i]))] = _chainIds[i];
                 chainIdToName[_chainIds[i]] = _chainNames[i];
             }
         }
     }
+
+    struct Reward {
+        address asset;
+        uint256 amount;
+    }
+
+    function relayRewards(uint256 _chainId, Reward[] calldata _rewards) external { }
 
     function relayStateRoot(Id _chainId, Id _epoch) external payable {
         if (_epoch != relayState[_chainId].nextEpoch) {
@@ -115,14 +122,7 @@ contract Relayer is AxelarExecutable {
     // TODO: relay obligation ( bytes32 utxo hash -> amount, address )
 
     // Axelar
-    function _execute(
-        string calldata _sourceChain,
-        string calldata,
-        bytes calldata _payload
-    )
-        internal
-        override
-    {
+    function _execute(string calldata _sourceChain, string calldata, bytes calldata _payload) internal override {
         RelayPayload memory payload = abi.decode(_payload, (RelayPayload));
         _confirmRelay(nameToChainId[keccak256(abi.encode(_sourceChain))], Id.wrap(payload.epoch));
     }
