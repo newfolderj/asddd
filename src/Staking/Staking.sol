@@ -2,6 +2,7 @@
 // Copyright © 2023 TXA PTE. LTD.
 pragma solidity ^0.8.19;
 
+import "./IStaking.sol";
 import "../StateUpdateLibrary.sol";
 import "../Manager/IManager.sol";
 import "../Manager/IBaseManager.sol";
@@ -20,10 +21,13 @@ interface IRewardsRelayer {
     function relayRewards(uint256 _chainId, Reward[] calldata _rewards) external;
 }
 
-contract Staking {
+contract Staking is IStaking {
     using IdLib for Id;
     using EnumerableSet for EnumerableSet.UintSet;
 
+    error INSUFFICIENT_COLLATERAL(uint256 amountToLock, uint256 amountLeft);
+
+    // TIME CONSTANTS
     // Minimum number of blocks for which funds must be locked
     uint256 public constant PERIOD_LENGTH = 5_184_000; // ~ 60 days on Arbitrum Nova
     // Number of blocks before end of period at which locking assets from a tranche is no longer possible.
@@ -33,6 +37,10 @@ contract Staking {
     uint256 public constant DEPOSIT_CUTOFF = 345_600; // ~ 4 days on Arbitrum Nova
     // How many staking periods are available at one time
     uint256 public constant ACTIVE_PERIODS = 3;
+
+    // STAKING AMOUNT CONSTANTS
+    // Amount of protocol token required to lock when proposing a state root
+    uint256 public constant ROOT_PROPOSAL_LOCK_AMOUNT = 10_000e18;
 
     struct DepositRecord {
         address staker;
@@ -69,6 +77,7 @@ contract Staking {
     mapping(uint256 => mapping(uint256 => mapping(address => uint256))) internal rewards;
     // Used to sum up rewards for a single staker across multiple deposits, locks, and assets
     mapping(address => mapping(uint256 => mapping(address => uint256))) internal toClaim;
+    mapping(uint256 => mapping(address => uint256)) internal insuranceFees;
 
     struct TotalAmount {
         uint256 total;
@@ -79,14 +88,18 @@ contract Staking {
     mapping(address => mapping(uint256 => TotalAmount)) totals;
 
     IManager immutable manager;
+    address public stablecoin;
+    address public protocolToken;
 
-    constructor(address _manager) {
+    constructor(address _manager, address _stablecoin, address _protocolToken) {
         manager = IManager(_manager);
+        stablecoin = _stablecoin;
+        protocolToken = _protocolToken;
     }
 
     function stake(address _asset, uint256 _amount, uint256 _unlockTime) external {
-        // require asset is supported
-        // transfer from msg.sender to here
+        if (!(_asset == stablecoin || _asset == protocolToken)) revert();
+        require(IERC20(_asset).transferFrom(msg.sender, address(this), _amount));
 
         if (_unlockTime % PERIOD_LENGTH != 0) revert();
         if (block.number >= _unlockTime - DEPOSIT_CUTOFF) revert();
@@ -98,10 +111,10 @@ contract Staking {
         currentDepositId = currentDepositId.increment();
     }
 
-    function lock(address _asset, uint256 _amountToLock) external {
-        if (msg.sender != manager.rollup()) revert();
-        if (_amountToLock == 0) revert();
-        // TODO: revert if asset is not supported
+    function lock(address _asset, uint256 _amountToLock) external returns(uint256) {
+        if (msg.sender != manager.rollup()) revert("Only rollup can lock");
+        if (_amountToLock == 0) revert("Amount to lock must not be 0");
+        if (!(_asset == stablecoin || _asset == protocolToken)) revert("Can only lock stablecoin or protocolToken");
 
         uint256[ACTIVE_PERIODS] memory tranches = getActiveTranches();
         uint256 totalAvailable = 0;
@@ -122,11 +135,12 @@ contract Staking {
                 amountLeft = 0;
             }
         }
-        if (amountLeft > 0) revert();
+        if (amountLeft > 0) revert INSUFFICIENT_COLLATERAL({amountToLock: _amountToLock, amountLeft: amountLeft});
 
         locks[Id.unwrap(currentLockId)][_asset] = LockRecord(_amountToLock, totalAvailable, block.number);
         currentLockId = currentLockId.increment();
         // TODO: emit an event
+        return Id.unwrap(currentLockId) - 1;
     }
 
     function unlock() external { }
@@ -136,7 +150,13 @@ contract Staking {
         rewards[_lockId][_chainId][_asset] += _amount;
         // TODO: emit event
     }
-    // Called by the staker to claim rewards and relay them to the blockchain where the assets are deposited.
+
+    // Called by rollup contract to delegate a portion of settlement fee to the insurance fund
+    function payInsurance(uint256 _chainId, address _asset, uint256 _amount) external {
+        if (msg.sender != manager.rollup()) revert();
+        insuranceFees[_chainId][_asset] += _amount;
+    }
+
     struct ClaimParams {
         uint256[] lockId;
         uint256[] depositId;
@@ -144,6 +164,7 @@ contract Staking {
         address[] rewardAsset;
     }
 
+    // Called by the staker to claim rewards and relay them to the blockchain where the assets are deposited.
     function claim(ClaimParams calldata _params) external {
         for (uint256 d = 0; d < _params.depositId.length; d++) {
             // get deposit record
@@ -211,5 +232,15 @@ contract Staking {
         for (uint256 i = 0; i < ACTIVE_PERIODS; i++) {
             tranches[i] = current + (PERIOD_LENGTH * i);
         }
+    }
+
+    // Returns amount of protocol token required to stake alongside the specified number of stablecoin tokens
+    function stablecoinToProtocol(uint256 _stablecoinAmount) public pure returns (uint256) {
+        // TODO: call oracle to get price of protocol token in stablecoin token
+        // Convert stablecoin amount to protocol token amount (assuming 1 protocol token costs $0.30)
+        // Converts to 18 decimal precision to match protocol token
+        uint256 protocolAmount = ((_stablecoinAmount * 30e5) / 100e5) * 1e12;
+        // 15% of the amount above is required to be staked as protocol token
+        return (protocolAmount * 15e5) / 100e5;
     }
 }

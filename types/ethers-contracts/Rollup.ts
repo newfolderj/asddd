@@ -76,7 +76,9 @@ export interface RollupInterface extends utils.Interface {
     "markFraudulent(uint256)": FunctionFragment;
     "nextRequestId()": FunctionFragment;
     "processSettlement(((uint8,uint256,address,bytes),uint8,bytes32,bytes32),uint256,bytes32[])": FunctionFragment;
+    "processedSettlements(uint256,uint256)": FunctionFragment;
     "proposalBlock(bytes32)": FunctionFragment;
+    "proposalLockId(bytes32)": FunctionFragment;
     "proposeStateRoot(bytes32)": FunctionFragment;
     "proposedStateRoot(uint256)": FunctionFragment;
     "requestSettlement(address,address)": FunctionFragment;
@@ -98,7 +100,9 @@ export interface RollupInterface extends utils.Interface {
       | "markFraudulent"
       | "nextRequestId"
       | "processSettlement"
+      | "processedSettlements"
       | "proposalBlock"
+      | "proposalLockId"
       | "proposeStateRoot"
       | "proposedStateRoot"
       | "requestSettlement"
@@ -159,7 +163,15 @@ export interface RollupInterface extends utils.Interface {
     ]
   ): string;
   encodeFunctionData(
+    functionFragment: "processedSettlements",
+    values: [BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "proposalBlock",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "proposalLockId",
     values: [BytesLike]
   ): string;
   encodeFunctionData(
@@ -226,7 +238,15 @@ export interface RollupInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "processedSettlements",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "proposalBlock",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "proposalLockId",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -343,7 +363,18 @@ export interface Rollup extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
+    processedSettlements(
+      arg0: BigNumberish,
+      arg1: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
     proposalBlock(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    proposalLockId(
       arg0: BytesLike,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
@@ -421,7 +452,18 @@ export interface Rollup extends BaseContract {
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
+  processedSettlements(
+    arg0: BigNumberish,
+    arg1: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
   proposalBlock(arg0: BytesLike, overrides?: CallOverrides): Promise<BigNumber>;
+
+  proposalLockId(
+    arg0: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
   proposeStateRoot(
     _stateRoot: BytesLike,
@@ -494,7 +536,18 @@ export interface Rollup extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    processedSettlements(
+      arg0: BigNumberish,
+      arg1: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
     proposalBlock(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    proposalLockId(
       arg0: BytesLike,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -588,7 +641,18 @@ export interface Rollup extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
+    processedSettlements(
+      arg0: BigNumberish,
+      arg1: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     proposalBlock(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    proposalLockId(
       arg0: BytesLike,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -673,7 +737,18 @@ export interface Rollup extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
+    processedSettlements(
+      arg0: BigNumberish,
+      arg1: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     proposalBlock(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    proposalLockId(
       arg0: BytesLike,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
