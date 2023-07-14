@@ -5,7 +5,7 @@ pragma solidity ^0.8.19;
 import { Test } from "forge-std/Test.sol";
 
 import "../../src/Manager/BaseManager.sol";
-import "../../src/Rollup/Collateral.sol";
+import "../../src/Staking/Staking.sol";
 import "../../src/Rollup/FraudEngine.sol";
 import "../../src/util/Signature.sol";
 import "@openzeppelin/token/ERC20/ERC20.sol";
@@ -24,7 +24,7 @@ contract BaseTest is Test {
     BaseManager internal manager;
     Portal internal portal;
     Rollup internal rollup;
-    Collateral internal collateral;
+    Staking internal staking;
     FraudEngine internal fraudEngine;
 
     Signature internal sigUtil;
@@ -255,10 +255,9 @@ contract BaseTest is Test {
         rollup = Rollup(manager.rollup());
         vm.startPrank(admin);
         fraudEngine = new FraudEngine(participatingInterface, address(manager));
-        collateral =
-            new Collateral(participatingInterface, address(manager), address(stablecoin), address(protocolToken));
+        staking = new Staking(address(manager), address(stablecoin), address(protocolToken));
         manager.setFraudEngine(address(fraudEngine));
-        manager.setCollateral(address(collateral));
+        manager.setCollateral(address(staking));
         vm.stopPrank();
 
         alice = vm.addr(aliceKey);
@@ -271,12 +270,14 @@ contract BaseTest is Test {
         sigUtil = new Signature(participatingInterface);
         merkleLib = new Merkle();
 
-        deal({ token: address(protocolToken), to: validator, give: 100 ether });
+        deal({ token: address(protocolToken), to: validator, give: 20_000 ether });
         deal({ token: address(stablecoin), to: validator, give: 200 ether });
+        uint256[3] memory tranches = staking.getActiveTranches();
         vm.startPrank(validator);
-        protocolToken.approve(manager.collateral(), 100 ether);
+        protocolToken.approve(manager.collateral(), 20_000 ether);
         stablecoin.approve(manager.collateral(), 200 ether);
-        collateral.stake(200 ether);
+        staking.stake(address(stablecoin), 200 ether, tranches[1]);
+        staking.stake(address(protocolToken), 20_000 ether, tranches[1]);
         vm.stopPrank();
     }
 }

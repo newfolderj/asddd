@@ -7,6 +7,8 @@ import "./ICollateral.sol";
 import "../Portal/IPortal.sol";
 import "../Manager/IManager.sol";
 import "../Manager/IBaseManager.sol";
+import "../Manager/IFeeManager.sol";
+import "../Staking/IStaking.sol";
 import "../StateUpdateLibrary.sol";
 import "../util/Id.sol";
 import "@openzeppelin/utils/cryptography/MerkleProof.sol";
@@ -21,8 +23,10 @@ contract Rollup is IRollup {
     Id public lastConfirmedEpoch = ID_ZERO;
     mapping(Id => bytes32) public proposedStateRoot;
     mapping(bytes32 => uint256) public proposalBlock;
+    mapping(bytes32 => Id) public proposalLockId;
     mapping(Id => mapping(bytes32 => bool)) public fraudulent;
     mapping(Id => bytes32) public confirmedStateRoot;
+    mapping(uint256 => mapping(uint256 => bool)) public processedSettlements;
 
     error CALLER_NOT_VALIDATOR();
     error EMPTY_STATE_ROOT();
@@ -53,9 +57,13 @@ contract Rollup is IRollup {
 
     function proposeStateRoot(bytes32 _stateRoot) external {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
-        ICollateral(IBaseManager(address(manager)).collateral()).lockForStateRootProposal();
+        IStaking staking = IStaking(IBaseManager(address(manager)).collateral());
+        Id lockId = Id.wrap(staking.lock(staking.protocolToken(), staking.ROOT_PROPOSAL_LOCK_AMOUNT()));
+        // TODO: burn some of the protocol token
+
         proposedStateRoot[epoch] = _stateRoot;
         proposalBlock[_stateRoot] = block.number;
+        proposalLockId[_stateRoot] = lockId;
         epoch = epoch.increment();
     }
 
@@ -73,6 +81,8 @@ contract Rollup is IRollup {
 
     /**
      * Called by anyone to complete a settlement.
+     * 
+     * TODO: Currently requires settlements to be processed sequentially. Remove this restriction and instead track which settlements have been processed.
      */
     function processSettlement(
         StateUpdateLibrary.SignedStateUpdate calldata _signedUpdate,
@@ -81,8 +91,13 @@ contract Rollup is IRollup {
     )
         external
     {
+        bool requiresCollateral = false;
         bytes32 stateRoot = confirmedStateRoot[_stateRootId];
-        if (stateRoot == 0) revert EMPTY_STATE_ROOT();
+        if (stateRoot == 0) {
+            requiresCollateral = true;
+            stateRoot = proposedStateRoot[_stateRootId];
+            if (stateRoot == 0) revert EMPTY_STATE_ROOT();
+        }
 
         bool valid = MerkleProof.verifyCalldata(_proof, stateRoot, keccak256(abi.encode(_signedUpdate)));
         if (!valid) revert INVALID_PROOF_SETTLEMENT();
@@ -115,28 +130,62 @@ contract Rollup is IRollup {
             revert INPUT_PARAMS_MISMATCH_SETTLEMENT();
         }
 
+        // Calculate settlement fee
+        (uint256 insuranceFee, uint256 stakerReward) =
+            IFeeManager(address(manager)).calculateSettlementFees(settlement.balanceBefore.amount);
+        // TODO: obligations need to be relayed from processing chain to other chains
         IPortal(manager.portal()).writeObligation({
             token: settlement.balanceBefore.asset,
             recipient: settlement.balanceBefore.trader,
-            amount: settlement.balanceBefore.amount
+            amount: settlement.balanceBefore.amount - (insuranceFee + stakerReward)
         });
 
         lastSettlementIdProcessed = lastSettlementIdProcessed.increment();
-        // TODO: query oracle for price of requested asset in USD
-        // convert total amount of requested asset to USD
-        // calculate corresponding protocol token amount
-        // call Collateral contract to lock stablecoin and protocol token
 
-        // For now:
-        // Lock 1:1 requested asset
-        // Lock 15% of above as protocol token
-        // Burn 0.05% of above as protocol token
         emit ObligationsWritten(
             settlementRequest.settlementId,
             settlementRequest.trader,
             settlementRequest.asset,
             IPortal(manager.portal()).getAvailableBalance(settlementRequest.trader, settlementRequest.asset)
         );
+
+        IStaking staking = IStaking(IBaseManager(address(manager)).collateral());
+        if (requiresCollateral) {
+            // TODO: Query oracle for price of settlement asset in stablecoin token
+            // For now:
+            // We assume balance token is 18 decimals of precision, convert to 6 decimals by dividing by 1e12
+            // Lock 1:1 requested asset
+            uint256 stableLockId = staking.lock(staking.stablecoin(), settlement.balanceBefore.amount / 1e12);
+            // Lock 15% of above as protocol token
+            uint256 protocolLockId = staking.lock(
+                staking.protocolToken(), staking.stablecoinToProtocol(settlement.balanceBefore.amount / 1e12)
+            );
+
+            // Split settlement fee between network and insurance fund
+            staking.payInsurance(
+                Id.unwrap(settlement.balanceBefore.chainId), settlement.balanceBefore.asset, insuranceFee
+            );
+            // Split staker reward between stablecoin pool and protocol token pool
+            (uint256 stablePoolReward, uint256 protocolPoolReward) =
+                IFeeManager(address(manager)).calculateStakingRewards(stakerReward);
+            staking.reward(
+                stableLockId,
+                Id.unwrap(settlement.balanceBefore.chainId),
+                settlement.balanceBefore.asset,
+                stablePoolReward
+            );
+            staking.reward(
+                protocolLockId,
+                Id.unwrap(settlement.balanceBefore.chainId),
+                settlement.balanceBefore.asset,
+                protocolPoolReward
+            );
+        } else {
+            // No collateral required, entire settlement fee goes to insurance
+            staking.payInsurance(
+                Id.unwrap(settlement.balanceBefore.chainId), settlement.balanceBefore.asset, insuranceFee
+            );
+        }
     }
 
     // Confirms a state root and processes a settlement in a single transaction.
@@ -147,7 +196,7 @@ contract Rollup is IRollup {
         bytes32[] calldata _proof
     )
         external
-    { 
+    {
         epoch = epoch.increment();
         lastConfirmedEpoch = lastConfirmedEpoch.increment();
 

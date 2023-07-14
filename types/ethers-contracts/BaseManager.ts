@@ -36,6 +36,9 @@ export interface BaseManagerInterface extends utils.Interface {
     "ONE_BPS_NUMERATOR()": FunctionFragment;
     "ONE_PERCENT_NUMERATOR()": FunctionFragment;
     "admin()": FunctionFragment;
+    "calculateInsuranceFee(uint256)": FunctionFragment;
+    "calculateSettlementFees(uint256)": FunctionFragment;
+    "calculateStakingRewards(uint256)": FunctionFragment;
     "collateral()": FunctionFragment;
     "currentFees()": FunctionFragment;
     "deployRelayer(address,address,string[],uint256[])": FunctionFragment;
@@ -44,16 +47,20 @@ export interface BaseManagerInterface extends utils.Interface {
     "fraudEngine()": FunctionFragment;
     "getPrice(address,address)": FunctionFragment;
     "getReceiverAddress(uint256)": FunctionFragment;
+    "insuranceFundFee()": FunctionFragment;
     "isValidator(address)": FunctionFragment;
     "portal()": FunctionFragment;
     "proposeFees(uint256,uint256)": FunctionFragment;
     "proposedFees()": FunctionFragment;
+    "protocolFee()": FunctionFragment;
     "receivers(uint256)": FunctionFragment;
     "relayer()": FunctionFragment;
     "rollup()": FunctionFragment;
     "setCollateral(address)": FunctionFragment;
     "setFraudEngine(address)": FunctionFragment;
     "setReceivers(uint256[],address[])": FunctionFragment;
+    "settlementFeeNumerator()": FunctionFragment;
+    "stablePoolPortion()": FunctionFragment;
     "updateFees()": FunctionFragment;
     "validator()": FunctionFragment;
     "walletDelegation()": FunctionFragment;
@@ -69,6 +76,9 @@ export interface BaseManagerInterface extends utils.Interface {
       | "ONE_BPS_NUMERATOR"
       | "ONE_PERCENT_NUMERATOR"
       | "admin"
+      | "calculateInsuranceFee"
+      | "calculateSettlementFees"
+      | "calculateStakingRewards"
       | "collateral"
       | "currentFees"
       | "deployRelayer"
@@ -77,16 +87,20 @@ export interface BaseManagerInterface extends utils.Interface {
       | "fraudEngine"
       | "getPrice"
       | "getReceiverAddress"
+      | "insuranceFundFee"
       | "isValidator"
       | "portal"
       | "proposeFees"
       | "proposedFees"
+      | "protocolFee"
       | "receivers"
       | "relayer"
       | "rollup"
       | "setCollateral"
       | "setFraudEngine"
       | "setReceivers"
+      | "settlementFeeNumerator"
+      | "stablePoolPortion"
       | "updateFees"
       | "validator"
       | "walletDelegation"
@@ -119,6 +133,18 @@ export interface BaseManagerInterface extends utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "admin", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "calculateInsuranceFee",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "calculateSettlementFees",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "calculateStakingRewards",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "collateral",
     values?: undefined
   ): string;
@@ -150,6 +176,10 @@ export interface BaseManagerInterface extends utils.Interface {
     functionFragment: "getReceiverAddress",
     values: [BigNumberish]
   ): string;
+  encodeFunctionData(
+    functionFragment: "insuranceFundFee",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "isValidator", values: [string]): string;
   encodeFunctionData(functionFragment: "portal", values?: undefined): string;
   encodeFunctionData(
@@ -158,6 +188,10 @@ export interface BaseManagerInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "proposedFees",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "protocolFee",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -177,6 +211,14 @@ export interface BaseManagerInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "setReceivers",
     values: [BigNumberish[], string[]]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "settlementFeeNumerator",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "stablePoolPortion",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "updateFees",
@@ -214,6 +256,18 @@ export interface BaseManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "admin", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "calculateInsuranceFee",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "calculateSettlementFees",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "calculateStakingRewards",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "collateral", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "currentFees",
@@ -238,6 +292,10 @@ export interface BaseManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "insuranceFundFee",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "isValidator",
     data: BytesLike
   ): Result;
@@ -248,6 +306,10 @@ export interface BaseManagerInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "proposedFees",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "protocolFee",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "receivers", data: BytesLike): Result;
@@ -265,6 +327,14 @@ export interface BaseManagerInterface extends utils.Interface {
     functionFragment: "setReceivers",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "settlementFeeNumerator",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "stablePoolPortion",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "updateFees", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "validator", data: BytesLike): Result;
   decodeFunctionResult(
@@ -273,36 +343,38 @@ export interface BaseManagerInterface extends utils.Interface {
   ): Result;
 
   events: {
-    "FeesProposed(uint256,uint256)": EventFragment;
-    "FeesUpdated(uint256,uint256,uint256)": EventFragment;
+    "TradingFeesProposed(uint256,uint256)": EventFragment;
+    "TradingFeesUpdated(uint256,uint256,uint256)": EventFragment;
   };
 
-  getEvent(nameOrSignatureOrTopic: "FeesProposed"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "FeesUpdated"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "TradingFeesProposed"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "TradingFeesUpdated"): EventFragment;
 }
 
-export interface FeesProposedEventObject {
+export interface TradingFeesProposedEventObject {
   makerFee: BigNumber;
   takerFee: BigNumber;
 }
-export type FeesProposedEvent = TypedEvent<
+export type TradingFeesProposedEvent = TypedEvent<
   [BigNumber, BigNumber],
-  FeesProposedEventObject
+  TradingFeesProposedEventObject
 >;
 
-export type FeesProposedEventFilter = TypedEventFilter<FeesProposedEvent>;
+export type TradingFeesProposedEventFilter =
+  TypedEventFilter<TradingFeesProposedEvent>;
 
-export interface FeesUpdatedEventObject {
+export interface TradingFeesUpdatedEventObject {
   feeSequenceId: BigNumber;
   makerFee: BigNumber;
   takerFee: BigNumber;
 }
-export type FeesUpdatedEvent = TypedEvent<
+export type TradingFeesUpdatedEvent = TypedEvent<
   [BigNumber, BigNumber, BigNumber],
-  FeesUpdatedEventObject
+  TradingFeesUpdatedEventObject
 >;
 
-export type FeesUpdatedEventFilter = TypedEventFilter<FeesUpdatedEvent>;
+export type TradingFeesUpdatedEventFilter =
+  TypedEventFilter<TradingFeesUpdatedEvent>;
 
 export interface BaseManager extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -347,6 +419,31 @@ export interface BaseManager extends BaseContract {
 
     admin(overrides?: CallOverrides): Promise<[string]>;
 
+    calculateInsuranceFee(
+      amount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    calculateSettlementFees(
+      settlementAmount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber] & {
+        insuranceFee: BigNumber;
+        stakerReward: BigNumber;
+      }
+    >;
+
+    calculateStakingRewards(
+      stakingReward: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber] & {
+        stablePoolReward: BigNumber;
+        protocolPoolReward: BigNumber;
+      }
+    >;
+
     collateral(overrides?: CallOverrides): Promise<[string]>;
 
     currentFees(
@@ -385,6 +482,8 @@ export interface BaseManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[string]>;
 
+    insuranceFundFee(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     isValidator(
       _validator: string,
       overrides?: CallOverrides
@@ -403,6 +502,8 @@ export interface BaseManager extends BaseContract {
     ): Promise<
       [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
     >;
+
+    protocolFee(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     receivers(arg0: BigNumberish, overrides?: CallOverrides): Promise<[string]>;
 
@@ -425,6 +526,10 @@ export interface BaseManager extends BaseContract {
       _receivers: string[],
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
+
+    settlementFeeNumerator(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    stablePoolPortion(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     updateFees(
       overrides?: Overrides & { from?: string }
@@ -450,6 +555,31 @@ export interface BaseManager extends BaseContract {
   ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
 
   admin(overrides?: CallOverrides): Promise<string>;
+
+  calculateInsuranceFee(
+    amount: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  calculateSettlementFees(
+    settlementAmount: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<
+    [BigNumber, BigNumber] & {
+      insuranceFee: BigNumber;
+      stakerReward: BigNumber;
+    }
+  >;
+
+  calculateStakingRewards(
+    stakingReward: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<
+    [BigNumber, BigNumber] & {
+      stablePoolReward: BigNumber;
+      protocolPoolReward: BigNumber;
+    }
+  >;
 
   collateral(overrides?: CallOverrides): Promise<string>;
 
@@ -489,6 +619,8 @@ export interface BaseManager extends BaseContract {
     overrides?: CallOverrides
   ): Promise<string>;
 
+  insuranceFundFee(overrides?: CallOverrides): Promise<BigNumber>;
+
   isValidator(_validator: string, overrides?: CallOverrides): Promise<boolean>;
 
   portal(overrides?: CallOverrides): Promise<string>;
@@ -504,6 +636,8 @@ export interface BaseManager extends BaseContract {
   ): Promise<
     [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
   >;
+
+  protocolFee(overrides?: CallOverrides): Promise<BigNumber>;
 
   receivers(arg0: BigNumberish, overrides?: CallOverrides): Promise<string>;
 
@@ -526,6 +660,10 @@ export interface BaseManager extends BaseContract {
     _receivers: string[],
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
+
+  settlementFeeNumerator(overrides?: CallOverrides): Promise<BigNumber>;
+
+  stablePoolPortion(overrides?: CallOverrides): Promise<BigNumber>;
 
   updateFees(
     overrides?: Overrides & { from?: string }
@@ -551,6 +689,31 @@ export interface BaseManager extends BaseContract {
     ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
 
     admin(overrides?: CallOverrides): Promise<string>;
+
+    calculateInsuranceFee(
+      amount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    calculateSettlementFees(
+      settlementAmount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber] & {
+        insuranceFee: BigNumber;
+        stakerReward: BigNumber;
+      }
+    >;
+
+    calculateStakingRewards(
+      stakingReward: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber] & {
+        stablePoolReward: BigNumber;
+        protocolPoolReward: BigNumber;
+      }
+    >;
 
     collateral(overrides?: CallOverrides): Promise<string>;
 
@@ -590,6 +753,8 @@ export interface BaseManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<string>;
 
+    insuranceFundFee(overrides?: CallOverrides): Promise<BigNumber>;
+
     isValidator(
       _validator: string,
       overrides?: CallOverrides
@@ -608,6 +773,8 @@ export interface BaseManager extends BaseContract {
     ): Promise<
       [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
     >;
+
+    protocolFee(overrides?: CallOverrides): Promise<BigNumber>;
 
     receivers(arg0: BigNumberish, overrides?: CallOverrides): Promise<string>;
 
@@ -631,6 +798,10 @@ export interface BaseManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    settlementFeeNumerator(overrides?: CallOverrides): Promise<BigNumber>;
+
+    stablePoolPortion(overrides?: CallOverrides): Promise<BigNumber>;
+
     updateFees(overrides?: CallOverrides): Promise<void>;
 
     validator(overrides?: CallOverrides): Promise<string>;
@@ -639,22 +810,25 @@ export interface BaseManager extends BaseContract {
   };
 
   filters: {
-    "FeesProposed(uint256,uint256)"(
+    "TradingFeesProposed(uint256,uint256)"(
       makerFee?: null,
       takerFee?: null
-    ): FeesProposedEventFilter;
-    FeesProposed(makerFee?: null, takerFee?: null): FeesProposedEventFilter;
+    ): TradingFeesProposedEventFilter;
+    TradingFeesProposed(
+      makerFee?: null,
+      takerFee?: null
+    ): TradingFeesProposedEventFilter;
 
-    "FeesUpdated(uint256,uint256,uint256)"(
+    "TradingFeesUpdated(uint256,uint256,uint256)"(
       feeSequenceId?: BigNumberish | null,
       makerFee?: null,
       takerFee?: null
-    ): FeesUpdatedEventFilter;
-    FeesUpdated(
+    ): TradingFeesUpdatedEventFilter;
+    TradingFeesUpdated(
       feeSequenceId?: BigNumberish | null,
       makerFee?: null,
       takerFee?: null
-    ): FeesUpdatedEventFilter;
+    ): TradingFeesUpdatedEventFilter;
   };
 
   estimateGas: {
@@ -673,6 +847,21 @@ export interface BaseManager extends BaseContract {
     ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
 
     admin(overrides?: CallOverrides): Promise<BigNumber>;
+
+    calculateInsuranceFee(
+      amount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    calculateSettlementFees(
+      settlementAmount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    calculateStakingRewards(
+      stakingReward: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     collateral(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -706,6 +895,8 @@ export interface BaseManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    insuranceFundFee(overrides?: CallOverrides): Promise<BigNumber>;
+
     isValidator(
       _validator: string,
       overrides?: CallOverrides
@@ -720,6 +911,8 @@ export interface BaseManager extends BaseContract {
     ): Promise<BigNumber>;
 
     proposedFees(overrides?: CallOverrides): Promise<BigNumber>;
+
+    protocolFee(overrides?: CallOverrides): Promise<BigNumber>;
 
     receivers(
       arg0: BigNumberish,
@@ -746,6 +939,10 @@ export interface BaseManager extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
+    settlementFeeNumerator(overrides?: CallOverrides): Promise<BigNumber>;
+
+    stablePoolPortion(overrides?: CallOverrides): Promise<BigNumber>;
+
     updateFees(overrides?: Overrides & { from?: string }): Promise<BigNumber>;
 
     validator(overrides?: CallOverrides): Promise<BigNumber>;
@@ -771,6 +968,21 @@ export interface BaseManager extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     admin(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    calculateInsuranceFee(
+      amount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    calculateSettlementFees(
+      settlementAmount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    calculateStakingRewards(
+      stakingReward: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     collateral(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
@@ -804,6 +1016,8 @@ export interface BaseManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    insuranceFundFee(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     isValidator(
       _validator: string,
       overrides?: CallOverrides
@@ -818,6 +1032,8 @@ export interface BaseManager extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     proposedFees(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    protocolFee(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     receivers(
       arg0: BigNumberish,
@@ -843,6 +1059,12 @@ export interface BaseManager extends BaseContract {
       _receivers: string[],
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
+
+    settlementFeeNumerator(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    stablePoolPortion(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     updateFees(
       overrides?: Overrides & { from?: string }

@@ -71,9 +71,10 @@ contract RollupTest is BaseTest {
             _proof: proof
         });
 
-        // Alice can now withdraw original deposit
+        // Alice can now withdraw original deposit minus settlement fee
+        (uint256 insuranceFee, uint256 stakerRewards) = IFeeManager(address(manager)).calculateSettlementFees(amount);
         vm.prank(alice);
-        portal.withdraw({ _amount: amount, _token: address(0) });
+        portal.withdraw({ _amount: amount - (insuranceFee + stakerRewards), _token: address(0) });
     }
 
     function test_submitsSettlement() external {
