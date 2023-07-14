@@ -61,9 +61,35 @@ export declare namespace StateUpdateLibrary {
   };
 }
 
+export declare namespace Rollup {
+  export type TradeProofStruct = {
+    tradeUpdate: StateUpdateLibrary.SignedStateUpdateStruct;
+    proof: BytesLike[];
+  };
+
+  export type TradeProofStructOutput = [
+    StateUpdateLibrary.SignedStateUpdateStructOutput,
+    string[]
+  ] & {
+    tradeUpdate: StateUpdateLibrary.SignedStateUpdateStructOutput;
+    proof: string[];
+  };
+
+  export type TradingFeeClaimStruct = {
+    epoch: BigNumberish;
+    tradeProof: Rollup.TradeProofStruct[];
+  };
+
+  export type TradingFeeClaimStructOutput = [
+    BigNumber,
+    Rollup.TradeProofStructOutput[]
+  ] & { epoch: BigNumber; tradeProof: Rollup.TradeProofStructOutput[] };
+}
+
 export interface RollupInterface extends utils.Interface {
   functions: {
     "CONFIRMATION_BLOCKS()": FunctionFragment;
+    "claimTradingFees((uint256,(((uint8,uint256,address,bytes),uint8,bytes32,bytes32),bytes32[])[])[])": FunctionFragment;
     "confirmStateRoot()": FunctionFragment;
     "confirmedStateRoot(uint256)": FunctionFragment;
     "epoch()": FunctionFragment;
@@ -81,6 +107,7 @@ export interface RollupInterface extends utils.Interface {
     "proposalLockId(bytes32)": FunctionFragment;
     "proposeStateRoot(bytes32)": FunctionFragment;
     "proposedStateRoot(uint256)": FunctionFragment;
+    "relayTradingFees(uint256,address[])": FunctionFragment;
     "requestSettlement(address,address)": FunctionFragment;
     "submitSettlement(bytes32,((uint8,uint256,address,bytes),uint8,bytes32,bytes32),bytes32[])": FunctionFragment;
   };
@@ -88,6 +115,7 @@ export interface RollupInterface extends utils.Interface {
   getFunction(
     nameOrSignatureOrTopic:
       | "CONFIRMATION_BLOCKS"
+      | "claimTradingFees"
       | "confirmStateRoot"
       | "confirmedStateRoot"
       | "epoch"
@@ -105,6 +133,7 @@ export interface RollupInterface extends utils.Interface {
       | "proposalLockId"
       | "proposeStateRoot"
       | "proposedStateRoot"
+      | "relayTradingFees"
       | "requestSettlement"
       | "submitSettlement"
   ): FunctionFragment;
@@ -112,6 +141,10 @@ export interface RollupInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "CONFIRMATION_BLOCKS",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "claimTradingFees",
+    values: [Rollup.TradingFeeClaimStruct[]]
   ): string;
   encodeFunctionData(
     functionFragment: "confirmStateRoot",
@@ -183,6 +216,10 @@ export interface RollupInterface extends utils.Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "relayTradingFees",
+    values: [BigNumberish, string[]]
+  ): string;
+  encodeFunctionData(
     functionFragment: "requestSettlement",
     values: [string, string]
   ): string;
@@ -193,6 +230,10 @@ export interface RollupInterface extends utils.Interface {
 
   decodeFunctionResult(
     functionFragment: "CONFIRMATION_BLOCKS",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "claimTradingFees",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -258,6 +299,10 @@ export interface RollupInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "relayTradingFees",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "requestSettlement",
     data: BytesLike
   ): Result;
@@ -315,6 +360,11 @@ export interface Rollup extends BaseContract {
 
   functions: {
     CONFIRMATION_BLOCKS(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    claimTradingFees(
+      _claims: Rollup.TradingFeeClaimStruct[],
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
 
     confirmStateRoot(
       overrides?: Overrides & { from?: string }
@@ -389,6 +439,12 @@ export interface Rollup extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[string]>;
 
+    relayTradingFees(
+      _chainId: BigNumberish,
+      _assets: string[],
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     requestSettlement(
       arg0: string,
       arg1: string,
@@ -404,6 +460,11 @@ export interface Rollup extends BaseContract {
   };
 
   CONFIRMATION_BLOCKS(overrides?: CallOverrides): Promise<BigNumber>;
+
+  claimTradingFees(
+    _claims: Rollup.TradingFeeClaimStruct[],
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
 
   confirmStateRoot(
     overrides?: Overrides & { from?: string }
@@ -475,6 +536,12 @@ export interface Rollup extends BaseContract {
     overrides?: CallOverrides
   ): Promise<string>;
 
+  relayTradingFees(
+    _chainId: BigNumberish,
+    _assets: string[],
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
   requestSettlement(
     arg0: string,
     arg1: string,
@@ -490,6 +557,11 @@ export interface Rollup extends BaseContract {
 
   callStatic: {
     CONFIRMATION_BLOCKS(overrides?: CallOverrides): Promise<BigNumber>;
+
+    claimTradingFees(
+      _claims: Rollup.TradingFeeClaimStruct[],
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     confirmStateRoot(overrides?: CallOverrides): Promise<void>;
 
@@ -562,6 +634,12 @@ export interface Rollup extends BaseContract {
       overrides?: CallOverrides
     ): Promise<string>;
 
+    relayTradingFees(
+      _chainId: BigNumberish,
+      _assets: string[],
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     requestSettlement(
       arg0: string,
       arg1: string,
@@ -593,6 +671,11 @@ export interface Rollup extends BaseContract {
 
   estimateGas: {
     CONFIRMATION_BLOCKS(overrides?: CallOverrides): Promise<BigNumber>;
+
+    claimTradingFees(
+      _claims: Rollup.TradingFeeClaimStruct[],
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
 
     confirmStateRoot(
       overrides?: Overrides & { from?: string }
@@ -667,6 +750,12 @@ export interface Rollup extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    relayTradingFees(
+      _chainId: BigNumberish,
+      _assets: string[],
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
     requestSettlement(
       arg0: string,
       arg1: string,
@@ -684,6 +773,11 @@ export interface Rollup extends BaseContract {
   populateTransaction: {
     CONFIRMATION_BLOCKS(
       overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    claimTradingFees(
+      _claims: Rollup.TradingFeeClaimStruct[],
+      overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
     confirmStateRoot(
@@ -761,6 +855,12 @@ export interface Rollup extends BaseContract {
     proposedStateRoot(
       arg0: BigNumberish,
       overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    relayTradingFees(
+      _chainId: BigNumberish,
+      _assets: string[],
+      overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
     requestSettlement(
