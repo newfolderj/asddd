@@ -9,7 +9,7 @@ library StateUpdateLibrary {
     uint8 public constant TYPE_ID_Trade = 0x01;
     uint8 public constant TYPE_ID_Settlement = 0x02;
     uint8 public constant TYPE_ID_FeeUpdate = 0x03;
-    uint8 public constant TYPE_ID_DepositRejection = 0x00;
+    uint8 public constant TYPE_ID_DepositRejection = 0x04;
     // uint8 public constant TYPE_ID_InitializeSettings = 0x03;
     // uint8 public constant TYPE_ID_Ping = 0x04;
     // uint8 public constant TYPE_ID_NewProduct = 0x05;

@@ -57,6 +57,7 @@ contract Rollup is IRollup {
 
     function proposeStateRoot(bytes32 _stateRoot) external {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
+        if (_stateRoot == "") revert("Proposed empty state root");
         IStaking staking = IStaking(IBaseManager(address(manager)).collateral());
         Id lockId = Id.wrap(staking.lock(staking.protocolToken(), staking.ROOT_PROPOSAL_LOCK_AMOUNT()));
         // TODO: burn some of the protocol token
@@ -71,18 +72,20 @@ contract Rollup is IRollup {
         lastConfirmedEpoch = lastConfirmedEpoch.increment();
 
         bytes32 stateRoot = proposedStateRoot[lastConfirmedEpoch];
+        if (stateRoot == "") revert("Trying to confirm an empty state root");
         uint256 blockNumber = proposalBlock[stateRoot];
 
-        if (block.number < blockNumber + CONFIRMATION_BLOCKS) revert();
-        if (fraudulent[lastConfirmedEpoch][stateRoot]) revert();
+        if (block.number < blockNumber + CONFIRMATION_BLOCKS) revert("Proposed state root has not passed fraud period");
+        if (fraudulent[lastConfirmedEpoch][stateRoot]) revert("Trying to confirm a fraudulent state root");
 
         confirmedStateRoot[lastConfirmedEpoch] = stateRoot;
     }
 
     /**
      * Called by anyone to complete a settlement.
-     * 
-     * TODO: Currently requires settlements to be processed sequentially. Remove this restriction and instead track which settlements have been processed.
+     *
+     * TODO: Currently requires settlements to be processed sequentially. Remove this restriction and instead track
+     * which settlements have been processed.
      */
     function processSettlement(
         StateUpdateLibrary.SignedStateUpdate calldata _signedUpdate,
@@ -268,6 +271,74 @@ contract Rollup is IRollup {
             settlementRequest.asset,
             IPortal(manager.portal()).getAvailableBalance(settlementRequest.trader, settlementRequest.asset)
         );
+    }
+
+    // Maps sequnce ID of state update to whether or not its fee(s) have been claimed by the participating interface
+    mapping(Id => bool) internal tradeClaimed;
+    // Maps chain ID to asset address to amount that has been claimed as fees and is awaiting relay
+    mapping(Id => mapping(address => uint256)) internal tradingFees;
+    struct TradeProof {
+        StateUpdateLibrary.SignedStateUpdate tradeUpdate;
+        bytes32[] proof;
+    }
+    struct TradingFeeClaim {
+        uint256 epoch;
+        TradeProof[] tradeProof;
+    }
+    // Called by participating interface to claim trading fees from confirmed epochs
+    function claimTradingFees(TradingFeeClaim[] calldata _claims) external {
+        if (msg.sender != participatingInterface) revert("Only participating interface can claim trading fees");
+        for (uint256 i = 0; i < _claims.length; i++) {
+            // get confirmed state root for epoch
+            bytes32 stateRoot = confirmedStateRoot[Id.wrap(_claims[i].epoch)];
+            if (stateRoot == "") revert("Trying to claim trading fees for an epoch that is yet to be confirmed");
+
+            for (uint256 t = 0; t < _claims[i].tradeProof.length; t++) {
+                // prove trade exists in root
+                bool valid = MerkleProof.verifyCalldata(
+                    _claims[i].tradeProof[t].proof,
+                    stateRoot,
+                    keccak256(abi.encode(_claims[i].tradeProof[t].tradeUpdate))
+                );
+                if (!valid) revert("Invalid merkle proof for trade");
+
+                // validate state update
+                if (_claims[i].tradeProof[t].tradeUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Trade)
+                {
+                    revert("State update is not a trade");
+                }
+                StateUpdateLibrary.Trade memory trade =
+                    abi.decode(_claims[i].tradeProof[t].tradeUpdate.stateUpdate.structData, (StateUpdateLibrary.Trade));
+
+                // check that trade has not been claimed already
+                if (tradeClaimed[_claims[i].tradeProof[t].tradeUpdate.stateUpdate.sequenceId]) {
+                    revert("Fees for this trade have already been claimed");
+                }
+                // mark it as claimed
+                tradeClaimed[_claims[i].tradeProof[t].tradeUpdate.stateUpdate.sequenceId] = true;
+
+                // record amounts for each asset
+                if (trade.makerFee.amount > 0) {
+                    tradingFees[trade.makerFee.chainId][trade.makerFee.asset] += trade.makerFee.amount;
+                }
+                if (trade.takerFee.amount > 0) {
+                    tradingFees[trade.takerFee.chainId][trade.takerFee.asset] += trade.takerFee.amount;
+                }
+            }
+        }
+    }
+
+    // Called by participating interface to relay trading fees to the chain where the assets can be withdrawn
+    function relayTradingFees(uint256 _chainId, address[] calldata _assets) external {
+        if(msg.sender != participatingInterface) revert("Only participating interface can claim trading fees");
+        uint256[] memory amounts = new uint256[](_assets.length);
+        for(uint256 i = 0; i < _assets.length; i++) {
+            if(tradingFees[Id.wrap(_chainId)][_assets[i]] == 0) revert();
+            amounts[i] = tradingFees[Id.wrap(_chainId)][_assets[i]];
+            tradingFees[Id.wrap(_chainId)][_assets[i]] = 0;
+        }
+        // TODO: relay
+        // Relayer.relayTradingFees(_chainId, _assets, amounts)
     }
 
     function requestSettlement(address, address) external returns (uint256) {
