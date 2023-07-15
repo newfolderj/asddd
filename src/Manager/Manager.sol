@@ -3,20 +3,16 @@
 pragma solidity ^0.8.19;
 
 import "../Portal/Portal.sol";
-import "./IManager.sol";
 
-abstract contract Manager is IManager {
+abstract contract Manager {
     address public immutable admin;
     address public immutable validator;
-    address public immutable portal;
+    address public immutable participatingInterface;
 
     constructor(address _participatingInterface, address _admin, address _validator) {
-        portal = address(new Portal(_participatingInterface, address(this)));
         admin = _admin;
         validator = _validator;
+        participatingInterface = _participatingInterface;
     }
 
-    function isValidator(address _validator) external view returns (bool) {
-        return _validator == validator;
-    }
 }

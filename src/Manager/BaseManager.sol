@@ -6,9 +6,7 @@ import "./Manager.sol";
 import "./FeeManager.sol";
 import "./IBaseManager.sol";
 import "../Rollup/Rollup.sol";
-// import "../Rollup/Collateral.sol";
-// import "../Rollup/FraudEngine.sol";
-import "../CrossChain/Relayer.sol";
+import "../CrossChain/LayerZero/ProcessingChainLz.sol";
 import "../Portal/WalletDelegation.sol";
 
 contract BaseManager is Manager, IBaseManager, FeeManager {
@@ -33,23 +31,13 @@ contract BaseManager is Manager, IBaseManager, FeeManager {
         walletDelegation = address(new WalletDelegation(_participatingInterface, address(this)));
     }
 
-    function deployRelayer(
-        address _axelarGateway,
-        address _axelarGasReceiver,
-        string[] memory _chainNames,
-        Id[] memory _chainIds
-    )
-        external
-    {
+    function deployRelayer(address _lzEndpoint) external {
         if (msg.sender != admin) revert();
         if (relayer != address(0)) revert();
         relayer = address(
-            new Relayer(
-                    address(this),
-            _axelarGateway,
-            _axelarGasReceiver,
-            _chainNames,
-            _chainIds
+            new ProcessingChainLz(
+            _lzEndpoint,
+            admin 
             )
         );
     }
@@ -88,7 +76,9 @@ contract BaseManager is Manager, IBaseManager, FeeManager {
     function getReceiverAddress(uint256 _chainId) external view returns (address) {
         return receivers[_chainId];
     }
-
+    function isValidator(address _validator) external view returns (bool) {
+        return _validator == validator;
+    }
     // TODO: move to Oracle contract
     function getPrice(address, address) external view returns (uint256) {
         return 1;

@@ -4,13 +4,14 @@ pragma solidity ^0.8.19;
 
 import "./IStaking.sol";
 import "../StateUpdateLibrary.sol";
-import "../Manager/IManager.sol";
+import "../Portal/IPortal.sol";
+import "../CrossChain/LayerZero/IProcessingChainLz.sol";
 import "../Manager/IBaseManager.sol";
 import "../Rollup/IRollup.sol";
 import "../Oracle/IOracle.sol";
 import "../util/Id.sol";
-import "@openzeppelin/token/ERC20/IERC20.sol";
-import "@openzeppelin/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 struct Reward {
     address asset;
@@ -87,12 +88,12 @@ contract Staking is IStaking {
     // Maps ID of staking period to amounts deposited and locked
     mapping(address => mapping(uint256 => TotalAmount)) totals;
 
-    IManager immutable manager;
+    IBaseManager immutable manager;
     address public stablecoin;
     address public protocolToken;
 
     constructor(address _manager, address _stablecoin, address _protocolToken) {
-        manager = IManager(_manager);
+        manager = IBaseManager(_manager);
         stablecoin = _stablecoin;
         protocolToken = _protocolToken;
     }
@@ -165,7 +166,7 @@ contract Staking is IStaking {
     }
 
     // Called by the staker to claim rewards and relay them to the blockchain where the assets are deposited.
-    function claim(ClaimParams calldata _params) external {
+    function claim(ClaimParams calldata _params) external payable {
         for (uint256 d = 0; d < _params.depositId.length; d++) {
             // get deposit record
             uint256 depositId = _params.depositId[d];
@@ -203,17 +204,17 @@ contract Staking is IStaking {
             }
         }
 
-        Reward[] memory rewardsToRelay = new Reward[](_params.rewardAsset.length);
+IPortal.Obligation[] memory obligations = new IPortal.Obligation[](_params.rewardAsset.length);
         for (uint256 i = 0; i < _params.rewardAsset.length; i++) {
             uint256 amountToClaim = toClaim[msg.sender][_params.rewardChainId][_params.rewardAsset[i]];
             if (amountToClaim == 0) revert();
-            rewardsToRelay[i] = Reward(_params.rewardAsset[i], amountToClaim);
+            obligations[i] = IPortal.Obligation(msg.sender, _params.rewardAsset[i], amountToClaim);
             // Set to 0 so it can't be used again
             toClaim[msg.sender][_params.rewardChainId][_params.rewardAsset[i]] = 0;
         }
-        // relay record based on chain ID
-        // TODO: send rewardsToRelay to contract responsible for relaying from processing chain to _rewardChainId
-        IRewardsRelayer(IBaseManager(address(manager)).relayer()).relayRewards(_params.rewardChainId, rewardsToRelay);
+        IProcessingChainLz(IBaseManager(address(manager)).relayer()).sendObligations{ value: msg.value }(
+            _params.rewardChainId, obligations, bytes(""), msg.sender
+        );
     }
 
     // Returns block numbers of periods that can be staked into

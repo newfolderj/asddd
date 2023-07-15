@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright © 2023 TXA PTE. LTD.
 pragma solidity ^0.8.19;
-
 import "./IPortal.sol";
 import "./Deposits.sol";
 import "../StateUpdateLibrary.sol";
-import "../Manager/IManager.sol";
 import "../Manager/IBaseManager.sol";
+import "../Manager/IChildManager.sol";
 import "../Rollup/IRollup.sol";
 import "../util/Id.sol";
-import "@openzeppelin/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * The Portal is the entry and exit point for all assets in the TXA network.
@@ -22,8 +21,9 @@ contract Portal is IPortal, Deposits {
      * Deposit or SettlementRequest which occurs on this chain.
      */
     Id public chainSequenceId = ID_ZERO;
+    Id public nextRequestId = Id.wrap(2);
     address immutable participatingInterface;
-    IManager immutable manager;
+    IBaseManager immutable manager;
 
     mapping(bytes32 => bool) public claimed;
     mapping(Id => StateUpdateLibrary.SettlementRequest) public settlementRequests;
@@ -51,7 +51,7 @@ contract Portal is IPortal, Deposits {
 
     constructor(address _participatingInterface, address _manager) {
         participatingInterface = _participatingInterface;
-        manager = IManager(_manager);
+        manager = IBaseManager(_manager);
     }
 
     //
@@ -105,22 +105,22 @@ contract Portal is IPortal, Deposits {
 
     function requestSettlement(address _token) external {
         // TODO: check if token is tradable
-        uint256 id = IRollup(manager.rollup()).requestSettlement({ token: _token, trader: msg.sender });
         settlementRequests[chainSequenceId] = StateUpdateLibrary.SettlementRequest(
-            msg.sender, _token, participatingInterface, chainSequenceId, Id.wrap(block.chainid), Id.wrap(id)
+            msg.sender, _token, participatingInterface, chainSequenceId, Id.wrap(block.chainid), nextRequestId
         );
-        emit SettlementRequested(id, msg.sender, _token, chainSequenceId);
+        emit SettlementRequested(Id.unwrap(nextRequestId), msg.sender, _token, chainSequenceId);
         chainSequenceId = chainSequenceId.increment();
+        nextRequestId = nextRequestId.increment();
     }
 
-    function writeObligation(address _token, address _recipient, uint256 _amount) external {
-        if (msg.sender != manager.rollup()) revert CALLER_NOT_ROLLUP();
+    function writeObligations(Obligation[] calldata obligations) external {
+        if (msg.sender != IChildManager(address(manager)).receiver()) revert("Only receiver can write obligations");
+        for (uint256 i = 0; i < obligations.length; i++) {
+            if (collateralized[obligations[i].asset] < obligations[i].amount) revert INSUFFICIENT_BALANCE_OBLIGATION();
 
-        if (collateralized[_token] < _amount) revert INSUFFICIENT_BALANCE_OBLIGATION();
-
-        collateralized[_token] -= _amount;
-        settled[_recipient][_token] += _amount;
-        emit ObligationWritten(address(0), _recipient, _token, _amount);
+            collateralized[obligations[i].asset] -= obligations[i].amount;
+            settled[obligations[i].recipient][obligations[i].asset] += obligations[i].amount;
+        }
     }
 
     function withdraw(uint256 _amount, address _token) external {

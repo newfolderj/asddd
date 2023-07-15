@@ -18,9 +18,8 @@ contract RollupTest is BaseTest {
         portal.depositNativeAsset{ value: amount }();
 
         // Create corresponding Deposit and UTXO objects
-        StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
-            alice, address(0), participatingInterface, amount, ID_ZERO, Id.wrap(block.chainid)
-        );
+        StateUpdateLibrary.Deposit memory deposit =
+            StateUpdateLibrary.Deposit(alice, address(0), participatingInterface, amount, ID_ZERO, Id.wrap(chainId));
 
         // Bob makes some deposits
         vm.startPrank(bob);
@@ -65,11 +64,9 @@ contract RollupTest is BaseTest {
 
         // Report settlement as the validator
         vm.prank(validator);
-        rollup.processSettlement({
-            _stateRootId: ID_ONE,
-            _signedUpdate: stateUpdate,
-            _proof: proof
-        });
+        Rollup.SettlementParams[] memory params = new Rollup.SettlementParams[](1);
+        params[0] = Rollup.SettlementParams(stateUpdate, ID_ONE, proof);
+        rollup.processSettlements{ value: 1 ether }(Id.wrap(chainId), params);
 
         // Alice can now withdraw original deposit minus settlement fee
         (uint256 insuranceFee, uint256 stakerRewards) = IFeeManager(address(manager)).calculateSettlementFees(amount);
@@ -78,15 +75,16 @@ contract RollupTest is BaseTest {
     }
 
     function test_submitsSettlement() external {
+        vm.chainId(chainId);
+        rollup = Rollup(manager.rollup());
         // Alice makes the first deposit
         uint256 amount = 0.5 ether;
         vm.prank(alice);
         portal.depositNativeAsset{ value: amount }();
 
         // Create corresponding Deposit and UTXO objects
-        StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
-            alice, address(0), participatingInterface, amount, ID_ZERO, Id.wrap(block.chainid)
-        );
+        StateUpdateLibrary.Deposit memory deposit =
+            StateUpdateLibrary.Deposit(alice, address(0), participatingInterface, amount, ID_ZERO, Id.wrap(chainId));
 
         // Bob makes some deposits
         vm.startPrank(bob);
@@ -121,14 +119,11 @@ contract RollupTest is BaseTest {
 
         // Submit settlement as the validator
         vm.prank(validator);
-        rollup.submitSettlement({
-            _stateRoot: stateRoot,
-            _signedUpdate: stateUpdate,
-            _proof: proof
-        });
+        rollup.submitSettlement{ value: 1 ether }({ _stateRoot: stateRoot, _signedUpdate: stateUpdate, _proof: proof });
 
-        // Alice can now withdraw original deposit
+        // Alice can now withdraw original deposit minus settlement fee
+        (uint256 insuranceFee, uint256 stakerRewards) = IFeeManager(address(manager)).calculateSettlementFees(amount);
         vm.prank(alice);
-        portal.withdraw({ _amount: amount, _token: address(0) });
+        portal.withdraw({ _amount: amount - (insuranceFee + stakerRewards), _token: address(0) });
     }
 }

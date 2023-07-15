@@ -3,21 +3,21 @@
 pragma solidity ^0.8.19;
 
 import "./IRollup.sol";
-import "../Manager/IManager.sol";
 import "../Portal/Deposits.sol";
+import "../Manager/IBaseManager.sol";
 import "../util/Signature.sol";
-import "@openzeppelin/utils/cryptography/MerkleProof.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 contract FraudEngine is Signature {
     using IdLib for Id;
 
     error INVALID_MERKLE_PROOF();
 
-    IManager immutable manager;
+    IBaseManager immutable manager;
     address immutable participatingInterface;
 
     constructor(address _participatingInterface, address _manager) Signature(_participatingInterface) {
-        manager = IManager(_manager);
+        manager = IBaseManager(_manager);
         participatingInterface = _participatingInterface;
     }
 
@@ -73,9 +73,10 @@ contract FraudEngine is Signature {
         // Condition 1
         // Does fraudulent deposit ack match the on-chain deposit?
         // prove record of deposit doesn't exist on-chain
+        // TODO: need to get deposits from ProcessingChainLz
         bytes32 depositHash = keccak256(abi.encode(depositAck.deposit));
         (address trader, address asset, address _participatingInterface, uint256 amount, Id chainSequenceId, Id chainId)
-        = Deposits(manager.portal()).deposits(depositHash);
+        = Deposits(address(manager)).deposits(depositHash);
         // if deposit stored in Portal under hash doesn't match the deposit in the depositAck, then the state update is
         // fraudulent
         if (
@@ -129,16 +130,15 @@ contract FraudEngine is Signature {
             StateUpdateLibrary.Trade memory prevTrade =
                 abi.decode(_prevUpdate.update.stateUpdate.structData, (StateUpdateLibrary.Trade));
             // loop through output balances of trade
-            StateUpdateLibrary.Balance[4] memory balances = getOutputBalances(prevTrade);
-            bool found = false;
-            for (uint8 i = 0; i < balances.length; i++) {
-                // find output balance that is same as old balance of depositAck
-                if (balancesEqual(depositAck.balanceBefore, balances[i])) {
-                    found = true;
-                }
+            if (balancesMatch(depositAck.balanceBefore, prevTrade.makerBaseBalanceBefore)) {
+                if (depositAck.balanceBefore.amount != prevTrade.makerBaseBalanceAfter) return;
+            } else if (balancesMatch(depositAck.balanceBefore, prevTrade.takerBaseBalanceBefore)) {
+                if (depositAck.balanceBefore.amount != prevTrade.takerBaseBalanceAfter) return;
+            } else if (balancesMatch(depositAck.balanceBefore, prevTrade.makerCounterBalanceBefore)) {
+                if (depositAck.balanceBefore.amount != prevTrade.makerCounterBalanceAfter) return;
+            } else if (balancesMatch(depositAck.balanceBefore, prevTrade.takerCounterBalanceBefore)) {
+                if (depositAck.balanceBefore.amount != prevTrade.takerCounterBalanceAfter) return;
             }
-            // prove that no output balance is same as old balance of deposit ack
-            if (!found) return;
         } else if (_prevUpdate.update.stateUpdate.typeIdentifier == StateUpdateLibrary.TYPE_ID_Settlement) {
             // get settlement
             StateUpdateLibrary.Settlement memory prevSettlement =
@@ -176,17 +176,15 @@ contract FraudEngine is Signature {
             // get trade
             StateUpdateLibrary.Trade memory canonTrade =
                 abi.decode(_canonUpdate.update.stateUpdate.structData, (StateUpdateLibrary.Trade));
-            // loop through output balances of trade
-            StateUpdateLibrary.Balance[4] memory balances = getOutputBalances(canonTrade);
-            bool found = false;
-            for (uint8 i = 0; i < balances.length; i++) {
-                // find output balance that matches old balance of depositAck
-                if (balancesMatch(depositAck.balanceBefore, balances[i])) {
-                    found = true;
-                }
-            }
             // prove that an output balance of canon trade matches old balance of deposit ack
-            if (found) return;
+            if (
+                balancesMatch(depositAck.balanceBefore, canonTrade.makerBaseBalanceBefore)
+                    || balancesMatch(depositAck.balanceBefore, canonTrade.takerBaseBalanceBefore)
+                    || balancesMatch(depositAck.balanceBefore, canonTrade.makerCounterBalanceBefore)
+                    || balancesMatch(depositAck.balanceBefore, canonTrade.takerCounterBalanceBefore)
+            ) {
+                return;
+            }
         } else if (_canonUpdate.update.stateUpdate.typeIdentifier == StateUpdateLibrary.TYPE_ID_Settlement) {
             // get settlement
             StateUpdateLibrary.Settlement memory canonSettlement =
@@ -396,10 +394,7 @@ contract FraudEngine is Signature {
     // Prove that state update referenced by a fee is not a fee update
     function proveFeeInvalidStateUpdateId() external { }
 
-    function getOutputBalances(StateUpdateLibrary.Trade memory _trade)
-        internal
-        returns (StateUpdateLibrary.Balance[4] memory)
-    {
+    function getOutputBalances(StateUpdateLibrary.Trade memory _trade) internal returns (uint256[4] memory) {
         return [
             _trade.makerBaseBalanceAfter,
             _trade.makerCounterBalanceAfter,

@@ -4,6 +4,10 @@ pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
 import "../src/Manager/BaseManager.sol";
+import "../src/Manager/ChildManager.sol";
+import "@LayerZero/mocks/LZEndpointMock.sol";
+import "../src/CrossChain/LayerZero/AssetChainLz.sol";
+import "../src/CrossChain/LayerZero/ProcessingChainLz.sol";
 
 contract DeployBaseChain is Script {
     address internal participatingInterface;
@@ -11,6 +15,7 @@ contract DeployBaseChain is Script {
     address internal validator;
 
     BaseManager internal manager;
+    ChildManager internal assetChainManager;
 
     function run() external {
         uint256 deployerPrivateKey = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
@@ -32,6 +37,27 @@ contract DeployBaseChain is Script {
             _stablecoin: address(0),
             _protocolToken: address(0)
         });
+        LZEndpointMock lzEndpointMock = new LZEndpointMock(uint16(block.chainid));
+        LZEndpointMock lzEndpointMockDest = new LZEndpointMock(uint16(1));
+        manager.deployRelayer(address(lzEndpointMock));
+        // TODO: replace with mock lz endpoint
+        // TODO: set trusted remotes
+        ProcessingChainLz processingChainLz = ProcessingChainLz(manager.relayer());
+        assetChainManager = new ChildManager({
+            _participatingInterface: participatingInterface, 
+            _admin: admin,
+            _validator: validator,
+            _relayer: manager.relayer()
+        });
+        assetChainManager.deployReceiver(address(lzEndpointMockDest), uint16(block.chainid));
+        processingChainLz.setTrustedRemote(uint16(1), abi.encodePacked(assetChainManager.receiver(), manager.rollup()));
+        AssetChainLz assetChainLz = AssetChainLz(assetChainManager.receiver());
+        assetChainLz.setTrustedRemote(
+            uint16(block.chainid), abi.encodePacked(address(processingChainLz), address(assetChainLz))
+        );
+        lzEndpointMock.setDestLzEndpoint(address(assetChainLz), address(lzEndpointMockDest));
+        // lzEndpointMockDest.setDestLzEndpoint(address(assetChainLz), address(lzEndpointMockDest));
+
         // manager.deployRelayer({
         //     _axelarGateway: vm.envAddress("AXELAR_GATEWAY"),
         //     _axelarGasReceiver: vm.envAddress("AXELAR_GAS_RECEIVER"),
@@ -41,7 +67,7 @@ contract DeployBaseChain is Script {
         vm.stopBroadcast();
 
         string memory obj1 = '{"manager":"","portal":"","rollup":""}';
-        vm.serializeAddress(obj1, "portal", manager.portal());
+        vm.serializeAddress(obj1, "portal", assetChainManager.portal());
         vm.serializeAddress(obj1, "rollup", manager.rollup());
         vm.writeJson(vm.serializeAddress(obj1, "manager", address(manager)), "./out/contracts.json");
     }

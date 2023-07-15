@@ -94,10 +94,10 @@ library StateUpdateLibrary {
         Balance takerBaseBalanceBefore;
         Id takerCounterBalanceBeforeId;
         Balance takerCounterBalanceBefore;
-        Balance makerBaseBalanceAfter;
-        Balance makerCounterBalanceAfter;
-        Balance takerBaseBalanceAfter;
-        Balance takerCounterBalanceAfter;
+        uint256 makerBaseBalanceAfter;
+        uint256 makerCounterBalanceAfter;
+        uint256 takerBaseBalanceAfter;
+        uint256 takerCounterBalanceAfter;
         Balance makerFee;
         Balance takerFee;
     }
@@ -156,6 +156,8 @@ library StateUpdateLibrary {
         Product product;
         uint256 size;
         uint256 price;
+        // If true, the maker is the buyer. If false, the maker is the seller. Vice versa for the taker.
+        bool makerIsBuyer;
         address maker;
         address taker;
     }

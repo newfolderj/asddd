@@ -90,12 +90,13 @@ contract FraudEngineTest is BaseTest {
         // Process settlement should fail
         vm.prank(validator);
         vm.expectRevert();
-        rollup.processSettlement({ _stateRootId: ID_ONE, _signedUpdate: stateUpdate, _proof: proof });
+        Rollup.SettlementParams[] memory params = new Rollup.SettlementParams[](1);
+        params[0] = Rollup.SettlementParams(stateUpdate, ID_ONE, proof);
+        rollup.processSettlements(Id.wrap(block.chainid), params);
 
         // Alice withdraw should fail
         vm.prank(alice);
         vm.expectRevert();
         portal.withdraw({ _amount: amount, _token: address(0) });
     }
-
 }

@@ -4,4 +4,6 @@ pragma solidity ^0.8.19;
 
 interface IChildManager {
     function relayer() external view returns (address);
+    function portal() external view returns (address);
+    function receiver() external view returns (address);
 }

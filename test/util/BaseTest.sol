@@ -5,11 +5,14 @@ pragma solidity ^0.8.19;
 import { Test } from "forge-std/Test.sol";
 
 import "../../src/Manager/BaseManager.sol";
+import "../../src/Manager/ChildManager.sol";
 import "../../src/Staking/Staking.sol";
 import "../../src/Rollup/FraudEngine.sol";
 import "../../src/util/Signature.sol";
-import "@openzeppelin/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@murky/Merkle.sol";
+import "@LayerZero/mocks/LZEndpointMock.sol";
+import "../../src/CrossChain/LayerZero/AssetChainLz.sol";
 
 contract BaseTest is Test {
     using IdLib for Id;
@@ -22,10 +25,15 @@ contract BaseTest is Test {
     address internal validator;
 
     BaseManager internal manager;
+    ChildManager internal assetChainManager;
     Portal internal portal;
     Rollup internal rollup;
     Staking internal staking;
     FraudEngine internal fraudEngine;
+    ProcessingChainLz internal processingChainLz;
+    AssetChainLz internal assetChainLz;
+    LZEndpointMock internal lzEndpointMock;
+    LZEndpointMock internal lzEndpointMockDest;
 
     Signature internal sigUtil;
     Merkle internal merkleLib;
@@ -36,6 +44,8 @@ contract BaseTest is Test {
     ERC20 internal token;
     ERC20 internal stablecoin;
     ERC20 internal protocolToken;
+
+    uint256 internal chainId = 1;
 
     event DepositUtxo(
         address wallet, uint256 amount, address token, address participatingInterface, Id chainSequenceId, bytes32 utxo
@@ -130,10 +140,10 @@ contract BaseTest is Test {
         returns (StateUpdateLibrary.StateUpdate memory)
     {
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
-            _trader, _token, participatingInterface, _amount, _chainSequenceId, Id.wrap(block.chainid)
+            _trader, _token, participatingInterface, _amount, _chainSequenceId, Id.wrap(chainId)
         );
         StateUpdateLibrary.Balance memory balance =
-            StateUpdateLibrary.Balance(_trader, _token, Id.wrap(block.chainid), _amount);
+            StateUpdateLibrary.Balance(_trader, _token, Id.wrap(chainId), _amount);
         StateUpdateLibrary.DepositAcknowledgement memory depositAck = StateUpdateLibrary.DepositAcknowledgement(
             deposit, ID_ZERO, balance, balance, ID_ZERO, keccak256(abi.encode(0)), keccak256(abi.encode(0))
         );
@@ -155,7 +165,7 @@ contract BaseTest is Test {
         returns (StateUpdateLibrary.StateUpdate memory)
     {
         StateUpdateLibrary.Balance memory balance =
-            StateUpdateLibrary.Balance(_deposit.trader, _deposit.asset, Id.wrap(block.chainid), _deposit.amount);
+            StateUpdateLibrary.Balance(_deposit.trader, _deposit.asset, Id.wrap(chainId), _deposit.amount);
         StateUpdateLibrary.DepositAcknowledgement memory depositAck = StateUpdateLibrary.DepositAcknowledgement(
             _deposit, ID_ZERO, balance, balance, ID_ZERO, keccak256(abi.encode(0)), keccak256(abi.encode(0))
         );
@@ -193,13 +203,13 @@ contract BaseTest is Test {
         returns (StateUpdateLibrary.StateUpdate memory)
     {
         StateUpdateLibrary.SettlementRequest memory settlementRequest = StateUpdateLibrary.SettlementRequest(
-            _trader, _token, participatingInterface, _chainSequenceId, Id.wrap(block.chainid), _settlementId
+            _trader, _token, participatingInterface, _chainSequenceId, Id.wrap(chainId), _settlementId
         );
         StateUpdateLibrary.Settlement memory settlement = StateUpdateLibrary.Settlement(
             settlementRequest,
             ID_ZERO,
-            StateUpdateLibrary.Balance(_trader, _token, Id.wrap(block.chainid), _amount),
-            StateUpdateLibrary.Balance(_trader, _token, Id.wrap(block.chainid), 0)
+            StateUpdateLibrary.Balance(_trader, _token, Id.wrap(chainId), _amount),
+            StateUpdateLibrary.Balance(_trader, _token, Id.wrap(chainId), 0)
         );
         return StateUpdateLibrary.StateUpdate(
             StateUpdateLibrary.TYPE_ID_Settlement,
@@ -251,19 +261,34 @@ contract BaseTest is Test {
             _stablecoin: address(stablecoin),
             _protocolToken: address(protocolToken)
         });
-        portal = Portal(manager.portal());
         rollup = Rollup(manager.rollup());
         vm.startPrank(admin);
         fraudEngine = new FraudEngine(participatingInterface, address(manager));
         staking = new Staking(address(manager), address(stablecoin), address(protocolToken));
         manager.setFraudEngine(address(fraudEngine));
         manager.setCollateral(address(staking));
+        lzEndpointMock = new LZEndpointMock(uint16(block.chainid));
+        lzEndpointMockDest = new LZEndpointMock(uint16(chainId));
+        manager.deployRelayer(address(lzEndpointMock));
+        // TODO: replace with mock lz endpoint
+        // TODO: set trusted remotes
+        processingChainLz = ProcessingChainLz(manager.relayer());
+
+        assetChainManager = new ChildManager(participatingInterface, admin, validator, manager.relayer());
+        assetChainManager.deployReceiver(address(lzEndpointMockDest), uint16(block.chainid));
+        portal = Portal(assetChainManager.portal());
+        assetChainLz = AssetChainLz(assetChainManager.receiver());
+        processingChainLz.setTrustedRemote(uint16(chainId), abi.encodePacked(address(assetChainLz), address(rollup)));
+        assetChainLz.setTrustedRemote(uint16(block.chainid), abi.encodePacked(address(processingChainLz), address(assetChainLz)));
+        lzEndpointMock.setDestLzEndpoint(address(assetChainLz), address(lzEndpointMockDest));
+        // lzEndpointMockDest.setDestLzEndpoint(address(assetChainLz), address(lzEndpointMockDest));
         vm.stopPrank();
 
         alice = vm.addr(aliceKey);
         bob = vm.addr(bobKey);
         vm.deal(alice, 10 ether);
         vm.deal(bob, 10 ether);
+        vm.deal(validator, 10 ether);
 
         token = new ERC20("TestToken", "TST");
 
