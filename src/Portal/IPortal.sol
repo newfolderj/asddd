@@ -3,7 +3,13 @@
 pragma solidity ^0.8.19;
 
 interface IPortal {
-    function writeObligation(address token, address recipient, uint256 amount) external;
+    struct Obligation {
+        address recipient;
+        address asset;
+        uint256 amount;
+    }
+
+    function writeObligations(Obligation[] calldata obligations) external;
 
     function sequenceEvent() external returns (uint256);
 

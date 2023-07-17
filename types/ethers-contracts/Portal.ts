@@ -27,6 +27,20 @@ import type {
   OnEvent,
 } from "./common";
 
+export declare namespace IPortal {
+  export type ObligationStruct = {
+    recipient: string;
+    asset: string;
+    amount: BigNumberish;
+  };
+
+  export type ObligationStructOutput = [string, string, BigNumber] & {
+    recipient: string;
+    asset: string;
+    amount: BigNumber;
+  };
+}
+
 export interface PortalInterface extends utils.Interface {
   functions: {
     "chainSequenceId()": FunctionFragment;
@@ -37,12 +51,13 @@ export interface PortalInterface extends utils.Interface {
     "deposits(bytes32)": FunctionFragment;
     "getAvailableBalance(address,address)": FunctionFragment;
     "isValidSettlementRequest(uint256,bytes32)": FunctionFragment;
+    "nextRequestId()": FunctionFragment;
     "requestSettlement(address)": FunctionFragment;
     "sequenceEvent()": FunctionFragment;
     "settled(address,address)": FunctionFragment;
     "settlementRequests(uint256)": FunctionFragment;
     "withdraw(uint256,address)": FunctionFragment;
-    "writeObligation(address,address,uint256)": FunctionFragment;
+    "writeObligations((address,address,uint256)[])": FunctionFragment;
   };
 
   getFunction(
@@ -55,12 +70,13 @@ export interface PortalInterface extends utils.Interface {
       | "deposits"
       | "getAvailableBalance"
       | "isValidSettlementRequest"
+      | "nextRequestId"
       | "requestSettlement"
       | "sequenceEvent"
       | "settled"
       | "settlementRequests"
       | "withdraw"
-      | "writeObligation"
+      | "writeObligations"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -90,6 +106,10 @@ export interface PortalInterface extends utils.Interface {
     values: [BigNumberish, BytesLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "nextRequestId",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "requestSettlement",
     values: [string]
   ): string;
@@ -110,8 +130,8 @@ export interface PortalInterface extends utils.Interface {
     values: [BigNumberish, string]
   ): string;
   encodeFunctionData(
-    functionFragment: "writeObligation",
-    values: [string, string, BigNumberish]
+    functionFragment: "writeObligations",
+    values: [IPortal.ObligationStruct[]]
   ): string;
 
   decodeFunctionResult(
@@ -141,6 +161,10 @@ export interface PortalInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "nextRequestId",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "requestSettlement",
     data: BytesLike
   ): Result;
@@ -155,7 +179,7 @@ export interface PortalInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "writeObligation",
+    functionFragment: "writeObligations",
     data: BytesLike
   ): Result;
 
@@ -314,6 +338,8 @@ export interface Portal extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[boolean]>;
 
+    nextRequestId(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     requestSettlement(
       _token: string,
       overrides?: Overrides & { from?: string }
@@ -349,10 +375,8 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
-    writeObligation(
-      _token: string,
-      _recipient: string,
-      _amount: BigNumberish,
+    writeObligations(
+      obligations: IPortal.ObligationStruct[],
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
   };
@@ -399,6 +423,8 @@ export interface Portal extends BaseContract {
     overrides?: CallOverrides
   ): Promise<boolean>;
 
+  nextRequestId(overrides?: CallOverrides): Promise<BigNumber>;
+
   requestSettlement(
     _token: string,
     overrides?: Overrides & { from?: string }
@@ -434,10 +460,8 @@ export interface Portal extends BaseContract {
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
-  writeObligation(
-    _token: string,
-    _recipient: string,
-    _amount: BigNumberish,
+  writeObligations(
+    obligations: IPortal.ObligationStruct[],
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
@@ -482,6 +506,8 @@ export interface Portal extends BaseContract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
+    nextRequestId(overrides?: CallOverrides): Promise<BigNumber>;
+
     requestSettlement(_token: string, overrides?: CallOverrides): Promise<void>;
 
     sequenceEvent(overrides?: CallOverrides): Promise<BigNumber>;
@@ -512,10 +538,8 @@ export interface Portal extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    writeObligation(
-      _token: string,
-      _recipient: string,
-      _amount: BigNumberish,
+    writeObligations(
+      obligations: IPortal.ObligationStruct[],
       overrides?: CallOverrides
     ): Promise<void>;
   };
@@ -616,6 +640,8 @@ export interface Portal extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    nextRequestId(overrides?: CallOverrides): Promise<BigNumber>;
+
     requestSettlement(
       _token: string,
       overrides?: Overrides & { from?: string }
@@ -642,10 +668,8 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
-    writeObligation(
-      _token: string,
-      _recipient: string,
-      _amount: BigNumberish,
+    writeObligations(
+      obligations: IPortal.ObligationStruct[],
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
   };
@@ -690,6 +714,8 @@ export interface Portal extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    nextRequestId(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     requestSettlement(
       _token: string,
       overrides?: Overrides & { from?: string }
@@ -716,10 +742,8 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
-    writeObligation(
-      _token: string,
-      _recipient: string,
-      _amount: BigNumberish,
+    writeObligations(
+      obligations: IPortal.ObligationStruct[],
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
   };

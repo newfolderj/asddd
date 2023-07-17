@@ -41,7 +41,7 @@ export interface BaseManagerInterface extends utils.Interface {
     "calculateStakingRewards(uint256)": FunctionFragment;
     "collateral()": FunctionFragment;
     "currentFees()": FunctionFragment;
-    "deployRelayer(address,address,string[],uint256[])": FunctionFragment;
+    "deployRelayer(address)": FunctionFragment;
     "feeHistory(uint256)": FunctionFragment;
     "feeSequenceId()": FunctionFragment;
     "fraudEngine()": FunctionFragment;
@@ -49,7 +49,7 @@ export interface BaseManagerInterface extends utils.Interface {
     "getReceiverAddress(uint256)": FunctionFragment;
     "insuranceFundFee()": FunctionFragment;
     "isValidator(address)": FunctionFragment;
-    "portal()": FunctionFragment;
+    "participatingInterface()": FunctionFragment;
     "proposeFees(uint256,uint256)": FunctionFragment;
     "proposedFees()": FunctionFragment;
     "protocolFee()": FunctionFragment;
@@ -89,7 +89,7 @@ export interface BaseManagerInterface extends utils.Interface {
       | "getReceiverAddress"
       | "insuranceFundFee"
       | "isValidator"
-      | "portal"
+      | "participatingInterface"
       | "proposeFees"
       | "proposedFees"
       | "protocolFee"
@@ -154,7 +154,7 @@ export interface BaseManagerInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "deployRelayer",
-    values: [string, string, string[], BigNumberish[]]
+    values: [string]
   ): string;
   encodeFunctionData(
     functionFragment: "feeHistory",
@@ -181,7 +181,10 @@ export interface BaseManagerInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "isValidator", values: [string]): string;
-  encodeFunctionData(functionFragment: "portal", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "participatingInterface",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "proposeFees",
     values: [BigNumberish, BigNumberish]
@@ -299,7 +302,10 @@ export interface BaseManagerInterface extends utils.Interface {
     functionFragment: "isValidator",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "portal", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "participatingInterface",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "proposeFees",
     data: BytesLike
@@ -453,10 +459,7 @@ export interface BaseManager extends BaseContract {
     >;
 
     deployRelayer(
-      _axelarGateway: string,
-      _axelarGasReceiver: string,
-      _chainNames: string[],
-      _chainIds: BigNumberish[],
+      _lzEndpoint: string,
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
@@ -489,7 +492,7 @@ export interface BaseManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[boolean]>;
 
-    portal(overrides?: CallOverrides): Promise<[string]>;
+    participatingInterface(overrides?: CallOverrides): Promise<[string]>;
 
     proposeFees(
       _makerFee: BigNumberish,
@@ -590,10 +593,7 @@ export interface BaseManager extends BaseContract {
   >;
 
   deployRelayer(
-    _axelarGateway: string,
-    _axelarGasReceiver: string,
-    _chainNames: string[],
-    _chainIds: BigNumberish[],
+    _lzEndpoint: string,
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
@@ -623,7 +623,7 @@ export interface BaseManager extends BaseContract {
 
   isValidator(_validator: string, overrides?: CallOverrides): Promise<boolean>;
 
-  portal(overrides?: CallOverrides): Promise<string>;
+  participatingInterface(overrides?: CallOverrides): Promise<string>;
 
   proposeFees(
     _makerFee: BigNumberish,
@@ -724,10 +724,7 @@ export interface BaseManager extends BaseContract {
     >;
 
     deployRelayer(
-      _axelarGateway: string,
-      _axelarGasReceiver: string,
-      _chainNames: string[],
-      _chainIds: BigNumberish[],
+      _lzEndpoint: string,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -760,7 +757,7 @@ export interface BaseManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
-    portal(overrides?: CallOverrides): Promise<string>;
+    participatingInterface(overrides?: CallOverrides): Promise<string>;
 
     proposeFees(
       _makerFee: BigNumberish,
@@ -868,10 +865,7 @@ export interface BaseManager extends BaseContract {
     currentFees(overrides?: CallOverrides): Promise<BigNumber>;
 
     deployRelayer(
-      _axelarGateway: string,
-      _axelarGasReceiver: string,
-      _chainNames: string[],
-      _chainIds: BigNumberish[],
+      _lzEndpoint: string,
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
@@ -902,7 +896,7 @@ export interface BaseManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    portal(overrides?: CallOverrides): Promise<BigNumber>;
+    participatingInterface(overrides?: CallOverrides): Promise<BigNumber>;
 
     proposeFees(
       _makerFee: BigNumberish,
@@ -989,10 +983,7 @@ export interface BaseManager extends BaseContract {
     currentFees(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     deployRelayer(
-      _axelarGateway: string,
-      _axelarGasReceiver: string,
-      _chainNames: string[],
-      _chainIds: BigNumberish[],
+      _lzEndpoint: string,
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
@@ -1023,7 +1014,9 @@ export interface BaseManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    portal(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    participatingInterface(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     proposeFees(
       _makerFee: BigNumberish,

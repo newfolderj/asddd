@@ -3,7 +3,7 @@
 pragma solidity ^0.8.19;
 
 import "./IPortal.sol";
-import "../Manager/IManager.sol";
+import "../Manager/IBaseManager.sol";
 
 contract WalletDelegation {
     enum DelegationState {
@@ -13,7 +13,7 @@ contract WalletDelegation {
     }
 
     address immutable participatingInterface;
-    IManager immutable manager;
+    IBaseManager immutable manager;
 
     // Master address => delegated address => chain sequence ID
     mapping(address => mapping(address => uint256)) public approvals;
@@ -24,19 +24,21 @@ contract WalletDelegation {
 
     constructor(address _participatingInterface, address _manager) {
         participatingInterface = _participatingInterface;
-        manager = IManager(_manager);
+        manager = IBaseManager(_manager);
     }
 
     function approve(address delegatee) external {
         if (approvals[msg.sender][delegatee] != 0) revert();
-        approvals[msg.sender][delegatee] = IPortal(manager.portal()).sequenceEvent();
+        // TODO: need to get sequence number elsewhere as there is no portal on processing chain
+        approvals[msg.sender][delegatee] = IPortal(address(manager)).sequenceEvent();
         emit WalletApproved(msg.sender, delegatee, approvals[msg.sender][delegatee]);
     }
 
     function revoke(address delegatee) external {
         if (approvals[msg.sender][delegatee] == 0) revert();
         if (revokations[msg.sender][delegatee] != 0) revert();
-        revokations[msg.sender][delegatee] = IPortal(manager.portal()).sequenceEvent();
+        // TODO: get sequence number elsewhere
+        revokations[msg.sender][delegatee] = IPortal(address(manager)).sequenceEvent();
         emit WalletRevoked(msg.sender, delegatee, revokations[msg.sender][delegatee]);
     }
 }

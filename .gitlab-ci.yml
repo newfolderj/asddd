@@ -52,6 +52,7 @@ unit-tests-upstream:
     - master@projecttxa/txa-dsl/txa-network-contracts
   script:
     - forge test -vvv
+    - forge script script/DeployBaseChain.s.sol
 
 test-build:
   stage: test-build

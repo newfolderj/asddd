@@ -3,7 +3,7 @@
 pragma solidity ^0.8.19;
 
 import "../StateUpdateLibrary.sol";
-import "@openzeppelin/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract Signature {
     bytes32 public immutable DOMAIN_SEPARATOR;

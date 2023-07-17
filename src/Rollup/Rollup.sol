@@ -3,15 +3,14 @@
 pragma solidity ^0.8.19;
 
 import "./IRollup.sol";
-import "./ICollateral.sol";
+import "../CrossChain/LayerZero/IProcessingChainLz.sol";
 import "../Portal/IPortal.sol";
-import "../Manager/IManager.sol";
 import "../Manager/IBaseManager.sol";
 import "../Manager/IFeeManager.sol";
 import "../Staking/IStaking.sol";
 import "../StateUpdateLibrary.sol";
 import "../util/Id.sol";
-import "@openzeppelin/utils/cryptography/MerkleProof.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
  * The Rollup contract accepts settlement data reports from validators.
@@ -40,19 +39,17 @@ contract Rollup is IRollup {
     error EPOCH_NOT_CONFIRMED();
     error CALLER_NOT_PORTAL(address sender, address expected);
 
-    IManager internal immutable manager;
+    IBaseManager internal immutable manager;
     address internal immutable participatingInterface;
     uint256 public constant CONFIRMATION_BLOCKS = 50_000;
 
     // For compatability with Tacen Alpha
-    Id public lastSettlementIdProcessed = ID_ONE;
-    Id public nextRequestId = Id.wrap(2);
 
     event ObligationsWritten(Id id, address requester, address token, uint256 cleared);
 
     constructor(address _participatingInterface, address _manager) {
         participatingInterface = _participatingInterface;
-        manager = IManager(_manager);
+        manager = IBaseManager(_manager);
     }
 
     function proposeStateRoot(bytes32 _stateRoot) external {
@@ -87,108 +84,101 @@ contract Rollup is IRollup {
      * TODO: Currently requires settlements to be processed sequentially. Remove this restriction and instead track
      * which settlements have been processed.
      */
-    function processSettlement(
-        StateUpdateLibrary.SignedStateUpdate calldata _signedUpdate,
-        Id _stateRootId,
-        bytes32[] calldata _proof
-    )
-        external
-    {
-        bool requiresCollateral = false;
-        bytes32 stateRoot = confirmedStateRoot[_stateRootId];
-        if (stateRoot == 0) {
-            requiresCollateral = true;
-            stateRoot = proposedStateRoot[_stateRootId];
-            if (stateRoot == 0) revert EMPTY_STATE_ROOT();
+    struct SettlementParams {
+        StateUpdateLibrary.SignedStateUpdate signedUpdate;
+        Id stateRootId;
+        bytes32[] proof;
+    }
+
+    function processSettlements(Id _chainId, SettlementParams[] calldata _params) external payable {
+        IPortal.Obligation[] memory obligations = new IPortal.Obligation[](_params.length);
+        for (uint256 i = 0; i < _params.length; i++) {
+            bool requiresCollateral = false;
+            bytes32 stateRoot = confirmedStateRoot[_params[i].stateRootId];
+            if (stateRoot == 0) {
+                requiresCollateral = true;
+                stateRoot = proposedStateRoot[_params[i].stateRootId];
+                if (stateRoot == 0) revert EMPTY_STATE_ROOT();
+            }
+
+            bool valid =
+                MerkleProof.verifyCalldata(_params[i].proof, stateRoot, keccak256(abi.encode(_params[i].signedUpdate)));
+            if (!valid) revert INVALID_PROOF_SETTLEMENT();
+
+            if (_params[i].signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Settlement) {
+                revert INVALID_STATE_UPDATE_SETTLEMENT();
+            }
+
+            StateUpdateLibrary.Settlement memory settlement =
+                abi.decode(_params[i].signedUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
+
+            StateUpdateLibrary.SettlementRequest memory settlementRequest = settlement.settlementRequest;
+
+            // Only process settlements for assets of the same chain ID
+            if (settlementRequest.chainId != _chainId) revert("Settlement request chainId doesn't match _chainId");
+
+            // Validate the balance in the settlement and the trader/asset of the settlement request
+            if (
+                settlement.balanceBefore.asset != settlementRequest.asset
+                    || settlement.balanceBefore.trader != settlementRequest.trader
+                    || settlement.balanceBefore.chainId != settlementRequest.chainId
+            ) {
+                revert INPUT_PARAMS_MISMATCH_SETTLEMENT();
+            }
+
+            // Calculate settlement fee
+            (uint256 insuranceFee, uint256 stakerReward) =
+                IFeeManager(address(manager)).calculateSettlementFees(settlement.balanceBefore.amount);
+            // TODO: obligations need to be relayed from processing chain to other chains
+            // create an obligation to be relayed
+            obligations[i] = IPortal.Obligation(
+                settlement.balanceBefore.trader, settlement.balanceBefore.asset, settlement.balanceBefore.amount - (insuranceFee + stakerReward)
+            );
+
+            IStaking staking = IStaking(IBaseManager(address(manager)).collateral());
+            if (requiresCollateral) {
+                // TODO: Query oracle for price of settlement asset in stablecoin token
+                // For now:
+                // We assume balance token is 18 decimals of precision, convert to 6 decimals by dividing by 1e12
+                // Lock 1:1 requested asset
+                uint256 stableLockId = staking.lock(staking.stablecoin(), settlement.balanceBefore.amount / 1e12);
+                // Lock 15% of above as protocol token
+                uint256 protocolLockId = staking.lock(
+                    staking.protocolToken(), staking.stablecoinToProtocol(settlement.balanceBefore.amount / 1e12)
+                );
+
+                // Split settlement fee between network and insurance fund
+                staking.payInsurance(
+                    Id.unwrap(settlement.balanceBefore.chainId), settlement.balanceBefore.asset, insuranceFee
+                );
+                // Split staker reward between stablecoin pool and protocol token pool
+                (uint256 stablePoolReward, uint256 protocolPoolReward) =
+                    IFeeManager(address(manager)).calculateStakingRewards(stakerReward);
+                staking.reward(
+                    stableLockId,
+                    Id.unwrap(settlement.balanceBefore.chainId),
+                    settlement.balanceBefore.asset,
+                    stablePoolReward
+                );
+                staking.reward(
+                    protocolLockId,
+                    Id.unwrap(settlement.balanceBefore.chainId),
+                    settlement.balanceBefore.asset,
+                    protocolPoolReward
+                );
+            } else {
+                // No collateral required, entire settlement fee goes to insurance
+                staking.payInsurance(
+                    Id.unwrap(settlement.balanceBefore.chainId), settlement.balanceBefore.asset, insuranceFee
+                );
+            }
         }
 
-        bool valid = MerkleProof.verifyCalldata(_proof, stateRoot, keccak256(abi.encode(_signedUpdate)));
-        if (!valid) revert INVALID_PROOF_SETTLEMENT();
-
-        if (_signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Settlement) {
-            revert INVALID_STATE_UPDATE_SETTLEMENT();
-        }
-
-        StateUpdateLibrary.Settlement memory settlement =
-            abi.decode(_signedUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
-
-        StateUpdateLibrary.SettlementRequest memory settlementRequest = settlement.settlementRequest;
-
-        if (settlementRequest.settlementId != lastSettlementIdProcessed.increment()) {
-            revert INVALID_SEQUENCE_SETTLEMENT();
-        }
-
-        if (
-            !IPortal(manager.portal()).isValidSettlementRequest({
-                chainSequenceId: Id.unwrap(settlementRequest.chainSequenceId),
-                settlementHash: keccak256(abi.encode(settlementRequest))
-            }) || settlementRequest.chainId != Id.wrap(block.chainid)
-        ) revert INVALID_REQUEST_SETTLEMENT();
-
-        if (
-            settlement.balanceBefore.asset != settlementRequest.asset
-                || settlement.balanceBefore.trader != settlementRequest.trader
-                || settlement.balanceBefore.chainId != Id.wrap(block.chainid)
-        ) {
-            revert INPUT_PARAMS_MISMATCH_SETTLEMENT();
-        }
-
-        // Calculate settlement fee
-        (uint256 insuranceFee, uint256 stakerReward) =
-            IFeeManager(address(manager)).calculateSettlementFees(settlement.balanceBefore.amount);
-        // TODO: obligations need to be relayed from processing chain to other chains
-        IPortal(manager.portal()).writeObligation({
-            token: settlement.balanceBefore.asset,
-            recipient: settlement.balanceBefore.trader,
-            amount: settlement.balanceBefore.amount - (insuranceFee + stakerReward)
-        });
-
-        lastSettlementIdProcessed = lastSettlementIdProcessed.increment();
-
-        emit ObligationsWritten(
-            settlementRequest.settlementId,
-            settlementRequest.trader,
-            settlementRequest.asset,
-            IPortal(manager.portal()).getAvailableBalance(settlementRequest.trader, settlementRequest.asset)
+        // After performing validation, locking required collateral, and distributing settlement fees,
+        // relay the obligations to the asset chain.
+        IProcessingChainLz(IBaseManager(address(manager)).relayer()).sendObligations{ value: msg.value }(
+            Id.unwrap(_chainId), obligations, bytes(""), msg.sender
         );
-
-        IStaking staking = IStaking(IBaseManager(address(manager)).collateral());
-        if (requiresCollateral) {
-            // TODO: Query oracle for price of settlement asset in stablecoin token
-            // For now:
-            // We assume balance token is 18 decimals of precision, convert to 6 decimals by dividing by 1e12
-            // Lock 1:1 requested asset
-            uint256 stableLockId = staking.lock(staking.stablecoin(), settlement.balanceBefore.amount / 1e12);
-            // Lock 15% of above as protocol token
-            uint256 protocolLockId = staking.lock(
-                staking.protocolToken(), staking.stablecoinToProtocol(settlement.balanceBefore.amount / 1e12)
-            );
-
-            // Split settlement fee between network and insurance fund
-            staking.payInsurance(
-                Id.unwrap(settlement.balanceBefore.chainId), settlement.balanceBefore.asset, insuranceFee
-            );
-            // Split staker reward between stablecoin pool and protocol token pool
-            (uint256 stablePoolReward, uint256 protocolPoolReward) =
-                IFeeManager(address(manager)).calculateStakingRewards(stakerReward);
-            staking.reward(
-                stableLockId,
-                Id.unwrap(settlement.balanceBefore.chainId),
-                settlement.balanceBefore.asset,
-                stablePoolReward
-            );
-            staking.reward(
-                protocolLockId,
-                Id.unwrap(settlement.balanceBefore.chainId),
-                settlement.balanceBefore.asset,
-                protocolPoolReward
-            );
-        } else {
-            // No collateral required, entire settlement fee goes to insurance
-            staking.payInsurance(
-                Id.unwrap(settlement.balanceBefore.chainId), settlement.balanceBefore.asset, insuranceFee
-            );
-        }
     }
 
     // Confirms a state root and processes a settlement in a single transaction.
@@ -198,94 +188,130 @@ contract Rollup is IRollup {
         StateUpdateLibrary.SignedStateUpdate calldata _signedUpdate,
         bytes32[] calldata _proof
     )
-        external
+        external payable
     {
         epoch = epoch.increment();
         lastConfirmedEpoch = lastConfirmedEpoch.increment();
 
         confirmedStateRoot[lastConfirmedEpoch] = _stateRoot;
+    if (_signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Settlement) {
+                revert INVALID_STATE_UPDATE_SETTLEMENT();
+            }
 
-        _processSettlement(_signedUpdate, lastConfirmedEpoch, _proof);
+            StateUpdateLibrary.Settlement memory settlement =
+                abi.decode(_signedUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
+                SettlementParams[] memory params = new SettlementParams[](1);
+                params[0]= SettlementParams(_signedUpdate, lastConfirmedEpoch, _proof);
+        _processSettlements(settlement.balanceBefore.chainId, params);
     }
 
-    function _processSettlement(
-        StateUpdateLibrary.SignedStateUpdate calldata _signedUpdate,
-        Id _stateRootId,
-        bytes32[] calldata _proof
-    )
-        internal
-    {
-        bytes32 stateRoot = confirmedStateRoot[_stateRootId];
-        if (stateRoot == 0) revert EMPTY_STATE_ROOT();
+  function _processSettlements(Id _chainId, SettlementParams[] memory _params) internal {
+        IPortal.Obligation[] memory obligations = new IPortal.Obligation[](_params.length);
+        for (uint256 i = 0; i < _params.length; i++) {
+            bool requiresCollateral = false;
+            bytes32 stateRoot = confirmedStateRoot[_params[i].stateRootId];
+            if (stateRoot == 0) {
+                requiresCollateral = true;
+                stateRoot = proposedStateRoot[_params[i].stateRootId];
+                if (stateRoot == 0) revert EMPTY_STATE_ROOT();
+            }
 
-        bool valid = MerkleProof.verifyCalldata(_proof, stateRoot, keccak256(abi.encode(_signedUpdate)));
-        if (!valid) revert INVALID_PROOF_SETTLEMENT();
+            bool valid =
+                MerkleProof.verify(_params[i].proof, stateRoot, keccak256(abi.encode(_params[i].signedUpdate)));
+            if (!valid) revert INVALID_PROOF_SETTLEMENT();
 
-        if (_signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Settlement) {
-            revert INVALID_STATE_UPDATE_SETTLEMENT();
+            if (_params[i].signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Settlement) {
+                revert INVALID_STATE_UPDATE_SETTLEMENT();
+            }
+
+            StateUpdateLibrary.Settlement memory settlement =
+                abi.decode(_params[i].signedUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
+
+            StateUpdateLibrary.SettlementRequest memory settlementRequest = settlement.settlementRequest;
+
+            // Only process settlements for assets of the same chain ID
+            if (settlementRequest.chainId != _chainId) revert("Settlement request chainId doesn't match _chainId");
+
+            // Validate the balance in the settlement and the trader/asset of the settlement request
+            if (
+                settlement.balanceBefore.asset != settlementRequest.asset
+                    || settlement.balanceBefore.trader != settlementRequest.trader
+                    || settlement.balanceBefore.chainId != settlementRequest.chainId
+            ) {
+                revert INPUT_PARAMS_MISMATCH_SETTLEMENT();
+            }
+
+            // Calculate settlement fee
+            (uint256 insuranceFee, uint256 stakerReward) =
+                IFeeManager(address(manager)).calculateSettlementFees(settlement.balanceBefore.amount);
+            // TODO: obligations need to be relayed from processing chain to other chains
+            // create an obligation to be relayed
+            obligations[i] = IPortal.Obligation(
+                settlement.balanceBefore.trader, settlement.balanceBefore.asset, settlement.balanceBefore.amount - (insuranceFee + stakerReward)
+            );
+
+            IStaking staking = IStaking(IBaseManager(address(manager)).collateral());
+            if (requiresCollateral) {
+                // TODO: Query oracle for price of settlement asset in stablecoin token
+                // For now:
+                // We assume balance token is 18 decimals of precision, convert to 6 decimals by dividing by 1e12
+                // Lock 1:1 requested asset
+                uint256 stableLockId = staking.lock(staking.stablecoin(), settlement.balanceBefore.amount / 1e12);
+                // Lock 15% of above as protocol token
+                uint256 protocolLockId = staking.lock(
+                    staking.protocolToken(), staking.stablecoinToProtocol(settlement.balanceBefore.amount / 1e12)
+                );
+
+                // Split settlement fee between network and insurance fund
+                staking.payInsurance(
+                    Id.unwrap(settlement.balanceBefore.chainId), settlement.balanceBefore.asset, insuranceFee
+                );
+                // Split staker reward between stablecoin pool and protocol token pool
+                (uint256 stablePoolReward, uint256 protocolPoolReward) =
+                    IFeeManager(address(manager)).calculateStakingRewards(stakerReward);
+                staking.reward(
+                    stableLockId,
+                    Id.unwrap(settlement.balanceBefore.chainId),
+                    settlement.balanceBefore.asset,
+                    stablePoolReward
+                );
+                staking.reward(
+                    protocolLockId,
+                    Id.unwrap(settlement.balanceBefore.chainId),
+                    settlement.balanceBefore.asset,
+                    protocolPoolReward
+                );
+            } else {
+                // No collateral required, entire settlement fee goes to insurance
+                staking.payInsurance(
+                    Id.unwrap(settlement.balanceBefore.chainId), settlement.balanceBefore.asset, insuranceFee
+                );
+            }
         }
 
-        StateUpdateLibrary.Settlement memory settlement =
-            abi.decode(_signedUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
-
-        StateUpdateLibrary.SettlementRequest memory settlementRequest = settlement.settlementRequest;
-
-        if (settlementRequest.settlementId != lastSettlementIdProcessed.increment()) {
-            revert INVALID_SEQUENCE_SETTLEMENT();
-        }
-
-        if (
-            !IPortal(manager.portal()).isValidSettlementRequest({
-                chainSequenceId: Id.unwrap(settlementRequest.chainSequenceId),
-                settlementHash: keccak256(abi.encode(settlementRequest))
-            }) || settlementRequest.chainId != Id.wrap(block.chainid)
-        ) revert INVALID_REQUEST_SETTLEMENT();
-
-        if (
-            settlement.balanceBefore.asset != settlementRequest.asset
-                || settlement.balanceBefore.trader != settlementRequest.trader
-                || settlement.balanceBefore.chainId != Id.wrap(block.chainid)
-        ) {
-            revert INPUT_PARAMS_MISMATCH_SETTLEMENT();
-        }
-
-        IPortal(manager.portal()).writeObligation({
-            token: settlement.balanceBefore.asset,
-            recipient: settlement.balanceBefore.trader,
-            amount: settlement.balanceBefore.amount
-        });
-
-        lastSettlementIdProcessed = lastSettlementIdProcessed.increment();
-        // TODO: query oracle for price of requested asset in USD
-        // convert total amount of requested asset to USD
-        // calculate corresponding protocol token amount
-        // call Collateral contract to lock stablecoin and protocol token
-
-        // For now:
-        // Lock 1:1 requested asset
-        // Lock 15% of above as protocol token
-        // Burn 0.05% of above as protocol token
-        emit ObligationsWritten(
-            settlementRequest.settlementId,
-            settlementRequest.trader,
-            settlementRequest.asset,
-            IPortal(manager.portal()).getAvailableBalance(settlementRequest.trader, settlementRequest.asset)
+        // After performing validation, locking required collateral, and distributing settlement fees,
+        // relay the obligations to the asset chain.
+        IProcessingChainLz(IBaseManager(address(manager)).relayer()).sendObligations{ value: msg.value }(
+            Id.unwrap(_chainId), obligations, bytes(""), msg.sender
         );
-    }
+    } 
 
     // Maps sequnce ID of state update to whether or not its fee(s) have been claimed by the participating interface
     mapping(Id => bool) internal tradeClaimed;
     // Maps chain ID to asset address to amount that has been claimed as fees and is awaiting relay
     mapping(Id => mapping(address => uint256)) internal tradingFees;
+
     struct TradeProof {
         StateUpdateLibrary.SignedStateUpdate tradeUpdate;
         bytes32[] proof;
     }
+
     struct TradingFeeClaim {
         uint256 epoch;
         TradeProof[] tradeProof;
     }
     // Called by participating interface to claim trading fees from confirmed epochs
+
     function claimTradingFees(TradingFeeClaim[] calldata _claims) external {
         if (msg.sender != participatingInterface) revert("Only participating interface can claim trading fees");
         for (uint256 i = 0; i < _claims.length; i++) {
@@ -329,24 +355,18 @@ contract Rollup is IRollup {
     }
 
     // Called by participating interface to relay trading fees to the chain where the assets can be withdrawn
-    function relayTradingFees(uint256 _chainId, address[] calldata _assets) external {
-        if(msg.sender != participatingInterface) revert("Only participating interface can claim trading fees");
-        uint256[] memory amounts = new uint256[](_assets.length);
-        for(uint256 i = 0; i < _assets.length; i++) {
-            if(tradingFees[Id.wrap(_chainId)][_assets[i]] == 0) revert();
-            amounts[i] = tradingFees[Id.wrap(_chainId)][_assets[i]];
+    function relayTradingFees(uint256 _chainId, address[] calldata _assets) external payable {
+        if (msg.sender != participatingInterface) revert("Only participating interface can claim trading fees");
+        IPortal.Obligation[] memory obligations = new IPortal.Obligation[](_assets.length);
+        for (uint256 i = 0; i < _assets.length; i++) {
+            if (tradingFees[Id.wrap(_chainId)][_assets[i]] == 0) revert();
+            obligations[i] =
+                IPortal.Obligation(participatingInterface, _assets[i], tradingFees[Id.wrap(_chainId)][_assets[i]]);
             tradingFees[Id.wrap(_chainId)][_assets[i]] = 0;
         }
-        // TODO: relay
-        // Relayer.relayTradingFees(_chainId, _assets, amounts)
-    }
-
-    function requestSettlement(address, address) external returns (uint256) {
-        if (msg.sender != manager.portal()) revert CALLER_NOT_PORTAL(msg.sender, manager.portal());
-        nextRequestId = nextRequestId.increment();
-        unchecked {
-            return Id.unwrap(nextRequestId) - 1;
-        }
+        IProcessingChainLz(IBaseManager(address(manager)).relayer()).sendObligations{ value: msg.value }(
+            _chainId, obligations, bytes(""), msg.sender
+        );
     }
 
     function markFraudulent(uint256 _epoch) external {
