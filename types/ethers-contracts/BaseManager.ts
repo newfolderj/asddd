@@ -45,6 +45,7 @@ export interface BaseManagerInterface extends utils.Interface {
     "feeHistory(uint256)": FunctionFragment;
     "feeSequenceId()": FunctionFragment;
     "fraudEngine()": FunctionFragment;
+    "fraudPeriod()": FunctionFragment;
     "getPrice(address,address)": FunctionFragment;
     "getReceiverAddress(uint256)": FunctionFragment;
     "insuranceFundFee()": FunctionFragment;
@@ -85,6 +86,7 @@ export interface BaseManagerInterface extends utils.Interface {
       | "feeHistory"
       | "feeSequenceId"
       | "fraudEngine"
+      | "fraudPeriod"
       | "getPrice"
       | "getReceiverAddress"
       | "insuranceFundFee"
@@ -166,6 +168,10 @@ export interface BaseManagerInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "fraudEngine",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "fraudPeriod",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -287,6 +293,10 @@ export interface BaseManagerInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "fraudEngine",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "fraudPeriod",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getPrice", data: BytesLike): Result;
@@ -474,6 +484,8 @@ export interface BaseManager extends BaseContract {
 
     fraudEngine(overrides?: CallOverrides): Promise<[string]>;
 
+    fraudPeriod(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     getPrice(
       arg0: string,
       arg1: string,
@@ -608,6 +620,8 @@ export interface BaseManager extends BaseContract {
 
   fraudEngine(overrides?: CallOverrides): Promise<string>;
 
+  fraudPeriod(overrides?: CallOverrides): Promise<BigNumber>;
+
   getPrice(
     arg0: string,
     arg1: string,
@@ -738,6 +752,8 @@ export interface BaseManager extends BaseContract {
     feeSequenceId(overrides?: CallOverrides): Promise<BigNumber>;
 
     fraudEngine(overrides?: CallOverrides): Promise<string>;
+
+    fraudPeriod(overrides?: CallOverrides): Promise<BigNumber>;
 
     getPrice(
       arg0: string,
@@ -878,6 +894,8 @@ export interface BaseManager extends BaseContract {
 
     fraudEngine(overrides?: CallOverrides): Promise<BigNumber>;
 
+    fraudPeriod(overrides?: CallOverrides): Promise<BigNumber>;
+
     getPrice(
       arg0: string,
       arg1: string,
@@ -995,6 +1013,8 @@ export interface BaseManager extends BaseContract {
     feeSequenceId(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     fraudEngine(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    fraudPeriod(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     getPrice(
       arg0: string,

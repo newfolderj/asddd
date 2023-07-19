@@ -301,7 +301,7 @@ contract BaseTest is Test {
         vm.startPrank(validator);
         protocolToken.approve(manager.collateral(), 20_000 ether);
         stablecoin.approve(manager.collateral(), 200 ether);
-        staking.stake(address(stablecoin), 200 ether, tranches[1]);
+        staking.stake(address(stablecoin), 500000, tranches[1]);
         staking.stake(address(protocolToken), 20_000 ether, tranches[1]);
         vm.stopPrank();
     }

@@ -16,6 +16,7 @@ contract BaseManager is Manager, IBaseManager, FeeManager {
     address public immutable walletDelegation;
     address public relayer;
 
+    uint256 public fraudPeriod = 345_600; // ~ 4 days on Arbitrum Nova
     mapping(uint256 => address) public receivers;
 
     constructor(
