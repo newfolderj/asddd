@@ -105,7 +105,6 @@ export declare namespace Rollup {
 
 export interface RollupInterface extends utils.Interface {
   functions: {
-    "CONFIRMATION_BLOCKS()": FunctionFragment;
     "claimTradingFees((uint256,(((uint8,uint256,address,bytes),uint8,bytes32,bytes32),bytes32[])[])[])": FunctionFragment;
     "confirmStateRoot()": FunctionFragment;
     "confirmedStateRoot(uint256)": FunctionFragment;
@@ -114,12 +113,13 @@ export interface RollupInterface extends utils.Interface {
     "getConfirmedStateRoot(uint256)": FunctionFragment;
     "getCurrentEpoch()": FunctionFragment;
     "getProposedStateRoot(uint256)": FunctionFragment;
+    "isConfirmedLockId(uint256)": FunctionFragment;
+    "isFraudulentLockId(uint256)": FunctionFragment;
     "lastConfirmedEpoch()": FunctionFragment;
     "markFraudulent(uint256)": FunctionFragment;
     "processSettlements(uint256,(((uint8,uint256,address,bytes),uint8,bytes32,bytes32),uint256,bytes32[])[])": FunctionFragment;
     "processedSettlements(uint256,uint256)": FunctionFragment;
     "proposalBlock(bytes32)": FunctionFragment;
-    "proposalLockId(bytes32)": FunctionFragment;
     "proposeStateRoot(bytes32)": FunctionFragment;
     "proposedStateRoot(uint256)": FunctionFragment;
     "relayTradingFees(uint256,address[])": FunctionFragment;
@@ -128,7 +128,6 @@ export interface RollupInterface extends utils.Interface {
 
   getFunction(
     nameOrSignatureOrTopic:
-      | "CONFIRMATION_BLOCKS"
       | "claimTradingFees"
       | "confirmStateRoot"
       | "confirmedStateRoot"
@@ -137,22 +136,19 @@ export interface RollupInterface extends utils.Interface {
       | "getConfirmedStateRoot"
       | "getCurrentEpoch"
       | "getProposedStateRoot"
+      | "isConfirmedLockId"
+      | "isFraudulentLockId"
       | "lastConfirmedEpoch"
       | "markFraudulent"
       | "processSettlements"
       | "processedSettlements"
       | "proposalBlock"
-      | "proposalLockId"
       | "proposeStateRoot"
       | "proposedStateRoot"
       | "relayTradingFees"
       | "submitSettlement"
   ): FunctionFragment;
 
-  encodeFunctionData(
-    functionFragment: "CONFIRMATION_BLOCKS",
-    values?: undefined
-  ): string;
   encodeFunctionData(
     functionFragment: "claimTradingFees",
     values: [Rollup.TradingFeeClaimStruct[]]
@@ -183,6 +179,14 @@ export interface RollupInterface extends utils.Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "isConfirmedLockId",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "isFraudulentLockId",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "lastConfirmedEpoch",
     values?: undefined
   ): string;
@@ -203,10 +207,6 @@ export interface RollupInterface extends utils.Interface {
     values: [BytesLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "proposalLockId",
-    values: [BytesLike]
-  ): string;
-  encodeFunctionData(
     functionFragment: "proposeStateRoot",
     values: [BytesLike]
   ): string;
@@ -223,10 +223,6 @@ export interface RollupInterface extends utils.Interface {
     values: [BytesLike, StateUpdateLibrary.SignedStateUpdateStruct, BytesLike[]]
   ): string;
 
-  decodeFunctionResult(
-    functionFragment: "CONFIRMATION_BLOCKS",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(
     functionFragment: "claimTradingFees",
     data: BytesLike
@@ -254,6 +250,14 @@ export interface RollupInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "isConfirmedLockId",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "isFraudulentLockId",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "lastConfirmedEpoch",
     data: BytesLike
   ): Result;
@@ -271,10 +275,6 @@ export interface RollupInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "proposalBlock",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "proposalLockId",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -342,8 +342,6 @@ export interface Rollup extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    CONFIRMATION_BLOCKS(overrides?: CallOverrides): Promise<[BigNumber]>;
-
     claimTradingFees(
       _claims: Rollup.TradingFeeClaimStruct[],
       overrides?: Overrides & { from?: string }
@@ -378,6 +376,16 @@ export interface Rollup extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[string] & { root: string }>;
 
+    isConfirmedLockId(
+      _lockId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
+    isFraudulentLockId(
+      _lockId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
     lastConfirmedEpoch(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     markFraudulent(
@@ -398,11 +406,6 @@ export interface Rollup extends BaseContract {
     ): Promise<[boolean]>;
 
     proposalBlock(
-      arg0: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
-    proposalLockId(
       arg0: BytesLike,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
@@ -430,8 +433,6 @@ export interface Rollup extends BaseContract {
       overrides?: PayableOverrides & { from?: string }
     ): Promise<ContractTransaction>;
   };
-
-  CONFIRMATION_BLOCKS(overrides?: CallOverrides): Promise<BigNumber>;
 
   claimTradingFees(
     _claims: Rollup.TradingFeeClaimStruct[],
@@ -467,6 +468,16 @@ export interface Rollup extends BaseContract {
     overrides?: CallOverrides
   ): Promise<string>;
 
+  isConfirmedLockId(
+    _lockId: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
+  isFraudulentLockId(
+    _lockId: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
   lastConfirmedEpoch(overrides?: CallOverrides): Promise<BigNumber>;
 
   markFraudulent(
@@ -487,11 +498,6 @@ export interface Rollup extends BaseContract {
   ): Promise<boolean>;
 
   proposalBlock(arg0: BytesLike, overrides?: CallOverrides): Promise<BigNumber>;
-
-  proposalLockId(
-    arg0: BytesLike,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
 
   proposeStateRoot(
     _stateRoot: BytesLike,
@@ -517,8 +523,6 @@ export interface Rollup extends BaseContract {
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    CONFIRMATION_BLOCKS(overrides?: CallOverrides): Promise<BigNumber>;
-
     claimTradingFees(
       _claims: Rollup.TradingFeeClaimStruct[],
       overrides?: CallOverrides
@@ -551,6 +555,16 @@ export interface Rollup extends BaseContract {
       overrides?: CallOverrides
     ): Promise<string>;
 
+    isConfirmedLockId(
+      _lockId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
+    isFraudulentLockId(
+      _lockId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
     lastConfirmedEpoch(overrides?: CallOverrides): Promise<BigNumber>;
 
     markFraudulent(
@@ -571,11 +585,6 @@ export interface Rollup extends BaseContract {
     ): Promise<boolean>;
 
     proposalBlock(
-      arg0: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    proposalLockId(
       arg0: BytesLike,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -620,8 +629,6 @@ export interface Rollup extends BaseContract {
   };
 
   estimateGas: {
-    CONFIRMATION_BLOCKS(overrides?: CallOverrides): Promise<BigNumber>;
-
     claimTradingFees(
       _claims: Rollup.TradingFeeClaimStruct[],
       overrides?: Overrides & { from?: string }
@@ -656,6 +663,16 @@ export interface Rollup extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    isConfirmedLockId(
+      _lockId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    isFraudulentLockId(
+      _lockId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     lastConfirmedEpoch(overrides?: CallOverrides): Promise<BigNumber>;
 
     markFraudulent(
@@ -676,11 +693,6 @@ export interface Rollup extends BaseContract {
     ): Promise<BigNumber>;
 
     proposalBlock(
-      arg0: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    proposalLockId(
       arg0: BytesLike,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -710,10 +722,6 @@ export interface Rollup extends BaseContract {
   };
 
   populateTransaction: {
-    CONFIRMATION_BLOCKS(
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
     claimTradingFees(
       _claims: Rollup.TradingFeeClaimStruct[],
       overrides?: Overrides & { from?: string }
@@ -748,6 +756,16 @@ export interface Rollup extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    isConfirmedLockId(
+      _lockId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    isFraudulentLockId(
+      _lockId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     lastConfirmedEpoch(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
@@ -770,11 +788,6 @@ export interface Rollup extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     proposalBlock(
-      arg0: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    proposalLockId(
       arg0: BytesLike,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;

@@ -3,6 +3,7 @@
 pragma solidity ^0.8.19;
 
 interface IBaseManager {
+    function fraudPeriod() external view returns (uint256);
     function collateral() external view returns (address);
     function rollup() external view returns (address);
     function relayer() external view returns (address);

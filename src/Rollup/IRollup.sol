@@ -3,6 +3,8 @@
 pragma solidity ^0.8.19;
 
 interface IRollup {
+    function isFraudulentLockId(uint256 _lockId) external view returns (bool); 
+    function isConfirmedLockId(uint256 _lockId) external view returns (bool); 
     function markFraudulent(uint256 epoch) external;
 
     function getProposedStateRoot(uint256 epoch) external view returns (bytes32);

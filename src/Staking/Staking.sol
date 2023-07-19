@@ -13,15 +13,6 @@ import "../util/Id.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-struct Reward {
-    address asset;
-    uint256 amount;
-}
-
-interface IRewardsRelayer {
-    function relayRewards(uint256 _chainId, Reward[] calldata _rewards) external;
-}
-
 contract Staking is IStaking {
     using IdLib for Id;
     using EnumerableSet for EnumerableSet.UintSet;
@@ -31,11 +22,6 @@ contract Staking is IStaking {
     // TIME CONSTANTS
     // Minimum number of blocks for which funds must be locked
     uint256 public constant PERIOD_LENGTH = 5_184_000; // ~ 60 days on Arbitrum Nova
-    // Number of blocks before end of period at which locking assets from a tranche is no longer possible.
-    // This should be >= the length of the fraud period.
-    uint256 public constant LOCKING_CUTOFF = 345_600; // ~ 4 days on Arbitrum Nova
-    // Number of blocks before end of period at which depositing assets into a tranche is no longer possible.
-    uint256 public constant DEPOSIT_CUTOFF = 345_600; // ~ 4 days on Arbitrum Nova
     // How many staking periods are available at one time
     uint256 public constant ACTIVE_PERIODS = 3;
 
@@ -52,11 +38,12 @@ contract Staking is IStaking {
         uint256 blockNumber;
         // block number when deposit becomes unlocked
         uint256 unlockTime;
+        uint256 withdrawn;
     }
 
     Id public currentDepositId = ID_ZERO;
     Id public currentLockId = ID_ZERO;
-    mapping(uint256 => DepositRecord) deposits;
+    mapping(uint256 => DepositRecord) public deposits;
     mapping(address => mapping(address => EnumerableSet.UintSet)) internal userDeposits;
     // depositId => lockId => chainId => rewardAsset => claimed
     mapping(uint256 => mapping(uint256 => mapping(uint256 => mapping(address => uint256)))) claimedRewards;
@@ -68,10 +55,12 @@ contract Staking is IStaking {
         uint256 totalAvailable;
         // block number at which the lock occurred
         uint256 blockNumber;
+        address asset;
     }
     // Lock ID to collateral asset to record generated when an asset is locked
 
-    mapping(uint256 => mapping(address => LockRecord)) internal locks;
+    // mapping(uint256 => mapping(address => LockRecord)) public locks;
+    mapping(uint256 => LockRecord) public locks;
     // Lock ID to reward asset chain ID to address to amount earned in rewards
     // Value is total earned for all stakers with assets in tranches that were eligible
     // use as collateral at time of lock.
@@ -103,16 +92,42 @@ contract Staking is IStaking {
         require(IERC20(_asset).transferFrom(msg.sender, address(this), _amount));
 
         if (_unlockTime % PERIOD_LENGTH != 0) revert();
-        if (block.number >= _unlockTime - DEPOSIT_CUTOFF) revert();
+        if (block.number >= _unlockTime - manager.fraudPeriod()) revert();
 
-        deposits[Id.unwrap(currentDepositId)] = DepositRecord(msg.sender, _asset, _amount, block.number, _unlockTime);
+        deposits[Id.unwrap(currentDepositId)] = DepositRecord(msg.sender, _asset, _amount, block.number, _unlockTime, 0);
         userDeposits[msg.sender][_asset].add(Id.unwrap(currentDepositId));
         totals[_asset][_unlockTime].total += _amount;
 
         currentDepositId = currentDepositId.increment();
     }
 
-    function lock(address _asset, uint256 _amountToLock) external returns(uint256) {
+    function withdraw(uint256[] calldata _depositIds) external {
+        uint256 stablecoinAmount = 0;
+        uint256 protocolTokenAmount = 0;
+        for (uint256 i = 0; i < _depositIds.length; i++) {
+            DepositRecord storage depositRecord = deposits[_depositIds[i]];
+            if (depositRecord.staker != msg.sender) revert("Sender must match staker of deposit record");
+            if (depositRecord.unlockTime > block.number) revert("Unlock date for deposit record has not been reached");
+            if (depositRecord.withdrawn == depositRecord.amount) revert("Deposit already withdrawn");
+            // get totals for this tranche and calculate how much of this amount is available for withdraw
+            TotalAmount memory total = totals[depositRecord.asset][depositRecord.unlockTime];
+            uint256 unlocked = ((total.total - total.locked) * depositRecord.amount) / total.total;
+            uint256 available = unlocked - depositRecord.withdrawn;
+            if (available == 0) revert("No available amount for this deposit id");
+            depositRecord.withdrawn += available;
+            if (depositRecord.asset == stablecoin) {
+                stablecoinAmount += available;
+            } else if (depositRecord.asset == protocolToken) {
+                protocolTokenAmount += available;
+            } else {
+                revert("Should not be a deposit record for assets beside stablecoin or protocolToken");
+            }
+        }
+        if (stablecoinAmount > 0) require(IERC20(stablecoin).transfer(msg.sender, stablecoinAmount));
+        if (protocolTokenAmount > 0) require(IERC20(protocolToken).transfer(msg.sender, protocolTokenAmount));
+    }
+
+    function lock(address _asset, uint256 _amountToLock) external returns (uint256) {
         if (msg.sender != manager.rollup()) revert("Only rollup can lock");
         if (_amountToLock == 0) revert("Amount to lock must not be 0");
         if (!(_asset == stablecoin || _asset == protocolToken)) revert("Can only lock stablecoin or protocolToken");
@@ -136,15 +151,48 @@ contract Staking is IStaking {
                 amountLeft = 0;
             }
         }
-        if (amountLeft > 0) revert INSUFFICIENT_COLLATERAL({amountToLock: _amountToLock, amountLeft: amountLeft});
+        if (amountLeft > 0) revert INSUFFICIENT_COLLATERAL({ amountToLock: _amountToLock, amountLeft: amountLeft });
 
-        locks[Id.unwrap(currentLockId)][_asset] = LockRecord(_amountToLock, totalAvailable, block.number);
+        locks[Id.unwrap(currentLockId)] = LockRecord(_amountToLock, totalAvailable, block.number, _asset);
         currentLockId = currentLockId.increment();
         // TODO: emit an event
         return Id.unwrap(currentLockId) - 1;
     }
 
-    function unlock() external { }
+    function unlock(uint256[] calldata _lockIds) external {
+        IRollup rollup = IRollup(manager.rollup());
+        for (uint256 i = 0; i < _lockIds.length; i++) {
+            // State root associated with lock ID must be confirmed and cannot be fraudulent
+            if (rollup.isFraudulentLockId(_lockIds[i])) {
+                revert("State root associated with lock ID was marked as fraudulent");
+            }
+            if (!rollup.isConfirmedLockId(_lockIds[i])) {
+                revert("State root associated with lock ID has not been confirmed");
+            }
+
+            LockRecord memory lockRecord = locks[_lockIds[i]];
+            if (lockRecord.blockNumber + manager.fraudPeriod() > block.number) {
+                revert("Lock has not passed fraud period.");
+            }
+            // Get active tranches at time of lock
+            uint256[3] memory tranches = getActiveTranches(lockRecord.blockNumber);
+            uint256 amountToUnlock = lockRecord.amountLocked;
+            // loop through tranches and unlock
+            for (uint256 t = 0; t < tranches.length; t++) {
+                if (amountToUnlock == 0) break;
+                uint256 locked = totals[lockRecord.asset][tranches[t]].locked;
+                if (locked == 0) continue;
+                if (amountToUnlock <= locked) {
+                    totals[lockRecord.asset][tranches[t]].locked -= amountToUnlock;
+                    amountToUnlock = 0;
+                } else {
+                    // set available in tranche to: available - _amountToLock
+                    totals[lockRecord.asset][tranches[t]].locked = 0;
+                    amountToUnlock -= locked;
+                }
+            }
+        }
+    }
 
     function reward(uint256 _lockId, uint256 _chainId, address _asset, uint256 _amount) external {
         if (msg.sender != manager.rollup()) revert();
@@ -172,16 +220,17 @@ contract Staking is IStaking {
             uint256 depositId = _params.depositId[d];
             DepositRecord storage depositRecord = deposits[depositId];
             // deposit record must belong to sender
-            if (depositRecord.staker != msg.sender) revert();
+            if (depositRecord.staker != msg.sender) revert("Sender not staker of deposit record");
             for (uint256 l = 0; l < _params.lockId.length; l++) {
                 uint256 lockId = _params.lockId[l];
                 // get lock record
-                LockRecord storage lockRecord = locks[lockId][depositRecord.asset];
+                LockRecord storage lockRecord = locks[lockId];
 
                 // Deposit should be eligible for the given lock record
                 if (
                     depositRecord.blockNumber >= lockRecord.blockNumber
-                        || lockRecord.blockNumber > depositRecord.unlockTime - LOCKING_CUTOFF
+                        || lockRecord.blockNumber > depositRecord.unlockTime - manager.fraudPeriod()
+                        || lockRecord.asset != depositRecord.asset
                 ) continue;
                 for (uint256 i = 0; i < _params.rewardAsset.length; i++) {
                     address rewardAsset = _params.rewardAsset[i];
@@ -204,10 +253,10 @@ contract Staking is IStaking {
             }
         }
 
-IPortal.Obligation[] memory obligations = new IPortal.Obligation[](_params.rewardAsset.length);
+        IPortal.Obligation[] memory obligations = new IPortal.Obligation[](_params.rewardAsset.length);
         for (uint256 i = 0; i < _params.rewardAsset.length; i++) {
             uint256 amountToClaim = toClaim[msg.sender][_params.rewardChainId][_params.rewardAsset[i]];
-            if (amountToClaim == 0) revert();
+            if (amountToClaim == 0) revert("Amount to claim is 0");
             obligations[i] = IPortal.Obligation(msg.sender, _params.rewardAsset[i], amountToClaim);
             // Set to 0 so it can't be used again
             toClaim[msg.sender][_params.rewardChainId][_params.rewardAsset[i]] = 0;
@@ -221,13 +270,17 @@ IPortal.Obligation[] memory obligations = new IPortal.Obligation[](_params.rewar
     // Block number represents time at which all deposits for that period can be withdrawn
     // Can be used to determine the total available + locked collateral that's eligible for reward
     function getActiveTranches() public view returns (uint256[ACTIVE_PERIODS] memory tranches) {
+        return getActiveTranches(block.number);
+    }
+
+    function getActiveTranches(uint256 _blockNumber) public view returns (uint256[ACTIVE_PERIODS] memory tranches) {
         // Number of blocks passed for the current period
         // If 0, then the current block number is the exact beginning of a new period
-        uint256 r = block.number % PERIOD_LENGTH;
+        uint256 r = _blockNumber % PERIOD_LENGTH;
         // Start time of the earliest period
-        uint256 current = block.number - (r > 0 ? r : 0);
+        uint256 current = _blockNumber - (r > 0 ? r : 0);
         // If past the deposit cutoff, then the current period is closed and the subsequent is earliest.
-        if (r >= DEPOSIT_CUTOFF) {
+        if (r >= manager.fraudPeriod()) {
             current += PERIOD_LENGTH;
         }
         for (uint256 i = 0; i < ACTIVE_PERIODS; i++) {

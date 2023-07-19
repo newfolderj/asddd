@@ -81,7 +81,7 @@ contract FraudEngineTest is BaseTest {
         assert(rollup.fraudulent(ID_ONE, stateRoot));
 
         // Simulate passage of time
-        vm.roll(block.number + rollup.CONFIRMATION_BLOCKS());
+        vm.roll(block.number + manager.fraudPeriod()); 
 
         // Confirming state root should fail
         vm.expectRevert();
