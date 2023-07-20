@@ -318,7 +318,7 @@ contract Staking is IStaking {
             current += PERIOD_LENGTH;
         }
         for (uint256 i = 0; i < ACTIVE_PERIODS; i++) {
-            tranches[i] = current + (PERIOD_LENGTH * i);
+            tranches[i] = current + (PERIOD_LENGTH * (i + 1));
         }
     }
 
