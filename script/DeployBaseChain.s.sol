@@ -8,6 +8,8 @@ import "../src/Manager/ChildManager.sol";
 import "@LayerZero/mocks/LZEndpointMock.sol";
 import "../src/CrossChain/LayerZero/AssetChainLz.sol";
 import "../src/CrossChain/LayerZero/ProcessingChainLz.sol";
+import "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
+import "../src/Staking/Staking.sol";
 
 contract DeployBaseChain is Script {
     address internal participatingInterface;
@@ -38,7 +40,7 @@ contract DeployBaseChain is Script {
             _protocolToken: address(0)
         });
         LZEndpointMock lzEndpointMock = new LZEndpointMock(uint16(block.chainid));
-        LZEndpointMock lzEndpointMockDest = new LZEndpointMock(uint16(1));
+        LZEndpointMock lzEndpointMockDest = new LZEndpointMock(uint16(block.chainid));
         manager.deployRelayer(address(lzEndpointMock));
         // TODO: replace with mock lz endpoint
         // TODO: set trusted remotes
@@ -50,20 +52,32 @@ contract DeployBaseChain is Script {
             _relayer: manager.relayer()
         });
         assetChainManager.deployReceiver(address(lzEndpointMockDest), uint16(block.chainid));
-        processingChainLz.setTrustedRemote(uint16(1), abi.encodePacked(assetChainManager.receiver(), manager.rollup()));
+        processingChainLz.setTrustedRemote(uint16(block.chainid), abi.encodePacked(assetChainManager.receiver(),address(processingChainLz)));
+        uint256[] memory evm = new uint256[](1);
+        uint16[] memory lz = new uint16[](1);
+        evm[0] = block.chainid;
+        lz[0] = uint16(block.chainid);
+        processingChainLz.setChainIds(evm, lz);
+        address[] memory dests = new address[](1);
+        dests[0] = assetChainManager.receiver();
+        processingChainLz.setPortalAddress(evm, dests);
         AssetChainLz assetChainLz = AssetChainLz(assetChainManager.receiver());
         assetChainLz.setTrustedRemote(
             uint16(block.chainid), abi.encodePacked(address(processingChainLz), address(assetChainLz))
         );
         lzEndpointMock.setDestLzEndpoint(address(assetChainLz), address(lzEndpointMockDest));
-        // lzEndpointMockDest.setDestLzEndpoint(address(assetChainLz), address(lzEndpointMockDest));
+        ERC20PresetFixedSupply stablecoin = new ERC20PresetFixedSupply("Stablecoin", "USDT", 10_000 ether, validator);
+        ERC20PresetFixedSupply protocolToken =
+            new ERC20PresetFixedSupply("ProtocolToken", "TXA", 10_000 ether, validator);
 
-        // manager.deployRelayer({
-        //     _axelarGateway: vm.envAddress("AXELAR_GATEWAY"),
-        //     _axelarGasReceiver: vm.envAddress("AXELAR_GAS_RECEIVER"),
-        //     _chainNames: chainNames,
-        //     _chainIds: chainIds
-        // });
+        Staking staking = new Staking(address(manager), address(stablecoin), address(protocolToken));
+        manager.setCollateral(address(staking));
+        uint256[3] memory tranches = staking.getActiveTranches();
+        protocolToken.approve(manager.collateral(), 10_000 ether);
+        stablecoin.approve(manager.collateral(), 10_000 ether);
+        staking.stake(address(stablecoin), 10_000 ether, tranches[1]);
+        staking.stake(address(protocolToken), 10_000 ether, tranches[1]);
+
         vm.stopBroadcast();
 
         string memory obj1 = '{"manager":"","portal":"","rollup":""}';
