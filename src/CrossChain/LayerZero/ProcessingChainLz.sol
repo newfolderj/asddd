@@ -15,15 +15,30 @@ import "@LayerZero/lzApp/NonblockingLzApp.sol";
 contract ProcessingChainLz is NonblockingLzApp, IProcessingChainLz {
     address zroPaymentAddress;
 
+    // Maps EVM chain ID to LayerZero chain ID
+    mapping(uint256 => uint16) chainIds;
+    mapping(uint256 => address) portals;
+
     constructor(address _lzEndpoint, address _owner) NonblockingLzApp(_lzEndpoint) {
         _transferOwnership(_owner);
     }
 
-    // send reward to Portal on specified chain
-    // send settlement to Portal on specified chain
-    // send fee to Portal on specified chain
+    function setChainIds(uint256[] calldata evmChainId, uint16[] calldata lzChainId) external onlyOwner {
+        if (evmChainId.length != lzChainId.length) revert("Lengths of chain ID arrays don't match");
+        for (uint256 i = 0; i < evmChainId.length; i++) {
+            chainIds[evmChainId[i]] = lzChainId[i];
+        }
+    }
+
+    function setPortalAddress(uint256[] calldata evmChainId, address[] calldata portal) external onlyOwner {
+        if (evmChainId.length != portal.length) revert("Lengths of chain ID and portal arrays don't match");
+        for (uint256 i = 0; i < evmChainId.length; i++) {
+            portals[evmChainId[i]] = portal[i];
+        }
+    }
 
     // Send obligation to Portal on specified chain
+    // Used after processing settlements, trading fees, and staking rewards
     function sendObligations(
         uint256 _chainId,
         IPortal.Obligation[] calldata _obligations,
@@ -33,19 +48,9 @@ contract ProcessingChainLz is NonblockingLzApp, IProcessingChainLz {
         external
         payable
     {
-        uint16 lzChainId = _getLzChainId(_chainId);
-        bytes memory payload = abi.encode(_getPortal(_chainId), _obligations);
+        uint16 lzChainId = chainIds[_chainId];
+        bytes memory payload = abi.encode(portals[_chainId], _obligations);
         _lzSend(lzChainId, payload, payable(_refundAddress), zroPaymentAddress, _adapterParams, msg.value);
-    }
-
-    function _getLzChainId(uint256 _chainId) internal returns (uint16) {
-        // TODO: get the lz chain ID
-        return uint16(_chainId);
-    }
-
-    function _getPortal(uint256 _chainId) internal returns (address) {
-        // TODO: get address of Portal contract for given chain id
-        return address(0);
     }
 
     // TODO: handle receiving data

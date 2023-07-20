@@ -27,13 +27,13 @@ contract Rollup is IRollup {
     mapping(Id => mapping(bytes32 => bool)) public fraudulent;
     mapping(Id => bytes32) public confirmedStateRoot;
     mapping(uint256 => mapping(uint256 => bool)) public processedSettlements;
-    // Tracks each time a state root is used to lock collateral for a settlement
 
     struct StateRootRecord {
         bytes32 stateRoot;
         Id epoch;
     }
 
+    // Tracks each time a state root is used to lock collateral for a settlement
     mapping(uint256 => StateRootRecord) internal lockIdStateRoot;
 
     error CALLER_NOT_VALIDATOR();
@@ -80,7 +80,9 @@ contract Rollup is IRollup {
         if (stateRoot == "") revert("Trying to confirm an empty state root");
         uint256 blockNumber = proposalBlock[stateRoot];
 
-        if (block.number < blockNumber + manager.fraudPeriod()) revert("Proposed state root has not passed fraud period");
+        if (block.number < blockNumber + manager.fraudPeriod()) {
+            revert("Proposed state root has not passed fraud period");
+        }
         if (fraudulent[lastConfirmedEpoch][stateRoot]) revert("Trying to confirm a fraudulent state root");
 
         confirmedStateRoot[lastConfirmedEpoch] = stateRoot;
@@ -217,9 +219,10 @@ contract Rollup is IRollup {
         payable
     {
         epoch = epoch.increment();
-        lastConfirmedEpoch = lastConfirmedEpoch.increment();
+        // lastConfirmedEpoch = lastConfirmedEpoch.increment();
 
-        confirmedStateRoot[lastConfirmedEpoch] = _stateRoot;
+        // confirmedStateRoot[lastConfirmedEpoch] = _stateRoot;
+        proposedStateRoot[epoch] = _stateRoot;
         if (_signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Settlement) {
             revert INVALID_STATE_UPDATE_SETTLEMENT();
         }
@@ -227,91 +230,101 @@ contract Rollup is IRollup {
         StateUpdateLibrary.Settlement memory settlement =
             abi.decode(_signedUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
         SettlementParams[] memory params = new SettlementParams[](1);
-        params[0] = SettlementParams(_signedUpdate, lastConfirmedEpoch, _proof);
+        params[0] = SettlementParams(_signedUpdate, epoch, _proof);
         _processSettlements(settlement.balanceBefore.chainId, params);
     }
 
     function _processSettlements(Id _chainId, SettlementParams[] memory _params) internal {
+        ProcessSettlementState memory state;
         IPortal.Obligation[] memory obligations = new IPortal.Obligation[](_params.length);
         for (uint256 i = 0; i < _params.length; i++) {
             bool requiresCollateral = false;
-            bytes32 stateRoot = confirmedStateRoot[_params[i].stateRootId];
-            if (stateRoot == 0) {
+            state.stateRoot = confirmedStateRoot[_params[i].stateRootId];
+            if (state.stateRoot == 0) {
                 requiresCollateral = true;
-                stateRoot = proposedStateRoot[_params[i].stateRootId];
-                if (stateRoot == 0) revert EMPTY_STATE_ROOT();
+                state.stateRoot = proposedStateRoot[_params[i].stateRootId];
+                if (state.stateRoot == 0) revert EMPTY_STATE_ROOT();
             }
 
-            bool valid = MerkleProof.verify(_params[i].proof, stateRoot, keccak256(abi.encode(_params[i].signedUpdate)));
+            bool valid = MerkleProof.verify(
+                _params[i].proof, state.stateRoot, keccak256(abi.encode(_params[i].signedUpdate))
+            );
             if (!valid) revert INVALID_PROOF_SETTLEMENT();
 
             if (_params[i].signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Settlement) {
                 revert INVALID_STATE_UPDATE_SETTLEMENT();
             }
 
-            StateUpdateLibrary.Settlement memory settlement =
+            state.settlement =
                 abi.decode(_params[i].signedUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
 
-            StateUpdateLibrary.SettlementRequest memory settlementRequest = settlement.settlementRequest;
-
             // Only process settlements for assets of the same chain ID
-            if (settlementRequest.chainId != _chainId) revert("Settlement request chainId doesn't match _chainId");
+            if (state.settlement.settlementRequest.chainId != _chainId) {
+                revert("Settlement request chainId doesn't match _chainId");
+            }
 
             // Validate the balance in the settlement and the trader/asset of the settlement request
             if (
-                settlement.balanceBefore.asset != settlementRequest.asset
-                    || settlement.balanceBefore.trader != settlementRequest.trader
-                    || settlement.balanceBefore.chainId != settlementRequest.chainId
+                state.settlement.balanceBefore.asset != state.settlement.settlementRequest.asset
+                    || state.settlement.balanceBefore.trader != state.settlement.settlementRequest.trader
+                    || state.settlement.balanceBefore.chainId != state.settlement.settlementRequest.chainId
             ) {
                 revert INPUT_PARAMS_MISMATCH_SETTLEMENT();
             }
 
             // Calculate settlement fee
             (uint256 insuranceFee, uint256 stakerReward) =
-                IFeeManager(address(manager)).calculateSettlementFees(settlement.balanceBefore.amount);
+                IFeeManager(address(manager)).calculateSettlementFees(state.settlement.balanceBefore.amount);
             // TODO: obligations need to be relayed from processing chain to other chains
             // create an obligation to be relayed
             obligations[i] = IPortal.Obligation(
-                settlement.balanceBefore.trader,
-                settlement.balanceBefore.asset,
-                settlement.balanceBefore.amount - (insuranceFee + stakerReward)
+                state.settlement.balanceBefore.trader,
+                state.settlement.balanceBefore.asset,
+                state.settlement.balanceBefore.amount - (insuranceFee + stakerReward)
             );
 
             IStaking staking = IStaking(manager.collateral());
             if (requiresCollateral) {
                 // TODO: Query oracle for price of settlement asset in stablecoin token
                 // For now:
-                // We assume balance token is 18 decimals of precision, convert to 6 decimals by dividing by 1e12
+                // We assume balance token is 6 decimals of precision
                 // Lock 1:1 requested asset
-                uint256 stableLockId = staking.lock(staking.stablecoin(), settlement.balanceBefore.amount / 1e12);
+                uint256 stableLockId = staking.lock(staking.stablecoin(), state.settlement.balanceBefore.amount);
                 // Lock 15% of above as protocol token
                 uint256 protocolLockId = staking.lock(
-                    staking.protocolToken(), staking.stablecoinToProtocol(settlement.balanceBefore.amount / 1e12)
+                    staking.protocolToken(), staking.stablecoinToProtocol(state.settlement.balanceBefore.amount)
                 );
 
+                // Associate lock Ids with state root
+                lockIdStateRoot[stableLockId] = StateRootRecord(state.stateRoot, _params[i].stateRootId);
+                lockIdStateRoot[protocolLockId] = StateRootRecord(state.stateRoot, _params[i].stateRootId);
                 // Split settlement fee between network and insurance fund
                 staking.payInsurance(
-                    Id.unwrap(settlement.balanceBefore.chainId), settlement.balanceBefore.asset, insuranceFee
+                    Id.unwrap(state.settlement.balanceBefore.chainId),
+                    state.settlement.balanceBefore.asset,
+                    insuranceFee
                 );
                 // Split staker reward between stablecoin pool and protocol token pool
                 (uint256 stablePoolReward, uint256 protocolPoolReward) =
                     IFeeManager(address(manager)).calculateStakingRewards(stakerReward);
                 staking.reward(
                     stableLockId,
-                    Id.unwrap(settlement.balanceBefore.chainId),
-                    settlement.balanceBefore.asset,
+                    Id.unwrap(state.settlement.balanceBefore.chainId),
+                    state.settlement.balanceBefore.asset,
                     stablePoolReward
                 );
                 staking.reward(
                     protocolLockId,
-                    Id.unwrap(settlement.balanceBefore.chainId),
-                    settlement.balanceBefore.asset,
+                    Id.unwrap(state.settlement.balanceBefore.chainId),
+                    state.settlement.balanceBefore.asset,
                     protocolPoolReward
                 );
             } else {
                 // No collateral required, entire settlement fee goes to insurance
                 staking.payInsurance(
-                    Id.unwrap(settlement.balanceBefore.chainId), settlement.balanceBefore.asset, insuranceFee
+                    Id.unwrap(state.settlement.balanceBefore.chainId),
+                    state.settlement.balanceBefore.asset,
+                    insuranceFee
                 );
             }
         }
