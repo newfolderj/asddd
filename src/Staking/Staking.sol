@@ -11,6 +11,7 @@ import "../Rollup/IRollup.sol";
 import "../Oracle/IOracle.sol";
 import "../util/Id.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 contract Staking is IStaking {
@@ -44,9 +45,13 @@ contract Staking is IStaking {
     Id public currentDepositId = ID_ZERO;
     Id public currentLockId = ID_ZERO;
     mapping(uint256 => DepositRecord) public deposits;
-    mapping(address => mapping(address => EnumerableSet.UintSet)) internal userDeposits;
+    mapping(address => EnumerableSet.UintSet) internal userDeposits;
     // depositId => lockId => chainId => rewardAsset => claimed
     mapping(uint256 => mapping(uint256 => mapping(uint256 => mapping(address => uint256)))) claimedRewards;
+    // asset address to amount staked
+    mapping(address => uint256) public totalStaked;
+    // staker address to asset address to amount staked
+    mapping(address => mapping(address => uint256)) public individualStaked;
 
     struct LockRecord {
         // amount of the asset that was locked
@@ -87,7 +92,26 @@ contract Staking is IStaking {
         protocolToken = _protocolToken;
     }
 
-    function stake(address _asset, uint256 _amount, uint256 _unlockTime) external {
+    uint256 public constant minimumStablecoinStake = 200;
+    uint256 public constant minimumProtocolStake = 200;
+
+    function stakeProtocol(uint256 _amount) external {
+        if (_amount < minimumStablecoinStake * (10 ** IERC20Metadata(protocolToken).decimals())) {
+            revert("BELOW_MINIMUM_PROTOCOL_STAKE");
+        }
+        uint256[ACTIVE_PERIODS] memory tranches = getActiveTranches();
+        stake(protocolToken, _amount, tranches[0]);
+    }
+
+    function stakeStablecoin(uint256 _amount) external {
+        if (_amount < minimumStablecoinStake * (10 ** IERC20Metadata(stablecoin).decimals())) {
+            revert("BELOW_MINIMUM_STABLECOIN_STAKE");
+        }
+        uint256[ACTIVE_PERIODS] memory tranches = getActiveTranches();
+        stake(stablecoin, _amount, tranches[0]);
+    }
+
+    function stake(address _asset, uint256 _amount, uint256 _unlockTime) public {
         if (!(_asset == stablecoin || _asset == protocolToken)) revert();
         require(IERC20(_asset).transferFrom(msg.sender, address(this), _amount));
 
@@ -95,8 +119,10 @@ contract Staking is IStaking {
         if (block.number >= _unlockTime - manager.fraudPeriod()) revert();
 
         deposits[Id.unwrap(currentDepositId)] = DepositRecord(msg.sender, _asset, _amount, block.number, _unlockTime, 0);
-        userDeposits[msg.sender][_asset].add(Id.unwrap(currentDepositId));
+        userDeposits[msg.sender].add(Id.unwrap(currentDepositId));
         totals[_asset][_unlockTime].total += _amount;
+        totalStaked[_asset] += _amount;
+        individualStaked[msg.sender][_asset] += _amount;
 
         currentDepositId = currentDepositId.increment();
     }
@@ -123,8 +149,16 @@ contract Staking is IStaking {
                 revert("Should not be a deposit record for assets beside stablecoin or protocolToken");
             }
         }
-        if (stablecoinAmount > 0) require(IERC20(stablecoin).transfer(msg.sender, stablecoinAmount));
-        if (protocolTokenAmount > 0) require(IERC20(protocolToken).transfer(msg.sender, protocolTokenAmount));
+        if (stablecoinAmount > 0) {
+            require(IERC20(stablecoin).transfer(msg.sender, stablecoinAmount));
+            totalStaked[stablecoin] -= stablecoinAmount;
+            individualStaked[msg.sender][stablecoin] -= stablecoinAmount;
+        }
+        if (protocolTokenAmount > 0) {
+            require(IERC20(protocolToken).transfer(msg.sender, protocolTokenAmount));
+            totalStaked[protocolToken] -= stablecoinAmount;
+            individualStaked[msg.sender][protocolToken] -= stablecoinAmount;
+        }
     }
 
     function lock(address _asset, uint256 _amountToLock) external returns (uint256) {
@@ -285,6 +319,93 @@ contract Staking is IStaking {
         }
         for (uint256 i = 0; i < ACTIVE_PERIODS; i++) {
             tranches[i] = current + (PERIOD_LENGTH * i);
+        }
+    }
+
+    function getUserDepositIds(address _user) external view returns (uint256[] memory) {
+        return userDeposits[_user].values();
+    }
+
+    function getUserDepositRecords(address _user) external view returns (DepositRecord[] memory) {
+        uint256[] memory depositIds = userDeposits[_user].values();
+        DepositRecord[] memory records = new DepositRecord[](depositIds.length);
+        for (uint256 i = 0; i < depositIds.length; i++) {
+            records[i] = deposits[depositIds[i]];
+        }
+        return records;
+    }
+
+    function getAllLockRecords() external view returns (LockRecord[] memory) {
+        LockRecord[] memory records = new LockRecord[](Id.unwrap(currentLockId));
+        for (uint256 i = 0; i < Id.unwrap(currentLockId); i++) {
+            records[i] = locks[i];
+        }
+        return records;
+    }
+
+    function getLockRecords(uint256 _from, uint256 _to) external view returns (LockRecord[] memory) {
+        if (_from >= _to) revert("Invalid range");
+        LockRecord[] memory records = new LockRecord[](_to - _from);
+        for (uint256 i = _from; i < _to; i++) {
+            records[i - _from] = locks[i];
+        }
+        return records;
+    }
+
+    function getUnlocked(address _staker)
+        external
+        view
+        returns (uint256 stablecoinUnlocked, uint256 protocolUnlocked)
+    {
+        for (uint256 i = 0; i < userDeposits[_staker].length(); i++) {
+            DepositRecord memory depositRecord = deposits[userDeposits[_staker].at(i)];
+            TotalAmount memory total = totals[depositRecord.asset][depositRecord.unlockTime];
+            uint256 unlocked = ((total.total - total.locked) * depositRecord.amount) / total.total;
+            uint256 available = unlocked - depositRecord.withdrawn;
+            if (depositRecord.asset == protocolToken) {
+                protocolUnlocked += available;
+            }
+            if (depositRecord.asset == stablecoin) {
+                stablecoinUnlocked += available;
+            }
+        }
+    }
+
+    function getAvailableToClaim(
+        address _staker,
+        uint256 _chainId,
+        address _asset
+    )
+        external
+        view
+        returns (uint256 availableToClaim)
+    {
+        uint256 fraudPeriod = manager.fraudPeriod();
+        for (uint256 i = 0; i < userDeposits[_staker].length(); i++) {
+            DepositRecord memory depositRecord = deposits[userDeposits[_staker].at(i)];
+
+            for (uint256 l = 0; l < Id.unwrap(currentLockId); l++) {
+                LockRecord memory lockRecord = locks[l];
+                // Deposit should be eligible for the given lock record
+                if (
+                    depositRecord.blockNumber >= lockRecord.blockNumber
+                        || lockRecord.blockNumber > depositRecord.unlockTime - fraudPeriod
+                        || lockRecord.asset != depositRecord.asset
+                ) continue;
+
+                // get rewards for lock record
+                uint256 totalRewards = rewards[l][_chainId][_asset];
+                // calculate how much goes to deposit record
+                // totalReward * (deposited / totalDeposited)
+                uint256 claimable = (totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAvailable * 1e5);
+                // get how much has already been claimed
+                uint256 claimed = claimedRewards[i][l][_chainId][_asset];
+                // check if there's anything that can be claimed
+                if (claimed < claimable) {
+                    uint256 amountToClaim = claimable - claimed;
+                    availableToClaim += amountToClaim;
+                }
+            }
         }
     }
 

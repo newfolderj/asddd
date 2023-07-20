@@ -4,3 +4,4 @@
 export { BaseManager__factory } from "./BaseManager__factory";
 export { Portal__factory } from "./Portal__factory";
 export { Rollup__factory } from "./Rollup__factory";
+export { Staking__factory } from "./Staking__factory";

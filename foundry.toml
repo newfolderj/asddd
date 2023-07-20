@@ -17,6 +17,9 @@ fs_permissions = [
   { access = "read-write", path = "./axelar/out/relayer.json" },
   { access = "read-write", path = "./axelar/out/receiver.json" },
   { access = "read-write", path = "./out/contracts.json" },
+  { access = "read-write", path = "./out/processingChainContracts.json" },
+  { access = "read-write", path = "./out/assetChainContracts.json" },
+  { access = "read-write", path = "./script/deploy/testnetLz.json" },
 ]
 
 [profile.ci]

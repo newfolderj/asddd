@@ -4,7 +4,9 @@
 export type { BaseManager } from "./BaseManager";
 export type { Portal } from "./Portal";
 export type { Rollup } from "./Rollup";
+export type { Staking } from "./Staking";
 export * as factories from "./factories";
 export { Portal__factory } from "./factories/Portal__factory";
 export { BaseManager__factory } from "./factories/BaseManager__factory";
 export { Rollup__factory } from "./factories/Rollup__factory";
+export { Staking__factory } from "./factories/Staking__factory";

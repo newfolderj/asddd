@@ -13,6 +13,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@murky/Merkle.sol";
 import "@LayerZero/mocks/LZEndpointMock.sol";
 import "../../src/CrossChain/LayerZero/AssetChainLz.sol";
+import "forge-std/console.sol";
 
 contract BaseTest is Test {
     using IdLib for Id;
@@ -273,13 +274,20 @@ contract BaseTest is Test {
         // TODO: replace with mock lz endpoint
         // TODO: set trusted remotes
         processingChainLz = ProcessingChainLz(manager.relayer());
-
+        uint256[] memory evmChainId = new uint256[](1);
+        evmChainId[0] = chainId;
+        uint16[] memory lzChainId = new uint16[](1);
+        lzChainId[0] = uint16(chainId);
+        processingChainLz.setChainIds(evmChainId, lzChainId);
         assetChainManager = new ChildManager(participatingInterface, admin, validator, manager.relayer());
         assetChainManager.deployReceiver(address(lzEndpointMockDest), uint16(block.chainid));
         portal = Portal(assetChainManager.portal());
         assetChainLz = AssetChainLz(assetChainManager.receiver());
-        processingChainLz.setTrustedRemote(uint16(chainId), abi.encodePacked(address(assetChainLz), address(rollup)));
-        assetChainLz.setTrustedRemote(uint16(block.chainid), abi.encodePacked(address(processingChainLz), address(assetChainLz)));
+        address[] memory portals = new address[](1);
+        portals[0] = address(portal);
+        processingChainLz.setPortalAddress(evmChainId, portals);
+        processingChainLz.setTrustedRemoteAddress(uint16(chainId), abi.encodePacked(address(assetChainLz)));
+        assetChainLz.setTrustedRemoteAddress(uint16(block.chainid), abi.encodePacked(address(processingChainLz)));
         lzEndpointMock.setDestLzEndpoint(address(assetChainLz), address(lzEndpointMockDest));
         // lzEndpointMockDest.setDestLzEndpoint(address(assetChainLz), address(lzEndpointMockDest));
         vm.stopPrank();
@@ -302,7 +310,6 @@ contract BaseTest is Test {
         protocolToken.approve(manager.collateral(), 20_000 ether);
         stablecoin.approve(manager.collateral(), 200 ether);
         staking.stake(address(stablecoin), 500000, tranches[1]);
-        staking.stake(address(protocolToken), 20_000 ether, tranches[1]);
-        vm.stopPrank();
+        staking.stake(address(protocolToken), 20_000 ether, tranches[1]); 
     }
 }
