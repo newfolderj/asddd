@@ -225,4 +225,20 @@ library StateUpdateLibrary {
         uint64 chainId;
         uint64 extra;
     }
+
+    function packSettlementRequest(SettlementRequest memory settlementRequest) public view returns (bool) {
+        return true;
+    }
+
+    function packSettlement(Settlement memory settlement) public view returns (bool) {
+        return true;
+    }
+
+    function packStateUpdate(StateUpdate memory su) public view returns (bool) {
+        return true;
+    }
+
+    function packSignedStateUpdate(SignedStateUpdate memory ssu) public view returns (bool) {
+        return true;
+    }
 }
