@@ -22,7 +22,7 @@ contract Staking is IStaking {
 
     // TIME CONSTANTS
     // Minimum number of blocks for which funds must be locked
-    uint256 public constant PERIOD_LENGTH = 5_184_000; // ~ 60 days on Arbitrum Nova
+    uint256 public constant PERIOD_LENGTH = 28_800 * 15; // About 60 days on Ethereum
     // How many staking periods are available at one time
     uint256 public constant ACTIVE_PERIODS = 3;
 
@@ -112,11 +112,11 @@ contract Staking is IStaking {
     }
 
     function stake(address _asset, uint256 _amount, uint256 _unlockTime) public {
-        if (!(_asset == stablecoin || _asset == protocolToken)) revert();
-        require(IERC20(_asset).transferFrom(msg.sender, address(this), _amount));
+        if (!(_asset == stablecoin || _asset == protocolToken)) revert("Invalid asset");
+        require(IERC20(_asset).transferFrom(msg.sender, address(this), _amount), "Failed to transfer token");
 
-        if (_unlockTime % PERIOD_LENGTH != 0) revert();
-        if (block.number >= _unlockTime - manager.fraudPeriod()) revert();
+        if (_unlockTime % PERIOD_LENGTH != 0) revert("Invalid unlock time");
+        if (block.number >= _unlockTime - manager.fraudPeriod()) revert("Can no longer stake into this tranche");
 
         deposits[Id.unwrap(currentDepositId)] = DepositRecord(msg.sender, _asset, _amount, block.number, _unlockTime, 0);
         userDeposits[msg.sender].add(Id.unwrap(currentDepositId));
@@ -225,6 +225,7 @@ contract Staking is IStaking {
                     amountToUnlock -= locked;
                 }
             }
+            locks[_lockIds[i]].amountLocked = 0;
         }
     }
 
@@ -407,15 +408,5 @@ contract Staking is IStaking {
                 }
             }
         }
-    }
-
-    // Returns amount of protocol token required to stake alongside the specified number of stablecoin tokens
-    function stablecoinToProtocol(uint256 _stablecoinAmount) public pure returns (uint256) {
-        // TODO: call oracle to get price of protocol token in stablecoin token
-        // Convert stablecoin amount to protocol token amount (assuming 1 protocol token costs $0.30)
-        // Converts to 18 decimal precision to match protocol token
-        uint256 protocolAmount = ((_stablecoinAmount * 30e5) / 100e5) * 1e12;
-        // 15% of the amount above is required to be staked as protocol token
-        return (protocolAmount * 15e5) / 100e5;
     }
 }

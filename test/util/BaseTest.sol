@@ -249,6 +249,7 @@ contract BaseTest is Test {
     }
 
     function setUp() public virtual {
+        vm.roll(17752520);
         participatingInterface = vm.addr(piKey);
         admin = vm.addr(0xAD);
         validator = vm.addr(0xDA);
@@ -301,8 +302,8 @@ contract BaseTest is Test {
         manager.addSupportedAsset(chainId, address(0), 18);
         manager.addSupportedAsset(chainId, address(token), 18);
         // Setup oracle with initial prices
-        Oracle oracle = new Oracle(admin, address(manager), address(protocolToken), address(token), chainId, 0.3e18);
-        manager.setOracle(address(oracle));
+        manager.deployOracle(address(token), chainId, 0.3e18);
+        Oracle oracle = Oracle(manager.oracle());
         oracle.grantReporter(admin);
         oracle.initializePrice(chainId, address(0), 1895.25e18);
         vm.stopPrank();
@@ -320,6 +321,9 @@ contract BaseTest is Test {
         deal({ token: address(protocolToken), to: validator, give: 20_000 ether });
         deal({ token: address(stablecoin), to: validator, give: 500 ether });
         uint256[3] memory tranches = staking.getActiveTranches();
+        console.log(tranches[0]);
+        console.log(tranches[1]);
+        console.log(tranches[2]);
         vm.startPrank(validator);
         protocolToken.approve(manager.collateral(), 20_000 ether);
         stablecoin.approve(manager.collateral(), 500 ether);

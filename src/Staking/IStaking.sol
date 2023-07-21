@@ -9,5 +9,4 @@ interface IStaking {
     function stablecoin() external view returns (address);
     function protocolToken() external view returns (address);
     function ROOT_PROPOSAL_LOCK_AMOUNT() external view returns (uint256);
-    function stablecoinToProtocol(uint256 _stablecoinAmount) external pure returns (uint256);
 }

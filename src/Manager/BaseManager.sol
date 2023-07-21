@@ -8,6 +8,7 @@ import "./IBaseManager.sol";
 import "../Rollup/Rollup.sol";
 import "../CrossChain/LayerZero/ProcessingChainLz.sol";
 import "../Portal/WalletDelegation.sol";
+import "../Oracle/Oracle.sol";
 
 contract BaseManager is Manager, IBaseManager, FeeManager {
     address public immutable rollup;
@@ -16,6 +17,8 @@ contract BaseManager is Manager, IBaseManager, FeeManager {
     address public immutable walletDelegation;
     address public relayer;
     address public oracle;
+    address public stablecoin;
+    address public protocolToken;
 
     /// Number of blocks that must pass after a state root is submitted before it can be confirmed.
     uint256 public fraudPeriod = 28_800; // ~ 4 days on Ethereum
@@ -34,6 +37,8 @@ contract BaseManager is Manager, IBaseManager, FeeManager {
     {
         rollup = address(new Rollup(_participatingInterface, address(this)));
         walletDelegation = address(new WalletDelegation(_participatingInterface, address(this)));
+        stablecoin = _stablecoin;
+        protocolToken = _protocolToken;
     }
 
     function deployRelayer(address _lzEndpoint) external {
@@ -43,6 +48,22 @@ contract BaseManager is Manager, IBaseManager, FeeManager {
             new ProcessingChainLz(
             _lzEndpoint,
             admin 
+            )
+        );
+    }
+
+    function deployOracle(
+        address _stablecoinAssetChain,
+        uint256 _stablecoinAssetChainId,
+        uint256 _protocolTokenPrice
+    )
+        external
+    {
+        if (msg.sender != admin) revert();
+        if (oracle != address(0)) revert();
+        oracle = address(
+            new Oracle(
+            admin, address(this), protocolToken, _stablecoinAssetChain, _stablecoinAssetChainId, _protocolTokenPrice
             )
         );
     }
@@ -86,10 +107,10 @@ contract BaseManager is Manager, IBaseManager, FeeManager {
     /// @param _asset Token address of the assset being added
     /// @param _precision Decimals of precision for the asset being added
     function addSupportedAsset(uint256 _chainId, address _asset, uint8 _precision) external {
-        if (msg.sender != admin) revert();
-        if (!supportedChains[_chainId]) revert();
-        if (supportedAsset[_chainId][_asset] != 0) revert();
-        if (_precision == 0) revert();
+        if (msg.sender != admin) revert("Only admin");
+        if (!supportedChains[_chainId]) revert("Chain ID not supported");
+        if (supportedAsset[_chainId][_asset] != 0) revert("Asset already supported");
+        if (_precision == 0) revert("Precision cannot be 0");
         supportedAsset[_chainId][_asset] = _precision;
     }
 
