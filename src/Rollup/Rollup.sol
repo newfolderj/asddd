@@ -145,7 +145,7 @@ contract Rollup is IRollup {
             }
 
             // Calculate settlement fee
-            (uint256 insuranceFee, uint256 stakerReward) =
+            (uint64 insuranceFee, uint64 stakerReward) =
                 IFeeManager(address(manager)).calculateSettlementFees(state.settlement.balanceBefore.amount);
             // TODO: obligations need to be relayed from processing chain to other chains
             // create an obligation to be relayed
@@ -159,12 +159,12 @@ contract Rollup is IRollup {
             if (requiresCollateral) {
                 // TODO: Query oracle for price of settlement asset in stablecoin token
                 // For now:
-                // We assume balance token is 18 decimals of precision, convert to 6 decimals by dividing by 1e12
+                // We assume balance token is 6 decimals of precision
                 // Lock 1:1 requested asset
-                uint256 stableLockId = staking.lock(staking.stablecoin(), state.settlement.balanceBefore.amount / 1e12);
+                uint256 stableLockId = staking.lock(staking.stablecoin(), state.settlement.balanceBefore.amount);
                 // Lock 15% of above as protocol token
                 uint256 protocolLockId = staking.lock(
-                    staking.protocolToken(), staking.stablecoinToProtocol(state.settlement.balanceBefore.amount / 1e12)
+                    staking.protocolToken(), staking.stablecoinToProtocol(state.settlement.balanceBefore.amount)
                 );
 
                 // Associate lock Ids with state root
@@ -177,7 +177,7 @@ contract Rollup is IRollup {
                     insuranceFee
                 );
                 // Split staker reward between stablecoin pool and protocol token pool
-                (uint256 stablePoolReward, uint256 protocolPoolReward) =
+                (uint64 stablePoolReward, uint64 protocolPoolReward) =
                     IFeeManager(address(manager)).calculateStakingRewards(stakerReward);
                 staking.reward(
                     stableLockId,
@@ -273,7 +273,7 @@ contract Rollup is IRollup {
             }
 
             // Calculate settlement fee
-            (uint256 insuranceFee, uint256 stakerReward) =
+            (uint64 insuranceFee, uint64 stakerReward) =
                 IFeeManager(address(manager)).calculateSettlementFees(state.settlement.balanceBefore.amount);
             // TODO: obligations need to be relayed from processing chain to other chains
             // create an obligation to be relayed
@@ -305,7 +305,7 @@ contract Rollup is IRollup {
                     insuranceFee
                 );
                 // Split staker reward between stablecoin pool and protocol token pool
-                (uint256 stablePoolReward, uint256 protocolPoolReward) =
+                (uint64 stablePoolReward, uint64 protocolPoolReward) =
                     IFeeManager(address(manager)).calculateStakingRewards(stakerReward);
                 staking.reward(
                     stableLockId,
@@ -339,7 +339,7 @@ contract Rollup is IRollup {
     // Maps sequnce ID of state update to whether or not its fee(s) have been claimed by the participating interface
     mapping(Id => bool) internal tradeClaimed;
     // Maps chain ID to asset address to amount that has been claimed as fees and is awaiting relay
-    mapping(Id => mapping(address => uint256)) internal tradingFees;
+    mapping(Id => mapping(address => uint64)) internal tradingFees;
 
     struct TradeProof {
         StateUpdateLibrary.SignedStateUpdate tradeUpdate;

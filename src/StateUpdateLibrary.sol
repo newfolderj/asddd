@@ -80,7 +80,7 @@ library StateUpdateLibrary {
         address trader;
         address asset;
         Id chainId;
-        uint256 amount;
+        uint64 amount;
     }
 
     struct Trade {
@@ -135,7 +135,7 @@ library StateUpdateLibrary {
         address trader;
         address asset;
         address participatingInterface;
-        uint256 amount;
+        uint64 amount;
         Id chainSequenceId;
         Id chainId;
     }
@@ -154,8 +154,8 @@ library StateUpdateLibrary {
         SignedOrder orderA;
         SignedOrder orderB;
         Product product;
-        uint256 size;
-        uint256 price;
+        uint64 size;
+        uint64 price;
         // If true, the maker is the buyer. If false, the maker is the seller. Vice versa for the taker.
         bool makerIsBuyer;
         address maker;
@@ -179,17 +179,17 @@ library StateUpdateLibrary {
     struct Order {
         Product product;
         bool side;
-        uint256 size;
-        uint256 price;
+        uint64 size;
+        uint64 price;
     }
 
     struct LimitOrder {
         OrderType orderType;
         Side side;
-        uint256 size;
-        uint256 total;
+        uint64 size;
+        uint64 total;
         FillType fillType;
-        uint256 price;
+        uint64 price;
         Signature sig;
     }
 
@@ -224,5 +224,13 @@ library StateUpdateLibrary {
         uint64 networkType;
         uint64 chainId;
         uint64 extra;
+    }
+
+    function packSettlement(Settlement memory settlement) public view returns (bool) {
+        return true;
+    }
+
+    function validateTypes(DepositAcknowledgement memory deposit, Settlement memory settlement, Trade memory trade) public view returns(bool){
+        return true;
     }
 }

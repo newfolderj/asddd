@@ -75,7 +75,7 @@ contract FraudEngine is Signature {
         // prove record of deposit doesn't exist on-chain
         // TODO: need to get deposits from ProcessingChainLz
         bytes32 depositHash = keccak256(abi.encode(depositAck.deposit));
-        (address trader, address asset, address _participatingInterface, uint256 amount, Id chainSequenceId, Id chainId)
+        (address trader, address asset, address _participatingInterface, uint64 amount, Id chainSequenceId, Id chainId)
         = Deposits(address(manager)).deposits(depositHash);
         // if deposit stored in Portal under hash doesn't match the deposit in the depositAck, then the state update is
         // fraudulent

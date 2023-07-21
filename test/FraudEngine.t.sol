@@ -36,7 +36,7 @@ contract FraudEngineTest is BaseTest {
     function test_reportSignatureFraud() external {
         StateUpdateLibrary.UTXO[] memory inputs = new StateUpdateLibrary.UTXO[](1);
         bytes32[] memory hashedInputs = new bytes32[](1);
-        uint256 amount = 0.5 ether;
+        uint64 amount = 0.5 ether;
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
             alice, address(0), participatingInterface, amount, ID_ZERO, Id.wrap(block.chainid)
         );

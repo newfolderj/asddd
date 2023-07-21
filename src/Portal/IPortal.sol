@@ -6,7 +6,7 @@ interface IPortal {
     struct Obligation {
         address recipient;
         address asset;
-        uint256 amount;
+        uint64 amount;
     }
 
     function writeObligations(Obligation[] calldata obligations) external;

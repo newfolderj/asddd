@@ -47,7 +47,7 @@ contract Staking is IStaking {
     mapping(uint256 => DepositRecord) public deposits;
     mapping(address => EnumerableSet.UintSet) internal userDeposits;
     // depositId => lockId => chainId => rewardAsset => claimed
-    mapping(uint256 => mapping(uint256 => mapping(uint256 => mapping(address => uint256)))) claimedRewards;
+    mapping(uint256 => mapping(uint256 => mapping(uint256 => mapping(address => uint64)))) claimedRewards;
     // asset address to amount staked
     mapping(address => uint256) public totalStaked;
     // staker address to asset address to amount staked
@@ -69,10 +69,10 @@ contract Staking is IStaking {
     // Lock ID to reward asset chain ID to address to amount earned in rewards
     // Value is total earned for all stakers with assets in tranches that were eligible
     // use as collateral at time of lock.
-    mapping(uint256 => mapping(uint256 => mapping(address => uint256))) internal rewards;
+    mapping(uint256 => mapping(uint256 => mapping(address => uint64))) internal rewards;
     // Used to sum up rewards for a single staker across multiple deposits, locks, and assets
-    mapping(address => mapping(uint256 => mapping(address => uint256))) internal toClaim;
-    mapping(uint256 => mapping(address => uint256)) internal insuranceFees;
+    mapping(address => mapping(uint256 => mapping(address => uint64))) internal toClaim;
+    mapping(uint256 => mapping(address => uint64)) internal insuranceFees;
 
     struct TotalAmount {
         uint256 total;
@@ -228,14 +228,14 @@ contract Staking is IStaking {
         }
     }
 
-    function reward(uint256 _lockId, uint256 _chainId, address _asset, uint256 _amount) external {
+    function reward(uint256 _lockId, uint256 _chainId, address _asset, uint64 _amount) external {
         if (msg.sender != manager.rollup()) revert();
         rewards[_lockId][_chainId][_asset] += _amount;
         // TODO: emit event
     }
 
     // Called by rollup contract to delegate a portion of settlement fee to the insurance fund
-    function payInsurance(uint256 _chainId, address _asset, uint256 _amount) external {
+    function payInsurance(uint256 _chainId, address _asset, uint64 _amount) external {
         if (msg.sender != manager.rollup()) revert();
         insuranceFees[_chainId][_asset] += _amount;
     }
@@ -269,15 +269,15 @@ contract Staking is IStaking {
                 for (uint256 i = 0; i < _params.rewardAsset.length; i++) {
                     address rewardAsset = _params.rewardAsset[i];
                     // get rewards for lock record
-                    uint256 totalRewards = rewards[lockId][_params.rewardChainId][rewardAsset];
+                    uint64 totalRewards = rewards[lockId][_params.rewardChainId][rewardAsset];
                     // calculate how much goes to deposit record
                     // totalReward * (deposited / totalDeposited)
-                    uint256 claimable = (totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAvailable * 1e5);
+                    uint64 claimable = uint64( (totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAvailable * 1e5));
                     // get how much has already been claimed
-                    uint256 claimed = claimedRewards[depositId][lockId][_params.rewardChainId][rewardAsset];
+                    uint64 claimed = claimedRewards[depositId][lockId][_params.rewardChainId][rewardAsset];
                     // check if there's anything that can be claimed
                     if (claimed < claimable) {
-                        uint256 amountToClaim = claimable - claimed;
+                        uint64 amountToClaim = claimable - claimed;
                         // update claimed amount
                         claimedRewards[depositId][lockId][_params.rewardChainId][rewardAsset] += amountToClaim;
                         // add to amount of asset that will be relayed
@@ -289,7 +289,7 @@ contract Staking is IStaking {
 
         IPortal.Obligation[] memory obligations = new IPortal.Obligation[](_params.rewardAsset.length);
         for (uint256 i = 0; i < _params.rewardAsset.length; i++) {
-            uint256 amountToClaim = toClaim[msg.sender][_params.rewardChainId][_params.rewardAsset[i]];
+            uint64 amountToClaim = toClaim[msg.sender][_params.rewardChainId][_params.rewardAsset[i]];
             if (amountToClaim == 0) revert("Amount to claim is 0");
             obligations[i] = IPortal.Obligation(msg.sender, _params.rewardAsset[i], amountToClaim);
             // Set to 0 so it can't be used again

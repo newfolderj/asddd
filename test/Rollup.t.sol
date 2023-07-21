@@ -23,7 +23,7 @@ contract RollupTest is BaseTest {
 
         // Create corresponding Deposit and UTXO objects
         StateUpdateLibrary.Deposit memory deposit =
-            StateUpdateLibrary.Deposit(alice, address(0), participatingInterface, amount, ID_ZERO, Id.wrap(chainId));
+            StateUpdateLibrary.Deposit(alice, address(0), participatingInterface, portal.convertPrecision(amount, address(0)), ID_ZERO, Id.wrap(chainId));
 
         // Bob makes some deposits
         vm.startPrank(bob);
@@ -37,7 +37,7 @@ contract RollupTest is BaseTest {
 
         // Create settlement request object
         StateUpdateLibrary.StateUpdate memory settlementAck =
-            settlementStateUpdate(deposit.trader, deposit.asset, Id.wrap(3), Id.wrap(2), 3, amount);
+            settlementStateUpdate(deposit.trader, deposit.asset, Id.wrap(3), Id.wrap(2), 3, deposit.amount);
         StateUpdateLibrary.SignedStateUpdate memory stateUpdate = signStateUpdate(settlementAck);
 
         bytes32[] memory proof;
@@ -67,9 +67,9 @@ contract RollupTest is BaseTest {
         rollup.processSettlements{ value: 1 ether }(Id.wrap(chainId), params);
 
         // Alice can now withdraw original deposit minus settlement fee
-        (uint256 insuranceFee, uint256 stakerRewards) = IFeeManager(address(manager)).calculateSettlementFees(amount);
+        (uint256 insuranceFee, uint256 stakerRewards) = IFeeManager(address(manager)).calculateSettlementFees(deposit.amount);
         vm.prank(alice);
-        portal.withdraw({ _amount: amount - (insuranceFee + stakerRewards), _token: address(0) });
+        portal.withdraw({ _amount: amount - ((insuranceFee + stakerRewards) * 1e12), _token: address(0) });
 
         // Staker should be able to claim rewards
         uint256[] memory lockId = new uint256[](2);
@@ -118,15 +118,20 @@ contract RollupTest is BaseTest {
 
     function test_submitsSettlement() external {
         vm.chainId(chainId);
+        vm.mockCall(
+            address(token),
+            abi.encodeWithSelector(ERC20.decimals.selector),
+            abi.encode(6)
+        );
         rollup = Rollup(manager.rollup());
         // Alice makes the first deposit
         uint256 amount = 5_000e6;
         vm.prank(alice);
-        portal.depositNativeAsset{ value: amount }();
+        portal.depositToken(address(token), amount);
 
         // Create corresponding Deposit and UTXO objects
         StateUpdateLibrary.Deposit memory deposit =
-            StateUpdateLibrary.Deposit(alice, address(0), participatingInterface, amount, ID_ZERO, Id.wrap(chainId));
+            StateUpdateLibrary.Deposit(alice, address(token), participatingInterface, uint64(amount), ID_ZERO, Id.wrap(chainId));
 
         // Bob makes some deposits
         vm.startPrank(bob);
@@ -166,56 +171,7 @@ contract RollupTest is BaseTest {
         // Alice can now withdraw original deposit minus settlement fee
         (uint256 insuranceFee, uint256 stakerRewards) = IFeeManager(address(manager)).calculateSettlementFees(amount);
         vm.prank(alice);
-        portal.withdraw({ _amount: amount - (insuranceFee + stakerRewards), _token: address(0) });
+        portal.withdraw({ _amount: amount - (insuranceFee + stakerRewards), _token: address(token) });
     }
-
-    function test_submitsSettlement_2() external {
-        vm.chainId(chainId);
-        rollup = Rollup(manager.rollup());
-        // Alice makes the first deposit
-        uint256 amount = 5_000e6;
-        vm.prank(alice);
-        portal.depositNativeAsset{ value: amount }();
-
-        // Create corresponding Deposit and UTXO objects
-        StateUpdateLibrary.Deposit memory deposit =
-            StateUpdateLibrary.Deposit(alice, address(0), participatingInterface, amount, ID_ZERO, Id.wrap(chainId));
-
-        // Bob makes some deposits
-        vm.startPrank(bob);
-        portal.depositNativeAsset{ value: 1 ether }();
-        portal.depositNativeAsset{ value: 1.5 ether }();
-        vm.stopPrank();
-
-        // Alice requests settlement
-        vm.prank(alice);
-        portal.requestSettlement(address(0));
-
-        // Create settlement request object
-        StateUpdateLibrary.StateUpdate memory settlementAck =
-            settlementStateUpdate(deposit.trader, deposit.asset, Id.wrap(3), Id.wrap(2), 3, amount);
-        StateUpdateLibrary.SignedStateUpdate memory stateUpdate = signStateUpdate(settlementAck);
-
-        bytes32[] memory proof;
-        bytes32 stateRoot;
-
-        // Construct merkle tree of signed state updates
-        Merkle m = new Merkle();
-        bytes32[] memory data = new bytes32[](2);
-        data[0] = keccak256(abi.encode(stateUpdate));
-        data[1] = keccak256(abi.encode(stateUpdate));
-
-        // Get state root and proof of the signed state update with settlement message
-        proof = m.getProof(data, 0);
-        stateRoot = m.getRoot(data);
-
-        // Submit settlement as the validator
-        vm.prank(validator);
-        rollup.submitSettlement{ value: 1 ether }({ _stateRoot: stateRoot, _signedUpdate: stateUpdate, _proof: proof });
-
-        // Alice can now withdraw original deposit minus settlement fee
-        (uint256 insuranceFee, uint256 stakerRewards) = IFeeManager(address(manager)).calculateSettlementFees(amount);
-        vm.prank(alice);
-        portal.withdraw({ _amount: amount - (insuranceFee + stakerRewards), _token: address(0) });
-    }
+   
 }

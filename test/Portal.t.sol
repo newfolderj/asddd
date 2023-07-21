@@ -15,16 +15,16 @@ contract PortalTest is BaseTest {
         uint256 aliceBalanceBefore = alice.balance;
         uint256 portalBalanceBefore = address(portal).balance;
         Id chainSequenceIdBefore = portal.chainSequenceId();
-        uint256 amount = 0.5 ether;
+        uint64 amount = 0.5 ether;
 
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
-            alice, address(0), participatingInterface, amount, chainSequenceIdBefore, Id.wrap(block.chainid)
+            alice, address(0), participatingInterface, portal.convertPrecision(amount, address(0)), chainSequenceIdBefore, Id.wrap(block.chainid)
         );
         bytes32 utxo = keccak256(abi.encode(deposit));
 
         vm.prank(alice);
         vm.expectEmit(true, true, true, true);
-        emit DepositUtxo(alice, amount, address(0), participatingInterface, chainSequenceIdBefore, utxo);
+        emit DepositUtxo(alice, uint256(amount), address(0), participatingInterface, chainSequenceIdBefore, utxo);
         portal.depositNativeAsset{ value: amount }();
 
         uint256 aliceBalanceAfter = alice.balance;
@@ -35,7 +35,7 @@ contract PortalTest is BaseTest {
     }
 
     function test_depositNativeAssetUniqueness() external {
-        uint256 amount = 0.5 ether;
+        uint64 amount = 0.5 ether;
         Id chainSequenceIdBefore = portal.chainSequenceId();
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
             alice, address(0), participatingInterface, amount, chainSequenceIdBefore, Id.wrap(block.chainid)
@@ -45,31 +45,31 @@ contract PortalTest is BaseTest {
 
         // Second deposit should have different UTXO hash and chain sequence ID
         deposit = StateUpdateLibrary.Deposit(
-            alice, address(0), participatingInterface, amount, chainSequenceIdBefore.increment(), Id.wrap(block.chainid)
+            alice, address(0), participatingInterface, portal.convertPrecision(amount, address(0)), chainSequenceIdBefore.increment(), Id.wrap(block.chainid)
         );
         bytes32 utxo = keccak256(abi.encode(deposit));
         vm.prank(alice);
         vm.expectEmit(true, true, true, true);
-        emit DepositUtxo(alice, amount, address(0), participatingInterface, chainSequenceIdBefore.increment(), utxo);
+        emit DepositUtxo(alice, uint256(amount), address(0), participatingInterface, chainSequenceIdBefore.increment(), utxo);
         portal.depositNativeAsset{ value: amount }();
     }
 
     function test_depositToken() external {
-        uint256 amount = 0.5 ether;
+        uint64 amount = 0.5 ether;
         deal({ token: address(token), to: alice, give: amount });
         uint256 aliceBalanceBefore = token.balanceOf(alice);
         uint256 portalBalanceBefore = token.balanceOf(address(portal));
         Id chainSequenceIdBefore = portal.chainSequenceId();
 
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
-            alice, address(token), participatingInterface, amount, chainSequenceIdBefore, Id.wrap(block.chainid)
+            alice, address(token), participatingInterface, portal.convertPrecision(amount, address(token)), chainSequenceIdBefore, Id.wrap(block.chainid)
         );
         bytes32 utxo = keccak256(abi.encode(deposit));
 
         vm.startPrank(alice);
         token.approve({ spender: address(portal), amount: amount });
         vm.expectEmit(true, true, true, true);
-        emit DepositUtxo(alice, amount, address(token), participatingInterface, chainSequenceIdBefore, utxo);
+        emit DepositUtxo(alice, uint256(amount), address(token), participatingInterface, chainSequenceIdBefore, utxo);
         portal.depositToken({ _token: address(token), _amount: amount });
         vm.stopPrank();
 

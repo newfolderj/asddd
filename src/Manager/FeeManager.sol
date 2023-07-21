@@ -40,10 +40,10 @@ abstract contract FeeManager {
     uint256 public insuranceFundFee = 50 * ONE_PERCENT_NUMERATOR;
 
     // Given a settlement amount, returns the portions that go to the insurance fund and staker rewards
-    function calculateSettlementFees(uint256 settlementAmount) external view returns(uint256 insuranceFee, uint256 stakerReward) {
+    function calculateSettlementFees(uint256 settlementAmount) external view returns(uint64 insuranceFee, uint64 stakerReward) {
         uint256 settlementFee = (settlementAmount * settlementFeeNumerator) / DENOMINATOR;
-        insuranceFee = (settlementFee * insuranceFundFee) / DENOMINATOR;
-        stakerReward = settlementFee - insuranceFee;
+        insuranceFee = uint64((settlementFee * insuranceFundFee) / DENOMINATOR);
+        stakerReward = uint64(settlementFee - insuranceFee);
     }
 
     function calculateInsuranceFee(uint256 amount) external view returns(uint256) {
@@ -54,9 +54,9 @@ abstract contract FeeManager {
     // Remaining goes to the protocol token pool
     uint256 public stablePoolPortion = 85 * ONE_PERCENT_NUMERATOR;
 
-    function calculateStakingRewards(uint256 stakingReward) external view returns (uint256 stablePoolReward, uint256 protocolPoolReward) {
-        stablePoolReward = (stakingReward * stablePoolPortion) / DENOMINATOR;
-        protocolPoolReward = stakingReward - stablePoolReward;
+    function calculateStakingRewards(uint256 stakingReward) external view returns (uint64 stablePoolReward, uint64 protocolPoolReward) {
+        stablePoolReward = uint64((stakingReward * stablePoolPortion) / DENOMINATOR);
+        protocolPoolReward = uint64(stakingReward - stablePoolReward);
     }
 
     event TradingFeesProposed(uint256 makerFee, uint256 takerFee);

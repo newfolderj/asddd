@@ -141,10 +141,10 @@ contract BaseTest is Test {
         returns (StateUpdateLibrary.StateUpdate memory)
     {
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
-            _trader, _token, participatingInterface, _amount, _chainSequenceId, Id.wrap(chainId)
+            _trader, _token, participatingInterface, uint64(_amount), _chainSequenceId, Id.wrap(chainId)
         );
         StateUpdateLibrary.Balance memory balance =
-            StateUpdateLibrary.Balance(_trader, _token, Id.wrap(chainId), _amount);
+            StateUpdateLibrary.Balance(_trader, _token, Id.wrap(chainId), uint64(_amount));
         StateUpdateLibrary.DepositAcknowledgement memory depositAck = StateUpdateLibrary.DepositAcknowledgement(
             deposit, ID_ZERO, balance, balance, ID_ZERO, keccak256(abi.encode(0)), keccak256(abi.encode(0))
         );
@@ -209,7 +209,7 @@ contract BaseTest is Test {
         StateUpdateLibrary.Settlement memory settlement = StateUpdateLibrary.Settlement(
             settlementRequest,
             ID_ZERO,
-            StateUpdateLibrary.Balance(_trader, _token, Id.wrap(chainId), _amount),
+            StateUpdateLibrary.Balance(_trader, _token, Id.wrap(chainId), uint64(_amount)),
             StateUpdateLibrary.Balance(_trader, _token, Id.wrap(chainId), 0)
         );
         return StateUpdateLibrary.StateUpdate(
@@ -299,7 +299,9 @@ contract BaseTest is Test {
         vm.deal(validator, 10 ether);
 
         token = new ERC20("TestToken", "TST");
-
+        deal({ token: address(token), to: alice, give: 10 ether});
+        vm.prank(alice);
+        token.approve(address(portal), 10 ether);
         sigUtil = new Signature(participatingInterface);
         merkleLib = new Merkle();
 

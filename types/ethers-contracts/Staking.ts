@@ -110,9 +110,9 @@ export interface StakingInterface extends utils.Interface {
     "locks(uint256)": FunctionFragment;
     "minimumProtocolStake()": FunctionFragment;
     "minimumStablecoinStake()": FunctionFragment;
-    "payInsurance(uint256,address,uint256)": FunctionFragment;
+    "payInsurance(uint256,address,uint64)": FunctionFragment;
     "protocolToken()": FunctionFragment;
-    "reward(uint256,uint256,address,uint256)": FunctionFragment;
+    "reward(uint256,uint256,address,uint64)": FunctionFragment;
     "stablecoin()": FunctionFragment;
     "stablecoinToProtocol(uint256)": FunctionFragment;
     "stake(address,uint256,uint256)": FunctionFragment;

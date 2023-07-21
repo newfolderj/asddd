@@ -46,6 +46,7 @@ export interface PortalInterface extends utils.Interface {
     "chainSequenceId()": FunctionFragment;
     "claimed(bytes32)": FunctionFragment;
     "collateralized(address)": FunctionFragment;
+    "convertPrecision(uint256,address)": FunctionFragment;
     "depositNativeAsset()": FunctionFragment;
     "depositToken(address,uint256)": FunctionFragment;
     "deposits(bytes32)": FunctionFragment;
@@ -57,7 +58,7 @@ export interface PortalInterface extends utils.Interface {
     "settled(address,address)": FunctionFragment;
     "settlementRequests(uint256)": FunctionFragment;
     "withdraw(uint256,address)": FunctionFragment;
-    "writeObligations((address,address,uint256)[])": FunctionFragment;
+    "writeObligations((address,address,uint64)[])": FunctionFragment;
   };
 
   getFunction(
@@ -65,6 +66,7 @@ export interface PortalInterface extends utils.Interface {
       | "chainSequenceId"
       | "claimed"
       | "collateralized"
+      | "convertPrecision"
       | "depositNativeAsset"
       | "depositToken"
       | "deposits"
@@ -87,6 +89,10 @@ export interface PortalInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "collateralized",
     values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "convertPrecision",
+    values: [BigNumberish, string]
   ): string;
   encodeFunctionData(
     functionFragment: "depositNativeAsset",
@@ -141,6 +147,10 @@ export interface PortalInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "claimed", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "collateralized",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "convertPrecision",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -302,6 +312,12 @@ export interface Portal extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
+    convertPrecision(
+      _amount: BigNumberish,
+      _token: string,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     depositNativeAsset(
       overrides?: PayableOverrides & { from?: string }
     ): Promise<ContractTransaction>;
@@ -387,6 +403,12 @@ export interface Portal extends BaseContract {
 
   collateralized(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
+  convertPrecision(
+    _amount: BigNumberish,
+    _token: string,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   depositNativeAsset(
     overrides?: PayableOverrides & { from?: string }
   ): Promise<ContractTransaction>;
@@ -471,6 +493,12 @@ export interface Portal extends BaseContract {
     claimed(arg0: BytesLike, overrides?: CallOverrides): Promise<boolean>;
 
     collateralized(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    convertPrecision(
+      _amount: BigNumberish,
+      _token: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     depositNativeAsset(overrides?: CallOverrides): Promise<void>;
 
@@ -616,6 +644,12 @@ export interface Portal extends BaseContract {
 
     collateralized(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
+    convertPrecision(
+      _amount: BigNumberish,
+      _token: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     depositNativeAsset(
       overrides?: PayableOverrides & { from?: string }
     ): Promise<BigNumber>;
@@ -684,6 +718,12 @@ export interface Portal extends BaseContract {
 
     collateralized(
       arg0: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    convertPrecision(
+      _amount: BigNumberish,
+      _token: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 

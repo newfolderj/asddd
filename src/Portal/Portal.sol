@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright © 2023 TXA PTE. LTD.
 pragma solidity ^0.8.19;
+
 import "./IPortal.sol";
 import "./Deposits.sol";
 import "../StateUpdateLibrary.sol";
@@ -9,6 +10,7 @@ import "../Manager/IChildManager.sol";
 import "../Rollup/IRollup.sol";
 import "../util/Id.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /**
  * The Portal is the entry and exit point for all assets in the TXA network.
@@ -34,7 +36,7 @@ contract Portal is IPortal, Deposits {
 
     error CALLER_NOT_ROLLUP();
     error INSUFFICIENT_BALANCE_TOKEN();
-    error INSUFFICIENT_BALANCE_OBLIGATION();
+    error INSUFFICIENT_BALANCE_OBLIGATION(address _token, uint256 available, uint256 obligation);
     error INSUFFICIENT_BALANCE_WITHDRAW();
     error TRANSFER_FAILED_WITHDRAW();
     error TOKEN_TRANSFER_FAILED_WITHDRAW();
@@ -69,8 +71,12 @@ contract Portal is IPortal, Deposits {
      * TODO: Handle chains with multiple native assets (e.g. Celo)
      */
     function depositNativeAsset() external payable {
+        if (msg.value % 1e12 != 0) revert("Invalid amount");
+        uint256 value = msg.value / 1e12;
+        if (value >= type(uint64).max) revert("Amount is too large");
+        if (value == 0) revert("Invalid amount");
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
-            msg.sender, address(0), participatingInterface, msg.value, chainSequenceId, Id.wrap(block.chainid)
+            msg.sender, address(0), participatingInterface, uint64(value), chainSequenceId, Id.wrap(block.chainid)
         );
         bytes32 utxo = keccak256(abi.encode(deposit));
         deposits[utxo] = deposit;
@@ -88,8 +94,19 @@ contract Portal is IPortal, Deposits {
      */
     function depositToken(address _token, uint256 _amount) external {
         // TODO: check if token is tradable
+        // get precision
+        uint256 precision = IERC20Metadata(_token).decimals();
+        uint256 value = _amount;
+        if (precision > 6) {
+            precision = precision - 6;
+            if (_amount % (10 ** precision) != 0) revert("Invalid precision");
+            value = _amount / (10 ** precision);
+            if (value == 0) revert("Amount is below minimum deposit");
+        }
+        if (value >= type(uint64).max) revert("Amount is above maximum deposit");
+
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
-            msg.sender, _token, participatingInterface, _amount, chainSequenceId, Id.wrap(block.chainid)
+            msg.sender, _token, participatingInterface, uint64(value), chainSequenceId, Id.wrap(block.chainid)
         );
         bytes32 utxo = keccak256(abi.encode(deposit));
         deposits[utxo] = deposit;
@@ -116,10 +133,21 @@ contract Portal is IPortal, Deposits {
     function writeObligations(Obligation[] calldata obligations) external {
         if (msg.sender != IChildManager(address(manager)).receiver()) revert("Only receiver can write obligations");
         for (uint256 i = 0; i < obligations.length; i++) {
-            if (collateralized[obligations[i].asset] < obligations[i].amount) revert INSUFFICIENT_BALANCE_OBLIGATION();
+            uint256 amount = obligations[i].amount;
+            uint256 precision;
+            if (obligations[i].asset == address(0)) {
+                precision = 18;
+            } else {
+                precision = IERC20Metadata(obligations[i].asset).decimals();
+            }
+            if (precision > 6) {
+                precision = precision - 6;
+                amount = obligations[i].amount * (10 ** precision);
+            }
+            if (collateralized[obligations[i].asset] < amount) revert INSUFFICIENT_BALANCE_OBLIGATION(obligations[i].asset, collateralized[obligations[i].asset], amount);
 
-            collateralized[obligations[i].asset] -= obligations[i].amount;
-            settled[obligations[i].recipient][obligations[i].asset] += obligations[i].amount;
+            collateralized[obligations[i].asset] -= amount;
+            settled[obligations[i].recipient][obligations[i].asset] += amount;
         }
     }
 
@@ -157,5 +185,18 @@ contract Portal is IPortal, Deposits {
 
     function isValidSettlementRequest(uint256 _chainSequenceId, bytes32 _settlementHash) external view returns (bool) {
         return keccak256(abi.encode(settlementRequests[Id.wrap(_chainSequenceId)])) == _settlementHash;
+    }
+
+    function convertPrecision(uint256 _amount, address _token) public view returns (uint64) {
+        uint256 precision = _token == address(0) ? 18 : IERC20Metadata(_token).decimals();
+        uint256 value = _amount;
+        if (precision > 6) {
+            precision = precision - 6;
+            if (_amount % (10 ** precision) != 0) revert("Invalid precision");
+            value = _amount / (10 ** precision);
+            if (value == 0) revert("Amount is below minimum deposit");
+        }
+        if (value >= type(uint64).max) revert("Amount is above maximum deposit");
+        return uint64(value);
     }
 }
