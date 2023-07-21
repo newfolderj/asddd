@@ -66,17 +66,17 @@ contract DeployBaseChain is Script {
             uint16(block.chainid), abi.encodePacked(address(processingChainLz), address(assetChainLz))
         );
         lzEndpointMock.setDestLzEndpoint(address(assetChainLz), address(lzEndpointMockDest));
-        ERC20PresetFixedSupply stablecoin = new ERC20PresetFixedSupply("Stablecoin", "USDT", 10_000 ether, validator);
+        ERC20PresetFixedSupply stablecoin = new ERC20PresetFixedSupply("Stablecoin", "USDT", 1e20 ether, validator);
         ERC20PresetFixedSupply protocolToken =
-            new ERC20PresetFixedSupply("ProtocolToken", "TXA", 10_000 ether, validator);
+            new ERC20PresetFixedSupply("ProtocolToken", "TXA", 1e20 ether, validator);
 
         Staking staking = new Staking(address(manager), address(stablecoin), address(protocolToken));
         manager.setCollateral(address(staking));
         uint256[3] memory tranches = staking.getActiveTranches();
-        protocolToken.approve(manager.collateral(), 10_000 ether);
-        stablecoin.approve(manager.collateral(), 10_000 ether);
-        staking.stake(address(stablecoin), 10_000 ether, tranches[1]);
-        staking.stake(address(protocolToken), 10_000 ether, tranches[1]);
+        protocolToken.approve(manager.collateral(), 1e20 ether);
+        stablecoin.approve(manager.collateral(), 1e20 ether);
+        staking.stake(address(stablecoin), 1e20 ether, tranches[1]);
+        staking.stake(address(protocolToken), 1e20 ether, tranches[1]);
 
         vm.stopBroadcast();
 
