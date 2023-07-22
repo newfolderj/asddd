@@ -3,5 +3,6 @@
 pragma solidity ^0.8.19;
 
 interface IOracle {
-    function getPrice(address _base, address _counter) external returns (uint256);
+    function getStablecoinValue(uint256 _chainId, address _asset, uint256 _amount) external returns (uint256);
+    function stablecoinToProtocol(uint256 _amount) external view returns (uint256);
 }

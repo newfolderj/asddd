@@ -11,8 +11,6 @@ interface IPortal {
 
     function writeObligations(Obligation[] calldata obligations) external;
 
-    function sequenceEvent() external returns (uint256);
-
     function getAvailableBalance(address trader, address token) external view returns (uint256);
 
     function isValidSettlementRequest(uint256 chainSequenceId, bytes32 settlementHash) external view returns (bool);

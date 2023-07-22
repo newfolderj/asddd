@@ -53,7 +53,6 @@ export interface PortalInterface extends utils.Interface {
     "isValidSettlementRequest(uint256,bytes32)": FunctionFragment;
     "nextRequestId()": FunctionFragment;
     "requestSettlement(address)": FunctionFragment;
-    "sequenceEvent()": FunctionFragment;
     "settled(address,address)": FunctionFragment;
     "settlementRequests(uint256)": FunctionFragment;
     "withdraw(uint256,address)": FunctionFragment;
@@ -72,7 +71,6 @@ export interface PortalInterface extends utils.Interface {
       | "isValidSettlementRequest"
       | "nextRequestId"
       | "requestSettlement"
-      | "sequenceEvent"
       | "settled"
       | "settlementRequests"
       | "withdraw"
@@ -112,10 +110,6 @@ export interface PortalInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "requestSettlement",
     values: [string]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "sequenceEvent",
-    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "settled",
@@ -166,10 +160,6 @@ export interface PortalInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "requestSettlement",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "sequenceEvent",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "settled", data: BytesLike): Result;
@@ -345,10 +335,6 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
-    sequenceEvent(
-      overrides?: Overrides & { from?: string }
-    ): Promise<ContractTransaction>;
-
     settled(
       arg0: string,
       arg1: string,
@@ -430,10 +416,6 @@ export interface Portal extends BaseContract {
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
-  sequenceEvent(
-    overrides?: Overrides & { from?: string }
-  ): Promise<ContractTransaction>;
-
   settled(
     arg0: string,
     arg1: string,
@@ -509,8 +491,6 @@ export interface Portal extends BaseContract {
     nextRequestId(overrides?: CallOverrides): Promise<BigNumber>;
 
     requestSettlement(_token: string, overrides?: CallOverrides): Promise<void>;
-
-    sequenceEvent(overrides?: CallOverrides): Promise<BigNumber>;
 
     settled(
       arg0: string,
@@ -647,10 +627,6 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
-    sequenceEvent(
-      overrides?: Overrides & { from?: string }
-    ): Promise<BigNumber>;
-
     settled(
       arg0: string,
       arg1: string,
@@ -718,10 +694,6 @@ export interface Portal extends BaseContract {
 
     requestSettlement(
       _token: string,
-      overrides?: Overrides & { from?: string }
-    ): Promise<PopulatedTransaction>;
-
-    sequenceEvent(
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 

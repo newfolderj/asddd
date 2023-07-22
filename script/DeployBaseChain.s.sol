@@ -10,6 +10,7 @@ import "../src/CrossChain/LayerZero/AssetChainLz.sol";
 import "../src/CrossChain/LayerZero/ProcessingChainLz.sol";
 import "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
 import "../src/Staking/Staking.sol";
+import "../src/Oracle/Oracle.sol";
 
 contract DeployBaseChain is Script {
     address internal participatingInterface;
@@ -31,14 +32,25 @@ contract DeployBaseChain is Script {
         participatingInterface = vm.addr(deployerPrivateKey);
         admin = vm.addr(deployerPrivateKey);
         validator = vm.addr(deployerPrivateKey);
+        ERC20PresetFixedSupply stablecoin = new ERC20PresetFixedSupply("Stablecoin", "USDT", 1e20 ether, validator);
+        ERC20PresetFixedSupply protocolToken = new ERC20PresetFixedSupply("ProtocolToken", "TXA", 1e20 ether, validator);
+
         manager = new BaseManager({
             _participatingInterface: participatingInterface, 
             _admin: admin,
             _validator: validator,
-            // TODO: should be deployed in script or passed as env var
-            _stablecoin: address(0),
-            _protocolToken: address(0)
+            _stablecoin: address(stablecoin),
+            _protocolToken: address(protocolToken)
         });
+        manager.addSupportedChain(block.chainid);
+        manager.addSupportedAsset(block.chainid, address(0), 18);
+        // Setup oracle with initial prices
+        Oracle oracle = new Oracle(admin, address(manager), address(protocolToken), address(stablecoin), block.chainid, 0.3e18);
+
+        manager.setOracle(address(oracle));
+        oracle.grantReporter(admin);
+        oracle.initializePrice(block.chainid, address(0), 1895.25e18);
+
         LZEndpointMock lzEndpointMock = new LZEndpointMock(uint16(block.chainid));
         LZEndpointMock lzEndpointMockDest = new LZEndpointMock(uint16(block.chainid));
         manager.deployRelayer(address(lzEndpointMock));
@@ -51,8 +63,11 @@ contract DeployBaseChain is Script {
             _validator: validator,
             _relayer: manager.relayer()
         });
+        assetChainManager.addSupportedAsset(address(0), address(0));
         assetChainManager.deployReceiver(address(lzEndpointMockDest), uint16(block.chainid));
-        processingChainLz.setTrustedRemote(uint16(block.chainid), abi.encodePacked(assetChainManager.receiver(),address(processingChainLz)));
+        processingChainLz.setTrustedRemote(
+            uint16(block.chainid), abi.encodePacked(assetChainManager.receiver(), address(processingChainLz))
+        );
         uint256[] memory evm = new uint256[](1);
         uint16[] memory lz = new uint16[](1);
         evm[0] = block.chainid;
@@ -66,9 +81,6 @@ contract DeployBaseChain is Script {
             uint16(block.chainid), abi.encodePacked(address(processingChainLz), address(assetChainLz))
         );
         lzEndpointMock.setDestLzEndpoint(address(assetChainLz), address(lzEndpointMockDest));
-        ERC20PresetFixedSupply stablecoin = new ERC20PresetFixedSupply("Stablecoin", "USDT", 1e20 ether, validator);
-        ERC20PresetFixedSupply protocolToken =
-            new ERC20PresetFixedSupply("ProtocolToken", "TXA", 1e20 ether, validator);
 
         Staking staking = new Staking(address(manager), address(stablecoin), address(protocolToken));
         manager.setCollateral(address(staking));

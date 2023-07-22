@@ -117,7 +117,6 @@ contract RollupTest is BaseTest {
     }
 
     function test_submitsSettlement() external {
-        vm.chainId(chainId);
         rollup = Rollup(manager.rollup());
         // Alice makes the first deposit
         uint256 amount = 5_000e6;
@@ -170,7 +169,6 @@ contract RollupTest is BaseTest {
     }
 
     function test_submitsSettlement_2() external {
-        vm.chainId(chainId);
         rollup = Rollup(manager.rollup());
         // Alice makes the first deposit
         uint256 amount = 5_000e6;

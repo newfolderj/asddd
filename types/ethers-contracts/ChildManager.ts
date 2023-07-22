@@ -24,26 +24,34 @@ import type {
 
 export interface ChildManagerInterface extends utils.Interface {
   functions: {
+    "addSupportedAsset(address,address)": FunctionFragment;
     "admin()": FunctionFragment;
     "deployReceiver(address,uint16)": FunctionFragment;
     "participatingInterface()": FunctionFragment;
     "portal()": FunctionFragment;
     "receiver()": FunctionFragment;
     "relayer()": FunctionFragment;
+    "supportedAsset(address)": FunctionFragment;
     "validator()": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
+      | "addSupportedAsset"
       | "admin"
       | "deployReceiver"
       | "participatingInterface"
       | "portal"
       | "receiver"
       | "relayer"
+      | "supportedAsset"
       | "validator"
   ): FunctionFragment;
 
+  encodeFunctionData(
+    functionFragment: "addSupportedAsset",
+    values: [string, string]
+  ): string;
   encodeFunctionData(functionFragment: "admin", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "deployReceiver",
@@ -56,8 +64,16 @@ export interface ChildManagerInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "portal", values?: undefined): string;
   encodeFunctionData(functionFragment: "receiver", values?: undefined): string;
   encodeFunctionData(functionFragment: "relayer", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "supportedAsset",
+    values: [string]
+  ): string;
   encodeFunctionData(functionFragment: "validator", values?: undefined): string;
 
+  decodeFunctionResult(
+    functionFragment: "addSupportedAsset",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "admin", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "deployReceiver",
@@ -70,6 +86,10 @@ export interface ChildManagerInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "portal", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "receiver", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "relayer", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "supportedAsset",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "validator", data: BytesLike): Result;
 
   events: {};
@@ -102,6 +122,12 @@ export interface ChildManager extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
+    addSupportedAsset(
+      _asset: string,
+      _approved: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     admin(overrides?: CallOverrides): Promise<[string]>;
 
     deployReceiver(
@@ -118,8 +144,16 @@ export interface ChildManager extends BaseContract {
 
     relayer(overrides?: CallOverrides): Promise<[string]>;
 
+    supportedAsset(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
+
     validator(overrides?: CallOverrides): Promise<[string]>;
   };
+
+  addSupportedAsset(
+    _asset: string,
+    _approved: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
 
   admin(overrides?: CallOverrides): Promise<string>;
 
@@ -137,9 +171,17 @@ export interface ChildManager extends BaseContract {
 
   relayer(overrides?: CallOverrides): Promise<string>;
 
+  supportedAsset(arg0: string, overrides?: CallOverrides): Promise<boolean>;
+
   validator(overrides?: CallOverrides): Promise<string>;
 
   callStatic: {
+    addSupportedAsset(
+      _asset: string,
+      _approved: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     admin(overrides?: CallOverrides): Promise<string>;
 
     deployReceiver(
@@ -156,12 +198,20 @@ export interface ChildManager extends BaseContract {
 
     relayer(overrides?: CallOverrides): Promise<string>;
 
+    supportedAsset(arg0: string, overrides?: CallOverrides): Promise<boolean>;
+
     validator(overrides?: CallOverrides): Promise<string>;
   };
 
   filters: {};
 
   estimateGas: {
+    addSupportedAsset(
+      _asset: string,
+      _approved: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
     admin(overrides?: CallOverrides): Promise<BigNumber>;
 
     deployReceiver(
@@ -178,10 +228,18 @@ export interface ChildManager extends BaseContract {
 
     relayer(overrides?: CallOverrides): Promise<BigNumber>;
 
+    supportedAsset(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
     validator(overrides?: CallOverrides): Promise<BigNumber>;
   };
 
   populateTransaction: {
+    addSupportedAsset(
+      _asset: string,
+      _approved: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
     admin(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     deployReceiver(
@@ -199,6 +257,11 @@ export interface ChildManager extends BaseContract {
     receiver(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     relayer(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    supportedAsset(
+      arg0: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     validator(overrides?: CallOverrides): Promise<PopulatedTransaction>;
   };
