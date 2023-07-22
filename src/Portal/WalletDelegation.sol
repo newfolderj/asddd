@@ -30,7 +30,7 @@ contract WalletDelegation {
     function approve(address delegatee) external {
         if (approvals[msg.sender][delegatee] != 0) revert();
         // TODO: need to get sequence number elsewhere as there is no portal on processing chain
-        approvals[msg.sender][delegatee] = IPortal(address(manager)).sequenceEvent();
+        // approvals[msg.sender][delegatee] = IPortal(address(manager)).sequenceEvent();
         emit WalletApproved(msg.sender, delegatee, approvals[msg.sender][delegatee]);
     }
 
@@ -38,7 +38,7 @@ contract WalletDelegation {
         if (approvals[msg.sender][delegatee] == 0) revert();
         if (revokations[msg.sender][delegatee] != 0) revert();
         // TODO: get sequence number elsewhere
-        revokations[msg.sender][delegatee] = IPortal(address(manager)).sequenceEvent();
+        // revokations[msg.sender][delegatee] = IPortal(address(manager)).sequenceEvent();
         emit WalletRevoked(msg.sender, delegatee, revokations[msg.sender][delegatee]);
     }
 }

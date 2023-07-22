@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import "./IPortal.sol";
 import "./Deposits.sol";
 import "../StateUpdateLibrary.sol";
-import "../Manager/IBaseManager.sol";
+import "../Manager/IChildManager.sol";
 import "../Manager/IChildManager.sol";
 import "../Rollup/IRollup.sol";
 import "../util/Id.sol";
@@ -23,7 +23,7 @@ contract Portal is IPortal, Deposits {
     Id public chainSequenceId = ID_ZERO;
     Id public nextRequestId = Id.wrap(2);
     address immutable participatingInterface;
-    IBaseManager immutable manager;
+    IChildManager immutable manager;
 
     mapping(bytes32 => bool) public claimed;
     mapping(Id => StateUpdateLibrary.SettlementRequest) public settlementRequests;
@@ -51,7 +51,7 @@ contract Portal is IPortal, Deposits {
 
     constructor(address _participatingInterface, address _manager) {
         participatingInterface = _participatingInterface;
-        manager = IBaseManager(_manager);
+        manager = IChildManager(_manager);
     }
 
     //
@@ -65,10 +65,9 @@ contract Portal is IPortal, Deposits {
 
     /**
      * Allows trader to deposit the native asset of this chain.
-     *
-     * TODO: Handle chains with multiple native assets (e.g. Celo)
      */
     function depositNativeAsset() external payable {
+        if(!manager.supportedAsset(address(0))) revert("Native asset is not supported");
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
             msg.sender, address(0), participatingInterface, msg.value, chainSequenceId, Id.wrap(block.chainid)
         );
@@ -87,7 +86,7 @@ contract Portal is IPortal, Deposits {
      * Allows trader to deposit an ERC20 token.
      */
     function depositToken(address _token, uint256 _amount) external {
-        // TODO: check if token is tradable
+        if(!manager.supportedAsset(_token)) revert("Asset is not supported");
         StateUpdateLibrary.Deposit memory deposit = StateUpdateLibrary.Deposit(
             msg.sender, _token, participatingInterface, _amount, chainSequenceId, Id.wrap(block.chainid)
         );
@@ -104,7 +103,7 @@ contract Portal is IPortal, Deposits {
     }
 
     function requestSettlement(address _token) external {
-        // TODO: check if token is tradable
+        if(!manager.supportedAsset(_token)) revert("Asset is not supported");
         settlementRequests[chainSequenceId] = StateUpdateLibrary.SettlementRequest(
             msg.sender, _token, participatingInterface, chainSequenceId, Id.wrap(block.chainid), nextRequestId
         );
@@ -140,16 +139,16 @@ contract Portal is IPortal, Deposits {
     }
 
     // Called by other contracts to assign a chain sequence number to an event
-    function sequenceEvent() external returns (uint256 _chainSequenceId) {
-        // Can only be called by WalletDelegation and FeeManager
-        // On a child chain, this call should fail
-        if (!(msg.sender == IBaseManager(address(manager)).walletDelegation() || msg.sender == address(manager))) {
-            revert();
-        }
-        // Return current ID before incrementing
-        _chainSequenceId = Id.unwrap(chainSequenceId);
-        chainSequenceId = chainSequenceId.increment();
-    }
+    // function sequenceEvent() external returns (uint256 _chainSequenceId) {
+    //     // Can only be called by WalletDelegation and FeeManager
+    //     // On a child chain, this call should fail
+    //     if (!(msg.sender == IChildManager(address(manager)).walletDelegation() || msg.sender == address(manager))) {
+    //         revert();
+    //     }
+    //     // Return current ID before incrementing
+    //     _chainSequenceId = Id.unwrap(chainSequenceId);
+    //     chainSequenceId = chainSequenceId.increment();
+    // }
 
     function getAvailableBalance(address _trader, address _token) external view returns (uint256) {
         return settled[_trader][_token];

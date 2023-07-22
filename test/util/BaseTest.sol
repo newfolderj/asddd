@@ -9,6 +9,7 @@ import "../../src/Manager/ChildManager.sol";
 import "../../src/Staking/Staking.sol";
 import "../../src/Rollup/FraudEngine.sol";
 import "../../src/util/Signature.sol";
+import "../../src/Oracle/Oracle.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@murky/Merkle.sol";
 import "@LayerZero/mocks/LZEndpointMock.sol";
@@ -253,7 +254,8 @@ contract BaseTest is Test {
         validator = vm.addr(0xDA);
 
         stablecoin = new ERC20("Stablecoin", "USDT");
-        protocolToken = new ERC20("ProtocolToken", "TXA");
+        protocolToken = new ERC20("ProtocolToken", "TXA"); 
+        token = new ERC20("TestToken", "TST");
 
         manager = new BaseManager({
             _participatingInterface: participatingInterface, 
@@ -290,6 +292,19 @@ contract BaseTest is Test {
         assetChainLz.setTrustedRemoteAddress(uint16(block.chainid), abi.encodePacked(address(processingChainLz)));
         lzEndpointMock.setDestLzEndpoint(address(assetChainLz), address(lzEndpointMockDest));
         // lzEndpointMockDest.setDestLzEndpoint(address(assetChainLz), address(lzEndpointMockDest));
+        // Setup initial supported assets
+        assetChainManager.addSupportedAsset(address(0), address(0));
+        deal({ token: address(token), to: admin, give: 1});
+        token.approve(address(assetChainManager), 1);
+        assetChainManager.addSupportedAsset(address(token), admin);
+        manager.addSupportedChain(chainId);
+        manager.addSupportedAsset(chainId, address(0), 18);
+        manager.addSupportedAsset(chainId, address(token), 18);
+        // Setup oracle with initial prices
+        Oracle oracle = new Oracle(admin, address(manager), address(protocolToken), address(token), chainId, 0.3e18);
+        manager.setOracle(address(oracle));
+        oracle.grantReporter(admin);
+        oracle.initializePrice(chainId, address(0), 1895.25e18);
         vm.stopPrank();
 
         alice = vm.addr(aliceKey);
@@ -298,7 +313,6 @@ contract BaseTest is Test {
         vm.deal(bob, 10 ether);
         vm.deal(validator, 10 ether);
 
-        token = new ERC20("TestToken", "TST");
 
         sigUtil = new Signature(participatingInterface);
         merkleLib = new Merkle();
@@ -310,6 +324,7 @@ contract BaseTest is Test {
         protocolToken.approve(manager.collateral(), 20_000 ether);
         stablecoin.approve(manager.collateral(), 500 ether);
         staking.stake(address(stablecoin), 500 ether, tranches[0]);
-        staking.stake(address(protocolToken), 20_000 ether, tranches[0]); 
+        staking.stake(address(protocolToken), 20_000 ether, tranches[0]);
+        vm.stopPrank();
     }
 }

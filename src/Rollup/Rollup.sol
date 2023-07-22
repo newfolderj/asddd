@@ -3,6 +3,7 @@
 pragma solidity ^0.8.19;
 
 import "./IRollup.sol";
+import "../Oracle/IOracle.sol";
 import "../CrossChain/LayerZero/IProcessingChainLz.sol";
 import "../Portal/IPortal.sol";
 import "../Manager/IBaseManager.sol";
@@ -104,108 +105,12 @@ contract Rollup is IRollup {
     struct ProcessSettlementState {
         bytes32 stateRoot;
         StateUpdateLibrary.Settlement settlement;
+        uint256 stablecoinValue;
     }
 
     function processSettlements(Id _chainId, SettlementParams[] calldata _params) external payable {
-        ProcessSettlementState memory state;
-        IPortal.Obligation[] memory obligations = new IPortal.Obligation[](_params.length);
-        for (uint256 i = 0; i < _params.length; i++) {
-            bool requiresCollateral = false;
-            state.stateRoot = confirmedStateRoot[_params[i].stateRootId];
-            if (state.stateRoot == 0) {
-                requiresCollateral = true;
-                state.stateRoot = proposedStateRoot[_params[i].stateRootId];
-                if (state.stateRoot == 0) revert EMPTY_STATE_ROOT();
-            }
-
-            bool valid = MerkleProof.verifyCalldata(
-                _params[i].proof, state.stateRoot, keccak256(abi.encode(_params[i].signedUpdate))
-            );
-            if (!valid) revert INVALID_PROOF_SETTLEMENT();
-
-            if (_params[i].signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Settlement) {
-                revert INVALID_STATE_UPDATE_SETTLEMENT();
-            }
-
-            state.settlement =
-                abi.decode(_params[i].signedUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
-
-            // Only process settlements for assets of the same chain ID
-            if (state.settlement.settlementRequest.chainId != _chainId) {
-                revert("Settlement request chainId doesn't match _chainId");
-            }
-
-            // Validate the balance in the settlement and the trader/asset of the settlement request
-            if (
-                state.settlement.balanceBefore.asset != state.settlement.settlementRequest.asset
-                    || state.settlement.balanceBefore.trader != state.settlement.settlementRequest.trader
-                    || state.settlement.balanceBefore.chainId != state.settlement.settlementRequest.chainId
-            ) {
-                revert INPUT_PARAMS_MISMATCH_SETTLEMENT();
-            }
-
-            // Calculate settlement fee
-            (uint256 insuranceFee, uint256 stakerReward) =
-                IFeeManager(address(manager)).calculateSettlementFees(state.settlement.balanceBefore.amount);
-            // TODO: obligations need to be relayed from processing chain to other chains
-            // create an obligation to be relayed
-            obligations[i] = IPortal.Obligation(
-                state.settlement.balanceBefore.trader,
-                state.settlement.balanceBefore.asset,
-                state.settlement.balanceBefore.amount - (insuranceFee + stakerReward)
-            );
-
-            IStaking staking = IStaking(manager.collateral());
-            if (requiresCollateral) {
-                // TODO: Query oracle for price of settlement asset in stablecoin token
-                // For now:
-                // We assume balance token is 18 decimals of precision, convert to 6 decimals by dividing by 1e12
-                // Lock 1:1 requested asset
-                uint256 stableLockId = staking.lock(staking.stablecoin(), state.settlement.balanceBefore.amount / 1e12);
-                // Lock 15% of above as protocol token
-                uint256 protocolLockId = staking.lock(
-                    staking.protocolToken(), staking.stablecoinToProtocol(state.settlement.balanceBefore.amount / 1e12)
-                );
-
-                // Associate lock Ids with state root
-                lockIdStateRoot[stableLockId] = StateRootRecord(state.stateRoot, _params[i].stateRootId);
-                lockIdStateRoot[protocolLockId] = StateRootRecord(state.stateRoot, _params[i].stateRootId);
-                // Split settlement fee between network and insurance fund
-                staking.payInsurance(
-                    Id.unwrap(state.settlement.balanceBefore.chainId),
-                    state.settlement.balanceBefore.asset,
-                    insuranceFee
-                );
-                // Split staker reward between stablecoin pool and protocol token pool
-                (uint256 stablePoolReward, uint256 protocolPoolReward) =
-                    IFeeManager(address(manager)).calculateStakingRewards(stakerReward);
-                staking.reward(
-                    stableLockId,
-                    Id.unwrap(state.settlement.balanceBefore.chainId),
-                    state.settlement.balanceBefore.asset,
-                    stablePoolReward
-                );
-                staking.reward(
-                    protocolLockId,
-                    Id.unwrap(state.settlement.balanceBefore.chainId),
-                    state.settlement.balanceBefore.asset,
-                    protocolPoolReward
-                );
-            } else {
-                // No collateral required, entire settlement fee goes to insurance
-                staking.payInsurance(
-                    Id.unwrap(state.settlement.balanceBefore.chainId),
-                    state.settlement.balanceBefore.asset,
-                    insuranceFee
-                );
-            }
-        }
-
-        // After performing validation, locking required collateral, and distributing settlement fees,
-        // relay the obligations to the asset chain.
-        IProcessingChainLz(manager.relayer()).sendObligations{ value: msg.value }(
-            Id.unwrap(_chainId), obligations, bytes(""), msg.sender
-        );
+        if(!manager.isValidator(msg.sender)) revert("Only validator can process settlements");
+        _processSettlements(_chainId, _params);
     }
 
     // Confirms a state root and processes a settlement in a single transaction.
@@ -218,6 +123,7 @@ contract Rollup is IRollup {
         external
         payable
     {
+        if(!manager.isValidator(msg.sender)) revert("Only validator can process settlements");
         epoch = epoch.increment();
         // lastConfirmedEpoch = lastConfirmedEpoch.increment();
 
@@ -245,37 +151,38 @@ contract Rollup is IRollup {
                 state.stateRoot = proposedStateRoot[_params[i].stateRootId];
                 if (state.stateRoot == 0) revert EMPTY_STATE_ROOT();
             }
+            {
+                bool valid = MerkleProof.verify(
+                    _params[i].proof, state.stateRoot, keccak256(abi.encode(_params[i].signedUpdate))
+                );
+                if (!valid) revert INVALID_PROOF_SETTLEMENT();
 
-            bool valid = MerkleProof.verify(
-                _params[i].proof, state.stateRoot, keccak256(abi.encode(_params[i].signedUpdate))
-            );
-            if (!valid) revert INVALID_PROOF_SETTLEMENT();
-
-            if (_params[i].signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Settlement) {
-                revert INVALID_STATE_UPDATE_SETTLEMENT();
+                if (_params[i].signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Settlement) {
+                    revert INVALID_STATE_UPDATE_SETTLEMENT();
+                }
             }
 
             state.settlement =
                 abi.decode(_params[i].signedUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
+            {
+                // Only process settlements for assets of the same chain ID.
+                // This limits the final relay to a single chain.
+                if (state.settlement.settlementRequest.chainId != _chainId) {
+                    revert("Settlement request chainId doesn't match _chainId");
+                }
 
-            // Only process settlements for assets of the same chain ID
-            if (state.settlement.settlementRequest.chainId != _chainId) {
-                revert("Settlement request chainId doesn't match _chainId");
+                // Validate the balance in the settlement and the trader/asset of the settlement request
+                if (
+                    state.settlement.balanceBefore.asset != state.settlement.settlementRequest.asset
+                        || state.settlement.balanceBefore.trader != state.settlement.settlementRequest.trader
+                        || state.settlement.balanceBefore.chainId != state.settlement.settlementRequest.chainId
+                ) {
+                    revert INPUT_PARAMS_MISMATCH_SETTLEMENT();
+                }
             }
-
-            // Validate the balance in the settlement and the trader/asset of the settlement request
-            if (
-                state.settlement.balanceBefore.asset != state.settlement.settlementRequest.asset
-                    || state.settlement.balanceBefore.trader != state.settlement.settlementRequest.trader
-                    || state.settlement.balanceBefore.chainId != state.settlement.settlementRequest.chainId
-            ) {
-                revert INPUT_PARAMS_MISMATCH_SETTLEMENT();
-            }
-
             // Calculate settlement fee
             (uint256 insuranceFee, uint256 stakerReward) =
                 IFeeManager(address(manager)).calculateSettlementFees(state.settlement.balanceBefore.amount);
-            // TODO: obligations need to be relayed from processing chain to other chains
             // create an obligation to be relayed
             obligations[i] = IPortal.Obligation(
                 state.settlement.balanceBefore.trader,
@@ -285,15 +192,17 @@ contract Rollup is IRollup {
 
             IStaking staking = IStaking(manager.collateral());
             if (requiresCollateral) {
-                // TODO: Query oracle for price of settlement asset in stablecoin token
-                // For now:
-                // We assume balance token is 6 decimals of precision
-                // Lock 1:1 requested asset
-                uint256 stableLockId = staking.lock(staking.stablecoin(), state.settlement.balanceBefore.amount);
-                // Lock 15% of above as protocol token
-                uint256 protocolLockId = staking.lock(
-                    staking.protocolToken(), staking.stablecoinToProtocol(state.settlement.balanceBefore.amount)
+                // Convert value of settlement asset into equivalent stablecoin value based on latest Oracle price
+                state.stablecoinValue = IOracle(manager.oracle()).getStablecoinValue(
+                    Id.unwrap(state.settlement.balanceBefore.chainId),
+                    state.settlement.balanceBefore.asset,
+                    state.settlement.balanceBefore.amount
                 );
+                uint256 stableLockId = staking.lock(staking.stablecoin(), state.stablecoinValue);
+                // Lock 15% of above as protocol token
+                uint256 protocolValue = IOracle(manager.oracle()).stablecoinToProtocol(state.stablecoinValue);
+                protocolValue = (protocolValue * 15e6) / 100e6;
+                uint256 protocolLockId = staking.lock(staking.protocolToken(), protocolValue);
 
                 // Associate lock Ids with state root
                 lockIdStateRoot[stableLockId] = StateRootRecord(state.stateRoot, _params[i].stateRootId);

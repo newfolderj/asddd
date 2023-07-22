@@ -6,4 +6,5 @@ interface IChildManager {
     function relayer() external view returns (address);
     function portal() external view returns (address);
     function receiver() external view returns (address);
+    function supportedAsset(address _asset) external view returns (bool);
 }

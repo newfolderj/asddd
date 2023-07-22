@@ -35,6 +35,8 @@ export interface BaseManagerInterface extends utils.Interface {
     "MIN_FEE_NUMERATOR()": FunctionFragment;
     "ONE_BPS_NUMERATOR()": FunctionFragment;
     "ONE_PERCENT_NUMERATOR()": FunctionFragment;
+    "addSupportedAsset(uint256,address,uint8)": FunctionFragment;
+    "addSupportedChain(uint256)": FunctionFragment;
     "admin()": FunctionFragment;
     "calculateInsuranceFee(uint256)": FunctionFragment;
     "calculateSettlementFees(uint256)": FunctionFragment;
@@ -46,10 +48,11 @@ export interface BaseManagerInterface extends utils.Interface {
     "feeSequenceId()": FunctionFragment;
     "fraudEngine()": FunctionFragment;
     "fraudPeriod()": FunctionFragment;
-    "getPrice(address,address)": FunctionFragment;
     "getReceiverAddress(uint256)": FunctionFragment;
     "insuranceFundFee()": FunctionFragment;
+    "isSupportedAsset(uint256,address)": FunctionFragment;
     "isValidator(address)": FunctionFragment;
+    "oracle()": FunctionFragment;
     "participatingInterface()": FunctionFragment;
     "proposeFees(uint256,uint256)": FunctionFragment;
     "proposedFees()": FunctionFragment;
@@ -59,9 +62,12 @@ export interface BaseManagerInterface extends utils.Interface {
     "rollup()": FunctionFragment;
     "setCollateral(address)": FunctionFragment;
     "setFraudEngine(address)": FunctionFragment;
+    "setOracle(address)": FunctionFragment;
     "setReceivers(uint256[],address[])": FunctionFragment;
     "settlementFeeNumerator()": FunctionFragment;
     "stablePoolPortion()": FunctionFragment;
+    "supportedAsset(uint256,address)": FunctionFragment;
+    "supportedChains(uint256)": FunctionFragment;
     "updateFees()": FunctionFragment;
     "validator()": FunctionFragment;
     "walletDelegation()": FunctionFragment;
@@ -76,6 +82,8 @@ export interface BaseManagerInterface extends utils.Interface {
       | "MIN_FEE_NUMERATOR"
       | "ONE_BPS_NUMERATOR"
       | "ONE_PERCENT_NUMERATOR"
+      | "addSupportedAsset"
+      | "addSupportedChain"
       | "admin"
       | "calculateInsuranceFee"
       | "calculateSettlementFees"
@@ -87,10 +95,11 @@ export interface BaseManagerInterface extends utils.Interface {
       | "feeSequenceId"
       | "fraudEngine"
       | "fraudPeriod"
-      | "getPrice"
       | "getReceiverAddress"
       | "insuranceFundFee"
+      | "isSupportedAsset"
       | "isValidator"
+      | "oracle"
       | "participatingInterface"
       | "proposeFees"
       | "proposedFees"
@@ -100,9 +109,12 @@ export interface BaseManagerInterface extends utils.Interface {
       | "rollup"
       | "setCollateral"
       | "setFraudEngine"
+      | "setOracle"
       | "setReceivers"
       | "settlementFeeNumerator"
       | "stablePoolPortion"
+      | "supportedAsset"
+      | "supportedChains"
       | "updateFees"
       | "validator"
       | "walletDelegation"
@@ -132,6 +144,14 @@ export interface BaseManagerInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "ONE_PERCENT_NUMERATOR",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "addSupportedAsset",
+    values: [BigNumberish, string, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "addSupportedChain",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "admin", values?: undefined): string;
   encodeFunctionData(
@@ -175,10 +195,6 @@ export interface BaseManagerInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "getPrice",
-    values: [string, string]
-  ): string;
-  encodeFunctionData(
     functionFragment: "getReceiverAddress",
     values: [BigNumberish]
   ): string;
@@ -186,7 +202,12 @@ export interface BaseManagerInterface extends utils.Interface {
     functionFragment: "insuranceFundFee",
     values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "isSupportedAsset",
+    values: [BigNumberish, string]
+  ): string;
   encodeFunctionData(functionFragment: "isValidator", values: [string]): string;
+  encodeFunctionData(functionFragment: "oracle", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "participatingInterface",
     values?: undefined
@@ -217,6 +238,7 @@ export interface BaseManagerInterface extends utils.Interface {
     functionFragment: "setFraudEngine",
     values: [string]
   ): string;
+  encodeFunctionData(functionFragment: "setOracle", values: [string]): string;
   encodeFunctionData(
     functionFragment: "setReceivers",
     values: [BigNumberish[], string[]]
@@ -228,6 +250,14 @@ export interface BaseManagerInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "stablePoolPortion",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "supportedAsset",
+    values: [BigNumberish, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "supportedChains",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "updateFees",
@@ -262,6 +292,14 @@ export interface BaseManagerInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "ONE_PERCENT_NUMERATOR",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "addSupportedAsset",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "addSupportedChain",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "admin", data: BytesLike): Result;
@@ -299,7 +337,6 @@ export interface BaseManagerInterface extends utils.Interface {
     functionFragment: "fraudPeriod",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "getPrice", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getReceiverAddress",
     data: BytesLike
@@ -309,9 +346,14 @@ export interface BaseManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "isSupportedAsset",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "isValidator",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "oracle", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "participatingInterface",
     data: BytesLike
@@ -339,6 +381,7 @@ export interface BaseManagerInterface extends utils.Interface {
     functionFragment: "setFraudEngine",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "setOracle", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setReceivers",
     data: BytesLike
@@ -349,6 +392,14 @@ export interface BaseManagerInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "stablePoolPortion",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "supportedAsset",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "supportedChains",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "updateFees", data: BytesLike): Result;
@@ -433,6 +484,18 @@ export interface BaseManager extends BaseContract {
 
     ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    addSupportedAsset(
+      _chainId: BigNumberish,
+      _asset: string,
+      _precision: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    addSupportedChain(
+      _chainId: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     admin(overrides?: CallOverrides): Promise<[string]>;
 
     calculateInsuranceFee(
@@ -486,12 +549,6 @@ export interface BaseManager extends BaseContract {
 
     fraudPeriod(overrides?: CallOverrides): Promise<[BigNumber]>;
 
-    getPrice(
-      arg0: string,
-      arg1: string,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
     getReceiverAddress(
       _chainId: BigNumberish,
       overrides?: CallOverrides
@@ -499,10 +556,18 @@ export interface BaseManager extends BaseContract {
 
     insuranceFundFee(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    isSupportedAsset(
+      _chainId: BigNumberish,
+      _asset: string,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
     isValidator(
       _validator: string,
       overrides?: CallOverrides
     ): Promise<[boolean]>;
+
+    oracle(overrides?: CallOverrides): Promise<[string]>;
 
     participatingInterface(overrides?: CallOverrides): Promise<[string]>;
 
@@ -536,6 +601,11 @@ export interface BaseManager extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
+    setOracle(
+      _oracle: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     setReceivers(
       _chainIds: BigNumberish[],
       _receivers: string[],
@@ -545,6 +615,17 @@ export interface BaseManager extends BaseContract {
     settlementFeeNumerator(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     stablePoolPortion(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    supportedAsset(
+      arg0: BigNumberish,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<[number]>;
+
+    supportedChains(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
 
     updateFees(
       overrides?: Overrides & { from?: string }
@@ -568,6 +649,18 @@ export interface BaseManager extends BaseContract {
   ONE_BPS_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
 
   ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+  addSupportedAsset(
+    _chainId: BigNumberish,
+    _asset: string,
+    _precision: BigNumberish,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  addSupportedChain(
+    _chainId: BigNumberish,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
 
   admin(overrides?: CallOverrides): Promise<string>;
 
@@ -622,12 +715,6 @@ export interface BaseManager extends BaseContract {
 
   fraudPeriod(overrides?: CallOverrides): Promise<BigNumber>;
 
-  getPrice(
-    arg0: string,
-    arg1: string,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
-
   getReceiverAddress(
     _chainId: BigNumberish,
     overrides?: CallOverrides
@@ -635,7 +722,15 @@ export interface BaseManager extends BaseContract {
 
   insuranceFundFee(overrides?: CallOverrides): Promise<BigNumber>;
 
+  isSupportedAsset(
+    _chainId: BigNumberish,
+    _asset: string,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
   isValidator(_validator: string, overrides?: CallOverrides): Promise<boolean>;
+
+  oracle(overrides?: CallOverrides): Promise<string>;
 
   participatingInterface(overrides?: CallOverrides): Promise<string>;
 
@@ -669,6 +764,11 @@ export interface BaseManager extends BaseContract {
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
+  setOracle(
+    _oracle: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
   setReceivers(
     _chainIds: BigNumberish[],
     _receivers: string[],
@@ -678,6 +778,17 @@ export interface BaseManager extends BaseContract {
   settlementFeeNumerator(overrides?: CallOverrides): Promise<BigNumber>;
 
   stablePoolPortion(overrides?: CallOverrides): Promise<BigNumber>;
+
+  supportedAsset(
+    arg0: BigNumberish,
+    arg1: string,
+    overrides?: CallOverrides
+  ): Promise<number>;
+
+  supportedChains(
+    arg0: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
 
   updateFees(
     overrides?: Overrides & { from?: string }
@@ -701,6 +812,18 @@ export interface BaseManager extends BaseContract {
     ONE_BPS_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
 
     ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+    addSupportedAsset(
+      _chainId: BigNumberish,
+      _asset: string,
+      _precision: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    addSupportedChain(
+      _chainId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     admin(overrides?: CallOverrides): Promise<string>;
 
@@ -755,12 +878,6 @@ export interface BaseManager extends BaseContract {
 
     fraudPeriod(overrides?: CallOverrides): Promise<BigNumber>;
 
-    getPrice(
-      arg0: string,
-      arg1: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     getReceiverAddress(
       _chainId: BigNumberish,
       overrides?: CallOverrides
@@ -768,10 +885,18 @@ export interface BaseManager extends BaseContract {
 
     insuranceFundFee(overrides?: CallOverrides): Promise<BigNumber>;
 
+    isSupportedAsset(
+      _chainId: BigNumberish,
+      _asset: string,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
     isValidator(
       _validator: string,
       overrides?: CallOverrides
     ): Promise<boolean>;
+
+    oracle(overrides?: CallOverrides): Promise<string>;
 
     participatingInterface(overrides?: CallOverrides): Promise<string>;
 
@@ -805,6 +930,8 @@ export interface BaseManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setOracle(_oracle: string, overrides?: CallOverrides): Promise<void>;
+
     setReceivers(
       _chainIds: BigNumberish[],
       _receivers: string[],
@@ -814,6 +941,17 @@ export interface BaseManager extends BaseContract {
     settlementFeeNumerator(overrides?: CallOverrides): Promise<BigNumber>;
 
     stablePoolPortion(overrides?: CallOverrides): Promise<BigNumber>;
+
+    supportedAsset(
+      arg0: BigNumberish,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<number>;
+
+    supportedChains(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
 
     updateFees(overrides?: CallOverrides): Promise<void>;
 
@@ -859,6 +997,18 @@ export interface BaseManager extends BaseContract {
 
     ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
 
+    addSupportedAsset(
+      _chainId: BigNumberish,
+      _asset: string,
+      _precision: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
+    addSupportedChain(
+      _chainId: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
     admin(overrides?: CallOverrides): Promise<BigNumber>;
 
     calculateInsuranceFee(
@@ -896,12 +1046,6 @@ export interface BaseManager extends BaseContract {
 
     fraudPeriod(overrides?: CallOverrides): Promise<BigNumber>;
 
-    getPrice(
-      arg0: string,
-      arg1: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     getReceiverAddress(
       _chainId: BigNumberish,
       overrides?: CallOverrides
@@ -909,10 +1053,18 @@ export interface BaseManager extends BaseContract {
 
     insuranceFundFee(overrides?: CallOverrides): Promise<BigNumber>;
 
+    isSupportedAsset(
+      _chainId: BigNumberish,
+      _asset: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     isValidator(
       _validator: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    oracle(overrides?: CallOverrides): Promise<BigNumber>;
 
     participatingInterface(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -945,6 +1097,11 @@ export interface BaseManager extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
+    setOracle(
+      _oracle: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
     setReceivers(
       _chainIds: BigNumberish[],
       _receivers: string[],
@@ -954,6 +1111,17 @@ export interface BaseManager extends BaseContract {
     settlementFeeNumerator(overrides?: CallOverrides): Promise<BigNumber>;
 
     stablePoolPortion(overrides?: CallOverrides): Promise<BigNumber>;
+
+    supportedAsset(
+      arg0: BigNumberish,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    supportedChains(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     updateFees(overrides?: Overrides & { from?: string }): Promise<BigNumber>;
 
@@ -977,6 +1145,18 @@ export interface BaseManager extends BaseContract {
 
     ONE_PERCENT_NUMERATOR(
       overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    addSupportedAsset(
+      _chainId: BigNumberish,
+      _asset: string,
+      _precision: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    addSupportedChain(
+      _chainId: BigNumberish,
+      overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
     admin(overrides?: CallOverrides): Promise<PopulatedTransaction>;
@@ -1016,12 +1196,6 @@ export interface BaseManager extends BaseContract {
 
     fraudPeriod(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    getPrice(
-      arg0: string,
-      arg1: string,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
     getReceiverAddress(
       _chainId: BigNumberish,
       overrides?: CallOverrides
@@ -1029,10 +1203,18 @@ export interface BaseManager extends BaseContract {
 
     insuranceFundFee(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    isSupportedAsset(
+      _chainId: BigNumberish,
+      _asset: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     isValidator(
       _validator: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    oracle(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     participatingInterface(
       overrides?: CallOverrides
@@ -1067,6 +1249,11 @@ export interface BaseManager extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
+    setOracle(
+      _oracle: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
     setReceivers(
       _chainIds: BigNumberish[],
       _receivers: string[],
@@ -1078,6 +1265,17 @@ export interface BaseManager extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     stablePoolPortion(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    supportedAsset(
+      arg0: BigNumberish,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    supportedChains(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     updateFees(
       overrides?: Overrides & { from?: string }
