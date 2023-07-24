@@ -90,5 +90,4 @@ publish:
   extends:
     - .docker-build
   rules:
-    - if: '$CI_COMMIT_BRANCH == "develop"'
-    - if: "$CI_COMMIT_MESSAGE =~ /^Merge branch .+/"
+    - if: '$CI_COMMIT_BRANCH == "develop" && $CI_COMMIT_MESSAGE =~ /^Merge branch .+/'

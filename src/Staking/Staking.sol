@@ -6,7 +6,7 @@ import "./IStaking.sol";
 import "../StateUpdateLibrary.sol";
 import "../Portal/IPortal.sol";
 import "../CrossChain/LayerZero/IProcessingChainLz.sol";
-import "../Manager/IBaseManager.sol";
+import "../Manager/ProcessingChain/IProcessingChainManager.sol";
 import "../Rollup/IRollup.sol";
 import "../Oracle/IOracle.sol";
 import "../util/Id.sol";
@@ -14,6 +14,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+/// Deployed on the Processing chain. Allows stakers to deposit the stablecoin or protocol token into one of three
+/// active tranches with a pre-defined unlock date. Until the unlock date is reached, the locked tokens can be used as
+/// collateral by the validator when processing settlements.
 contract Staking is IStaking {
     using IdLib for Id;
     using EnumerableSet for EnumerableSet.UintSet;
@@ -25,10 +28,6 @@ contract Staking is IStaking {
     uint256 public constant PERIOD_LENGTH = 28_800 * 15; // About 60 days on Ethereum
     // How many staking periods are available at one time
     uint256 public constant ACTIVE_PERIODS = 3;
-
-    // STAKING AMOUNT CONSTANTS
-    // Amount of protocol token required to lock when proposing a state root
-    uint256 public constant ROOT_PROPOSAL_LOCK_AMOUNT = 10_000e18;
 
     struct DepositRecord {
         address staker;
@@ -82,34 +81,18 @@ contract Staking is IStaking {
     // Maps ID of staking period to amounts deposited and locked
     mapping(address => mapping(uint256 => TotalAmount)) totals;
 
-    IBaseManager immutable manager;
+    IProcessingChainManager immutable manager;
     address public stablecoin;
     address public protocolToken;
 
     constructor(address _manager, address _stablecoin, address _protocolToken) {
-        manager = IBaseManager(_manager);
+        manager = IProcessingChainManager(_manager);
         stablecoin = _stablecoin;
         protocolToken = _protocolToken;
     }
 
-    uint256 public constant minimumStablecoinStake = 200;
-    uint256 public constant minimumProtocolStake = 200;
-
-    function stakeProtocol(uint256 _amount) external {
-        if (_amount < minimumStablecoinStake * (10 ** IERC20Metadata(protocolToken).decimals())) {
-            revert("BELOW_MINIMUM_PROTOCOL_STAKE");
-        }
-        uint256[ACTIVE_PERIODS] memory tranches = getActiveTranches();
-        stake(protocolToken, _amount, tranches[0]);
-    }
-
-    function stakeStablecoin(uint256 _amount) external {
-        if (_amount < minimumStablecoinStake * (10 ** IERC20Metadata(stablecoin).decimals())) {
-            revert("BELOW_MINIMUM_STABLECOIN_STAKE");
-        }
-        uint256[ACTIVE_PERIODS] memory tranches = getActiveTranches();
-        stake(stablecoin, _amount, tranches[0]);
-    }
+    uint256 public constant minimumStablecoinStake = 200e6;
+    uint256 public constant minimumProtocolStake = 200e18;
 
     function stake(address _asset, uint256 _amount, uint256 _unlockTime) public {
         if (!(_asset == stablecoin || _asset == protocolToken)) revert("Invalid asset");
@@ -189,7 +172,6 @@ contract Staking is IStaking {
 
         locks[Id.unwrap(currentLockId)] = LockRecord(_amountToLock, totalAvailable, block.number, _asset);
         currentLockId = currentLockId.increment();
-        // TODO: emit an event
         return Id.unwrap(currentLockId) - 1;
     }
 
@@ -232,7 +214,6 @@ contract Staking is IStaking {
     function reward(uint256 _lockId, uint256 _chainId, address _asset, uint256 _amount) external {
         if (msg.sender != manager.rollup()) revert();
         rewards[_lockId][_chainId][_asset] += _amount;
-        // TODO: emit event
     }
 
     // Called by rollup contract to delegate a portion of settlement fee to the insurance fund
@@ -296,7 +277,7 @@ contract Staking is IStaking {
             // Set to 0 so it can't be used again
             toClaim[msg.sender][_params.rewardChainId][_params.rewardAsset[i]] = 0;
         }
-        IProcessingChainLz(IBaseManager(address(manager)).relayer()).sendObligations{ value: msg.value }(
+        IProcessingChainLz(IProcessingChainManager(address(manager)).relayer()).sendObligations{ value: msg.value }(
             _params.rewardChainId, obligations, bytes(""), msg.sender
         );
     }
@@ -322,6 +303,8 @@ contract Staking is IStaking {
             tranches[i] = current + (PERIOD_LENGTH * (i + 1));
         }
     }
+
+    // Below are view functions used only for querying data off-chain
 
     function getUserDepositIds(address _user) external view returns (uint256[] memory) {
         return userDeposits[_user].values();

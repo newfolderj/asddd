@@ -3,7 +3,7 @@
 pragma solidity ^0.8.19;
 
 import "../BaseDeploy.sol";
-import "../../../src/Manager/ChildManager.sol";
+import "../../../src/Manager/AssetChain/AssetChainManager.sol";
 import "../../../src/CrossChain/LayerZero/AssetChainLz.sol";
 
 struct ChainInfo {
@@ -28,7 +28,7 @@ contract DeployAssetChain is BaseDeploy {
         address validator = vm.addr(deployerPrivateKey);
 
         // Deploy Asset Manager
-        ChildManager assetChainManager = new ChildManager(participatingInterface, admin, validator, relayer);
+        AssetChainManager assetChainManager = new AssetChainManager(participatingInterface, admin);
 
         // Deploy LZ Relayer
         assetChainManager.deployReceiver(vm.envAddress("LZ_ENDPOINT_ASSET"), uint16(vm.envUint("LZ_CHAINID_ASSET")));

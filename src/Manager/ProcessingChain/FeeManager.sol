@@ -3,7 +3,7 @@
 pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "../util/Id.sol";
+import "../../util/Id.sol";
 
 abstract contract FeeManager {
     using IdLib for Id;
