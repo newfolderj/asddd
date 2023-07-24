@@ -4,10 +4,9 @@ pragma solidity ^0.8.19;
 
 import { Test } from "forge-std/Test.sol";
 
-import "../../src/Manager/BaseManager.sol";
-import "../../src/Manager/ChildManager.sol";
+import "../../src/Manager/ProcessingChain/ProcessingChainManager.sol";
+import "../../src/Manager/AssetChain/AssetChainManager.sol";
 import "../../src/Staking/Staking.sol";
-import "../../src/Rollup/FraudEngine.sol";
 import "../../src/util/Signature.sol";
 import "../../src/Oracle/Oracle.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -26,12 +25,11 @@ contract BaseTest is Test {
     address internal admin;
     address internal validator;
 
-    BaseManager internal manager;
-    ChildManager internal assetChainManager;
+    ProcessingChainManager internal manager;
+    AssetChainManager internal assetChainManager;
     Portal internal portal;
     Rollup internal rollup;
     Staking internal staking;
-    FraudEngine internal fraudEngine;
     ProcessingChainLz internal processingChainLz;
     AssetChainLz internal assetChainLz;
     LZEndpointMock internal lzEndpointMock;
@@ -52,82 +50,6 @@ contract BaseTest is Test {
     event DepositUtxo(
         address wallet, uint256 amount, address token, address participatingInterface, Id chainSequenceId, bytes32 utxo
     );
-
-    function depositToUtxo(
-        StateUpdateLibrary.Deposit memory _deposit,
-        uint256 _stateUpdateId
-    )
-        internal
-        pure
-        returns (StateUpdateLibrary.UTXO memory)
-    {
-        return StateUpdateLibrary.UTXO(
-            _deposit.trader,
-            _deposit.amount,
-            _stateUpdateId,
-            bytes32(0x0000000000000000000000000000000000000000000000000000000000000000),
-            keccak256(abi.encode(_deposit)),
-            _deposit.participatingInterface,
-            _deposit.asset,
-            _deposit.chainId
-        );
-    }
-
-    // Takes a deposit, and generates an output
-    // granting the amount to another trader.
-    function depositToTradeUtxo(
-        StateUpdateLibrary.Deposit memory _deposit,
-        uint256 _stateUpdateIdDeposit,
-        uint256 _stateUpdateIdTrade,
-        address _recipient
-    )
-        internal
-        pure
-        returns (StateUpdateLibrary.UTXO memory)
-    {
-        StateUpdateLibrary.UTXO memory depositUtxo = StateUpdateLibrary.UTXO(
-            _deposit.trader,
-            _deposit.amount,
-            _stateUpdateIdDeposit,
-            bytes32(0x0000000000000000000000000000000000000000000000000000000000000000),
-            keccak256(abi.encode(_deposit)),
-            _deposit.participatingInterface,
-            _deposit.asset,
-            _deposit.chainId
-        );
-        bytes32 depositHash = keccak256(abi.encode(depositUtxo));
-        return StateUpdateLibrary.UTXO(
-            _recipient,
-            _deposit.amount,
-            _stateUpdateIdTrade,
-            depositHash,
-            keccak256(abi.encode(_deposit)),
-            _deposit.participatingInterface,
-            _deposit.asset,
-            _deposit.chainId
-        );
-    }
-
-    function utxoToTradeUtxo(
-        StateUpdateLibrary.UTXO memory _input,
-        uint256 _stateUpdateIdTrade,
-        address _recipient
-    )
-        internal
-        pure
-        returns (StateUpdateLibrary.UTXO memory)
-    {
-        return StateUpdateLibrary.UTXO(
-            _recipient,
-            _input.amount,
-            _stateUpdateIdTrade,
-            keccak256(abi.encode(_input)),
-            _input.depositUtxo,
-            _input.participatingInterface,
-            _input.asset,
-            _input.chainId
-        );
-    }
 
     // Note that this does not properly set balance or deposit root
     function depositStateUpdate(
@@ -205,7 +127,7 @@ contract BaseTest is Test {
         returns (StateUpdateLibrary.StateUpdate memory)
     {
         StateUpdateLibrary.SettlementRequest memory settlementRequest = StateUpdateLibrary.SettlementRequest(
-            _trader, _token, participatingInterface, _chainSequenceId, Id.wrap(chainId), _settlementId
+            _trader, _token, participatingInterface, _chainSequenceId, Id.wrap(chainId)
         );
         StateUpdateLibrary.Settlement memory settlement = StateUpdateLibrary.Settlement(
             settlementRequest,
@@ -258,7 +180,7 @@ contract BaseTest is Test {
         protocolToken = new ERC20("ProtocolToken", "TXA"); 
         token = new ERC20("TestToken", "TST");
 
-        manager = new BaseManager({
+        manager = new ProcessingChainManager({
             _participatingInterface: participatingInterface, 
             _admin: admin,
             _validator: validator,
@@ -267,28 +189,23 @@ contract BaseTest is Test {
         });
         rollup = Rollup(manager.rollup());
         vm.startPrank(admin);
-        fraudEngine = new FraudEngine(participatingInterface, address(manager));
         staking = new Staking(address(manager), address(stablecoin), address(protocolToken));
-        manager.setFraudEngine(address(fraudEngine));
-        manager.setCollateral(address(staking));
+        manager.setStaking(address(staking));
         lzEndpointMock = new LZEndpointMock(uint16(block.chainid));
         lzEndpointMockDest = new LZEndpointMock(uint16(chainId));
         manager.deployRelayer(address(lzEndpointMock));
-        // TODO: replace with mock lz endpoint
-        // TODO: set trusted remotes
         processingChainLz = ProcessingChainLz(manager.relayer());
         uint256[] memory evmChainId = new uint256[](1);
         evmChainId[0] = chainId;
         uint16[] memory lzChainId = new uint16[](1);
         lzChainId[0] = uint16(chainId);
         processingChainLz.setChainIds(evmChainId, lzChainId);
-        assetChainManager = new ChildManager(participatingInterface, admin, validator, manager.relayer());
+        assetChainManager = new AssetChainManager(participatingInterface, admin);
         assetChainManager.deployReceiver(address(lzEndpointMockDest), uint16(block.chainid));
         portal = Portal(assetChainManager.portal());
         assetChainLz = AssetChainLz(assetChainManager.receiver());
         address[] memory portals = new address[](1);
         portals[0] = address(portal);
-        processingChainLz.setPortalAddress(evmChainId, portals);
         processingChainLz.setTrustedRemoteAddress(uint16(chainId), abi.encodePacked(address(assetChainLz)));
         assetChainLz.setTrustedRemoteAddress(uint16(block.chainid), abi.encodePacked(address(processingChainLz)));
         lzEndpointMock.setDestLzEndpoint(address(assetChainLz), address(lzEndpointMockDest));
@@ -325,8 +242,8 @@ contract BaseTest is Test {
         console.log(tranches[1]);
         console.log(tranches[2]);
         vm.startPrank(validator);
-        protocolToken.approve(manager.collateral(), 20_000 ether);
-        stablecoin.approve(manager.collateral(), 500 ether);
+        protocolToken.approve(manager.staking(), 20_000 ether);
+        stablecoin.approve(manager.staking(), 500 ether);
         staking.stake(address(stablecoin), 500 ether, tranches[0]);
         staking.stake(address(protocolToken), 20_000 ether, tranches[0]);
         vm.stopPrank();

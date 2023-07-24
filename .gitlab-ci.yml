@@ -10,7 +10,7 @@ include:
 
 variables:
     IMAGE_TAG: "$CI_REGISTRY_IMAGE/txa-network-contracts:latest"
-    VERSIONED_IMAGE_TAG: "$CI_REGISTRY_IMAGE/txa-network-contracts:0.0.1"
+    VERSIONED_IMAGE_TAG: "$CI_REGISTRY_IMAGE/txa-network-contracts:0.1.0"
     GPG_FILE: "settlements.csv"
     DOCKER_TLS_CERTDIR: "/certs"
     GIT_SUBMODULE_STRATEGY: recursive
@@ -97,5 +97,13 @@ publish:
     - docker push $IMAGE_TAG
     - docker push $VERSIONED_IMAGE_TAG
   rules:
-    - if: '$CI_COMMIT_BRANCH == "develop"'
-    - if: "$CI_COMMIT_MESSAGE =~ /^Merge branch .+/"
+    - if: '$CI_COMMIT_BRANCH == "develop" && $CI_COMMIT_MESSAGE =~ /^Merge branch .+/'
+
+publish-beta:
+  stage: publish
+  variables:
+    IMAGE_TAG: "$CI_REGISTRY_IMAGE/txa-network-contracts:beta"
+  extends:
+    - .docker-build
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "staking-beta" && $CI_COMMIT_MESSAGE =~ /^Merge branch .+/'

@@ -13,4 +13,13 @@ interface IProcessingChainLz {
     )
         external
         payable;
+
+    function sendDepositRejections(
+        uint256 _chainId,
+        bytes32[] calldata _depositHashes,
+        bytes calldata _adapterParams,
+        address _refunedAddress
+    )
+        external
+        payable;
 }

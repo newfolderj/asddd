@@ -27,11 +27,13 @@ export interface AssetChainManagerInterface extends utils.Interface {
     "addSupportedAsset(address,address)": FunctionFragment;
     "admin()": FunctionFragment;
     "deployReceiver(address,uint16)": FunctionFragment;
+    "getMinimumDeposit(address)": FunctionFragment;
+    "minimumDeposit(address)": FunctionFragment;
     "participatingInterface()": FunctionFragment;
     "portal()": FunctionFragment;
     "receiver()": FunctionFragment;
+    "setMinimumDeposit(address,uint256)": FunctionFragment;
     "supportedAsset(address)": FunctionFragment;
-    "validator()": FunctionFragment;
   };
 
   getFunction(
@@ -39,11 +41,13 @@ export interface AssetChainManagerInterface extends utils.Interface {
       | "addSupportedAsset"
       | "admin"
       | "deployReceiver"
+      | "getMinimumDeposit"
+      | "minimumDeposit"
       | "participatingInterface"
       | "portal"
       | "receiver"
+      | "setMinimumDeposit"
       | "supportedAsset"
-      | "validator"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -56,16 +60,27 @@ export interface AssetChainManagerInterface extends utils.Interface {
     values: [string, BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "getMinimumDeposit",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "minimumDeposit",
+    values: [string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "participatingInterface",
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "portal", values?: undefined): string;
   encodeFunctionData(functionFragment: "receiver", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "setMinimumDeposit",
+    values: [string, BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "supportedAsset",
     values: [string]
   ): string;
-  encodeFunctionData(functionFragment: "validator", values?: undefined): string;
 
   decodeFunctionResult(
     functionFragment: "addSupportedAsset",
@@ -77,16 +92,27 @@ export interface AssetChainManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "getMinimumDeposit",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "minimumDeposit",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "participatingInterface",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "portal", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "receiver", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "setMinimumDeposit",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "supportedAsset",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "validator", data: BytesLike): Result;
 
   events: {};
 }
@@ -132,15 +158,29 @@ export interface AssetChainManager extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
+    getMinimumDeposit(
+      _asset: string,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    minimumDeposit(
+      arg0: string,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     participatingInterface(overrides?: CallOverrides): Promise<[string]>;
 
     portal(overrides?: CallOverrides): Promise<[string]>;
 
     receiver(overrides?: CallOverrides): Promise<[string]>;
 
-    supportedAsset(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
+    setMinimumDeposit(
+      _asset: string,
+      _minimum: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
 
-    validator(overrides?: CallOverrides): Promise<[string]>;
+    supportedAsset(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
   };
 
   addSupportedAsset(
@@ -157,15 +197,26 @@ export interface AssetChainManager extends BaseContract {
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
+  getMinimumDeposit(
+    _asset: string,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  minimumDeposit(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
   participatingInterface(overrides?: CallOverrides): Promise<string>;
 
   portal(overrides?: CallOverrides): Promise<string>;
 
   receiver(overrides?: CallOverrides): Promise<string>;
 
-  supportedAsset(arg0: string, overrides?: CallOverrides): Promise<boolean>;
+  setMinimumDeposit(
+    _asset: string,
+    _minimum: BigNumberish,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
 
-  validator(overrides?: CallOverrides): Promise<string>;
+  supportedAsset(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
   callStatic: {
     addSupportedAsset(
@@ -182,15 +233,26 @@ export interface AssetChainManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    getMinimumDeposit(
+      _asset: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    minimumDeposit(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
     participatingInterface(overrides?: CallOverrides): Promise<string>;
 
     portal(overrides?: CallOverrides): Promise<string>;
 
     receiver(overrides?: CallOverrides): Promise<string>;
 
-    supportedAsset(arg0: string, overrides?: CallOverrides): Promise<boolean>;
+    setMinimumDeposit(
+      _asset: string,
+      _minimum: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
-    validator(overrides?: CallOverrides): Promise<string>;
+    supportedAsset(arg0: string, overrides?: CallOverrides): Promise<boolean>;
   };
 
   filters: {};
@@ -210,15 +272,26 @@ export interface AssetChainManager extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
+    getMinimumDeposit(
+      _asset: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    minimumDeposit(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
     participatingInterface(overrides?: CallOverrides): Promise<BigNumber>;
 
     portal(overrides?: CallOverrides): Promise<BigNumber>;
 
     receiver(overrides?: CallOverrides): Promise<BigNumber>;
 
-    supportedAsset(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+    setMinimumDeposit(
+      _asset: string,
+      _minimum: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
 
-    validator(overrides?: CallOverrides): Promise<BigNumber>;
+    supportedAsset(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -236,6 +309,16 @@ export interface AssetChainManager extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
+    getMinimumDeposit(
+      _asset: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    minimumDeposit(
+      arg0: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     participatingInterface(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
@@ -244,11 +327,15 @@ export interface AssetChainManager extends BaseContract {
 
     receiver(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    setMinimumDeposit(
+      _asset: string,
+      _minimum: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
     supportedAsset(
       arg0: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
-
-    validator(overrides?: CallOverrides): Promise<PopulatedTransaction>;
   };
 }

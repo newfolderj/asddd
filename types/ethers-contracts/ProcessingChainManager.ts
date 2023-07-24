@@ -48,6 +48,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     "feeSequenceId()": FunctionFragment;
     "fraudEngine()": FunctionFragment;
     "fraudPeriod()": FunctionFragment;
+    "grantValidator(address)": FunctionFragment;
     "insuranceFundFee()": FunctionFragment;
     "isSupportedAsset(uint256,address)": FunctionFragment;
     "isValidator(address)": FunctionFragment;
@@ -58,7 +59,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     "protocolFee()": FunctionFragment;
     "protocolToken()": FunctionFragment;
     "relayer()": FunctionFragment;
+    "replaceOracle(address)": FunctionFragment;
+    "revokeValidator(address)": FunctionFragment;
     "rollup()": FunctionFragment;
+    "rootProposalLockAmount()": FunctionFragment;
     "setFraudEngine(address)": FunctionFragment;
     "setStaking(address)": FunctionFragment;
     "settlementFeeNumerator()": FunctionFragment;
@@ -68,7 +72,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     "supportedAsset(uint256,address)": FunctionFragment;
     "supportedChains(uint256)": FunctionFragment;
     "updateFees()": FunctionFragment;
-    "validator()": FunctionFragment;
+    "validators(address)": FunctionFragment;
     "walletDelegation()": FunctionFragment;
   };
 
@@ -94,6 +98,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
       | "feeSequenceId"
       | "fraudEngine"
       | "fraudPeriod"
+      | "grantValidator"
       | "insuranceFundFee"
       | "isSupportedAsset"
       | "isValidator"
@@ -104,7 +109,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
       | "protocolFee"
       | "protocolToken"
       | "relayer"
+      | "replaceOracle"
+      | "revokeValidator"
       | "rollup"
+      | "rootProposalLockAmount"
       | "setFraudEngine"
       | "setStaking"
       | "settlementFeeNumerator"
@@ -114,7 +122,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
       | "supportedAsset"
       | "supportedChains"
       | "updateFees"
-      | "validator"
+      | "validators"
       | "walletDelegation"
   ): FunctionFragment;
 
@@ -193,6 +201,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "grantValidator",
+    values: [string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "insuranceFundFee",
     values?: undefined
   ): string;
@@ -223,7 +235,19 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "relayer", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "replaceOracle",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "revokeValidator",
+    values: [string]
+  ): string;
   encodeFunctionData(functionFragment: "rollup", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "rootProposalLockAmount",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "setFraudEngine",
     values: [string]
@@ -254,7 +278,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     functionFragment: "updateFees",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "validator", values?: undefined): string;
+  encodeFunctionData(functionFragment: "validators", values: [string]): string;
   encodeFunctionData(
     functionFragment: "walletDelegation",
     values?: undefined
@@ -332,6 +356,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "grantValidator",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "insuranceFundFee",
     data: BytesLike
   ): Result;
@@ -365,7 +393,19 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "relayer", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "replaceOracle",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "revokeValidator",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "rollup", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "rootProposalLockAmount",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "setFraudEngine",
     data: BytesLike
@@ -390,7 +430,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "updateFees", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "validator", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "validators", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "walletDelegation",
     data: BytesLike
@@ -430,12 +470,12 @@ export type TradingFeesUpdatedEvent = TypedEvent<
 export type TradingFeesUpdatedEventFilter =
   TypedEventFilter<TradingFeesUpdatedEvent>;
 
-export interface BaseManager extends BaseContract {
+export interface ProcessingChainManager extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
 
-  interface: BaseManagerInterface;
+  interface: ProcessingChainManagerInterface;
 
   queryFilter<TEvent extends TypedEvent>(
     event: TypedEventFilter<TEvent>,
@@ -470,12 +510,12 @@ export interface BaseManager extends BaseContract {
     ONE_BPS_NUMERATOR(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<[BigNumber]>;
-ProcessingChainManager
+
     addSupportedAsset(
       _chainId: BigNumberish,
       _asset: string,
       _precision: BigNumberish,
-      overridProcessingChainManagerdes & { from?: string }
+      overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
     addSupportedChain(
@@ -541,6 +581,11 @@ ProcessingChainManager
 
     fraudPeriod(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    grantValidator(
+      _validator: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     insuranceFundFee(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     isSupportedAsset(
@@ -576,7 +621,19 @@ ProcessingChainManager
 
     relayer(overrides?: CallOverrides): Promise<[string]>;
 
+    replaceOracle(
+      _oracle: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    revokeValidator(
+      _validator: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     rollup(overrides?: CallOverrides): Promise<[string]>;
+
+    rootProposalLockAmount(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     setFraudEngine(
       _fraudEngine: string,
@@ -611,7 +668,7 @@ ProcessingChainManager
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
-    validator(overrides?: CallOverrides): Promise<[string]>;
+    validators(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
 
     walletDelegation(overrides?: CallOverrides): Promise<[string]>;
   };
@@ -700,6 +757,11 @@ ProcessingChainManager
 
   fraudPeriod(overrides?: CallOverrides): Promise<BigNumber>;
 
+  grantValidator(
+    _validator: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
   insuranceFundFee(overrides?: CallOverrides): Promise<BigNumber>;
 
   isSupportedAsset(
@@ -732,7 +794,19 @@ ProcessingChainManager
 
   relayer(overrides?: CallOverrides): Promise<string>;
 
+  replaceOracle(
+    _oracle: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  revokeValidator(
+    _validator: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
   rollup(overrides?: CallOverrides): Promise<string>;
+
+  rootProposalLockAmount(overrides?: CallOverrides): Promise<BigNumber>;
 
   setFraudEngine(
     _fraudEngine: string,
@@ -767,7 +841,7 @@ ProcessingChainManager
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
-  validator(overrides?: CallOverrides): Promise<string>;
+  validators(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
   walletDelegation(overrides?: CallOverrides): Promise<string>;
 
@@ -856,6 +930,11 @@ ProcessingChainManager
 
     fraudPeriod(overrides?: CallOverrides): Promise<BigNumber>;
 
+    grantValidator(
+      _validator: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     insuranceFundFee(overrides?: CallOverrides): Promise<BigNumber>;
 
     isSupportedAsset(
@@ -891,7 +970,16 @@ ProcessingChainManager
 
     relayer(overrides?: CallOverrides): Promise<string>;
 
+    replaceOracle(_oracle: string, overrides?: CallOverrides): Promise<void>;
+
+    revokeValidator(
+      _validator: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     rollup(overrides?: CallOverrides): Promise<string>;
+
+    rootProposalLockAmount(overrides?: CallOverrides): Promise<BigNumber>;
 
     setFraudEngine(
       _fraudEngine: string,
@@ -921,7 +1009,7 @@ ProcessingChainManager
 
     updateFees(overrides?: CallOverrides): Promise<void>;
 
-    validator(overrides?: CallOverrides): Promise<string>;
+    validators(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
     walletDelegation(overrides?: CallOverrides): Promise<string>;
   };
@@ -1017,6 +1105,11 @@ ProcessingChainManager
 
     fraudPeriod(overrides?: CallOverrides): Promise<BigNumber>;
 
+    grantValidator(
+      _validator: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
     insuranceFundFee(overrides?: CallOverrides): Promise<BigNumber>;
 
     isSupportedAsset(
@@ -1048,7 +1141,19 @@ ProcessingChainManager
 
     relayer(overrides?: CallOverrides): Promise<BigNumber>;
 
+    replaceOracle(
+      _oracle: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
+    revokeValidator(
+      _validator: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
     rollup(overrides?: CallOverrides): Promise<BigNumber>;
+
+    rootProposalLockAmount(overrides?: CallOverrides): Promise<BigNumber>;
 
     setFraudEngine(
       _fraudEngine: string,
@@ -1081,7 +1186,7 @@ ProcessingChainManager
 
     updateFees(overrides?: Overrides & { from?: string }): Promise<BigNumber>;
 
-    validator(overrides?: CallOverrides): Promise<BigNumber>;
+    validators(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     walletDelegation(overrides?: CallOverrides): Promise<BigNumber>;
   };
@@ -1157,6 +1262,11 @@ ProcessingChainManager
 
     fraudPeriod(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    grantValidator(
+      _validator: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
     insuranceFundFee(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     isSupportedAsset(
@@ -1190,7 +1300,21 @@ ProcessingChainManager
 
     relayer(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    replaceOracle(
+      _oracle: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    revokeValidator(
+      _validator: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
     rollup(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    rootProposalLockAmount(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     setFraudEngine(
       _fraudEngine: string,
@@ -1227,7 +1351,10 @@ ProcessingChainManager
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
-    validator(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    validators(
+      arg0: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     walletDelegation(overrides?: CallOverrides): Promise<PopulatedTransaction>;
   };
