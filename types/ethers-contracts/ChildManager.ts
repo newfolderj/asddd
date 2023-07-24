@@ -9,6 +9,7 @@ import type {
   CallOverrides,
   ContractTransaction,
   Overrides,
+  PayableOverrides,
   PopulatedTransaction,
   Signer,
   utils,
@@ -125,7 +126,7 @@ export interface ChildManager extends BaseContract {
     addSupportedAsset(
       _asset: string,
       _approved: string,
-      overrides?: Overrides & { from?: string }
+      overrides?: PayableOverrides & { from?: string }
     ): Promise<ContractTransaction>;
 
     admin(overrides?: CallOverrides): Promise<[string]>;
@@ -152,7 +153,7 @@ export interface ChildManager extends BaseContract {
   addSupportedAsset(
     _asset: string,
     _approved: string,
-    overrides?: Overrides & { from?: string }
+    overrides?: PayableOverrides & { from?: string }
   ): Promise<ContractTransaction>;
 
   admin(overrides?: CallOverrides): Promise<string>;
@@ -209,7 +210,7 @@ export interface ChildManager extends BaseContract {
     addSupportedAsset(
       _asset: string,
       _approved: string,
-      overrides?: Overrides & { from?: string }
+      overrides?: PayableOverrides & { from?: string }
     ): Promise<BigNumber>;
 
     admin(overrides?: CallOverrides): Promise<BigNumber>;
@@ -237,7 +238,7 @@ export interface ChildManager extends BaseContract {
     addSupportedAsset(
       _asset: string,
       _approved: string,
-      overrides?: Overrides & { from?: string }
+      overrides?: PayableOverrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
     admin(overrides?: CallOverrides): Promise<PopulatedTransaction>;

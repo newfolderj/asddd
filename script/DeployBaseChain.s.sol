@@ -45,17 +45,14 @@ contract DeployBaseChain is Script {
         manager.addSupportedChain(block.chainid);
         manager.addSupportedAsset(block.chainid, address(0), 18);
         // Setup oracle with initial prices
-        Oracle oracle = new Oracle(admin, address(manager), address(protocolToken), address(stablecoin), block.chainid, 0.3e18);
-
-        manager.setOracle(address(oracle));
+        manager.deployOracle(address(stablecoin), block.chainid, 0.3e18);
+        Oracle oracle = Oracle(manager.oracle());
         oracle.grantReporter(admin);
         oracle.initializePrice(block.chainid, address(0), 1895.25e18);
 
         LZEndpointMock lzEndpointMock = new LZEndpointMock(uint16(block.chainid));
         LZEndpointMock lzEndpointMockDest = new LZEndpointMock(uint16(block.chainid));
         manager.deployRelayer(address(lzEndpointMock));
-        // TODO: replace with mock lz endpoint
-        // TODO: set trusted remotes
         ProcessingChainLz processingChainLz = ProcessingChainLz(manager.relayer());
         assetChainManager = new ChildManager({
             _participatingInterface: participatingInterface, 

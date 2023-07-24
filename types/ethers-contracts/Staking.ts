@@ -114,7 +114,6 @@ export interface StakingInterface extends utils.Interface {
     "protocolToken()": FunctionFragment;
     "reward(uint256,uint256,address,uint256)": FunctionFragment;
     "stablecoin()": FunctionFragment;
-    "stablecoinToProtocol(uint256)": FunctionFragment;
     "stake(address,uint256,uint256)": FunctionFragment;
     "stakeProtocol(uint256)": FunctionFragment;
     "stakeStablecoin(uint256)": FunctionFragment;
@@ -149,7 +148,6 @@ export interface StakingInterface extends utils.Interface {
       | "protocolToken"
       | "reward"
       | "stablecoin"
-      | "stablecoinToProtocol"
       | "stake"
       | "stakeProtocol"
       | "stakeStablecoin"
@@ -247,10 +245,6 @@ export interface StakingInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "stablecoin",
     values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "stablecoinToProtocol",
-    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "stake",
@@ -352,10 +346,6 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "reward", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "stablecoin", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "stablecoinToProtocol",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "stake", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "stakeProtocol",
@@ -532,11 +522,6 @@ export interface Staking extends BaseContract {
 
     stablecoin(overrides?: CallOverrides): Promise<[string]>;
 
-    stablecoinToProtocol(
-      _stablecoinAmount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
     stake(
       _asset: string,
       _amount: BigNumberish,
@@ -688,11 +673,6 @@ export interface Staking extends BaseContract {
   ): Promise<ContractTransaction>;
 
   stablecoin(overrides?: CallOverrides): Promise<string>;
-
-  stablecoinToProtocol(
-    _stablecoinAmount: BigNumberish,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
 
   stake(
     _asset: string,
@@ -846,11 +826,6 @@ export interface Staking extends BaseContract {
 
     stablecoin(overrides?: CallOverrides): Promise<string>;
 
-    stablecoinToProtocol(
-      _stablecoinAmount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     stake(
       _asset: string,
       _amount: BigNumberish,
@@ -968,11 +943,6 @@ export interface Staking extends BaseContract {
     ): Promise<BigNumber>;
 
     stablecoin(overrides?: CallOverrides): Promise<BigNumber>;
-
-    stablecoinToProtocol(
-      _stablecoinAmount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
 
     stake(
       _asset: string,
@@ -1109,11 +1079,6 @@ export interface Staking extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     stablecoin(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    stablecoinToProtocol(
-      _stablecoinAmount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
 
     stake(
       _asset: string,

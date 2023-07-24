@@ -43,6 +43,7 @@ export interface BaseManagerInterface extends utils.Interface {
     "calculateStakingRewards(uint256)": FunctionFragment;
     "collateral()": FunctionFragment;
     "currentFees()": FunctionFragment;
+    "deployOracle(address,uint256,uint256)": FunctionFragment;
     "deployRelayer(address)": FunctionFragment;
     "feeHistory(uint256)": FunctionFragment;
     "feeSequenceId()": FunctionFragment;
@@ -57,6 +58,7 @@ export interface BaseManagerInterface extends utils.Interface {
     "proposeFees(uint256,uint256)": FunctionFragment;
     "proposedFees()": FunctionFragment;
     "protocolFee()": FunctionFragment;
+    "protocolToken()": FunctionFragment;
     "receivers(uint256)": FunctionFragment;
     "relayer()": FunctionFragment;
     "rollup()": FunctionFragment;
@@ -66,6 +68,7 @@ export interface BaseManagerInterface extends utils.Interface {
     "setReceivers(uint256[],address[])": FunctionFragment;
     "settlementFeeNumerator()": FunctionFragment;
     "stablePoolPortion()": FunctionFragment;
+    "stablecoin()": FunctionFragment;
     "supportedAsset(uint256,address)": FunctionFragment;
     "supportedChains(uint256)": FunctionFragment;
     "updateFees()": FunctionFragment;
@@ -90,6 +93,7 @@ export interface BaseManagerInterface extends utils.Interface {
       | "calculateStakingRewards"
       | "collateral"
       | "currentFees"
+      | "deployOracle"
       | "deployRelayer"
       | "feeHistory"
       | "feeSequenceId"
@@ -104,6 +108,7 @@ export interface BaseManagerInterface extends utils.Interface {
       | "proposeFees"
       | "proposedFees"
       | "protocolFee"
+      | "protocolToken"
       | "receivers"
       | "relayer"
       | "rollup"
@@ -113,6 +118,7 @@ export interface BaseManagerInterface extends utils.Interface {
       | "setReceivers"
       | "settlementFeeNumerator"
       | "stablePoolPortion"
+      | "stablecoin"
       | "supportedAsset"
       | "supportedChains"
       | "updateFees"
@@ -175,6 +181,10 @@ export interface BaseManagerInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "deployOracle",
+    values: [string, BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "deployRelayer",
     values: [string]
   ): string;
@@ -225,6 +235,10 @@ export interface BaseManagerInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "protocolToken",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "receivers",
     values: [BigNumberish]
   ): string;
@@ -249,6 +263,10 @@ export interface BaseManagerInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "stablePoolPortion",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "stablecoin",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -321,6 +339,10 @@ export interface BaseManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "deployOracle",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "deployRelayer",
     data: BytesLike
   ): Result;
@@ -370,6 +392,10 @@ export interface BaseManagerInterface extends utils.Interface {
     functionFragment: "protocolFee",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "protocolToken",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "receivers", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "relayer", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "rollup", data: BytesLike): Result;
@@ -394,6 +420,7 @@ export interface BaseManagerInterface extends utils.Interface {
     functionFragment: "stablePoolPortion",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "stablecoin", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "supportedAsset",
     data: BytesLike
@@ -531,6 +558,13 @@ export interface BaseManager extends BaseContract {
       [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
     >;
 
+    deployOracle(
+      _stablecoinAssetChain: string,
+      _stablecoinAssetChainId: BigNumberish,
+      _protocolTokenPrice: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     deployRelayer(
       _lzEndpoint: string,
       overrides?: Overrides & { from?: string }
@@ -585,6 +619,8 @@ export interface BaseManager extends BaseContract {
 
     protocolFee(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    protocolToken(overrides?: CallOverrides): Promise<[string]>;
+
     receivers(arg0: BigNumberish, overrides?: CallOverrides): Promise<[string]>;
 
     relayer(overrides?: CallOverrides): Promise<[string]>;
@@ -615,6 +651,8 @@ export interface BaseManager extends BaseContract {
     settlementFeeNumerator(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     stablePoolPortion(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    stablecoin(overrides?: CallOverrides): Promise<[string]>;
 
     supportedAsset(
       arg0: BigNumberish,
@@ -697,6 +735,13 @@ export interface BaseManager extends BaseContract {
     [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
   >;
 
+  deployOracle(
+    _stablecoinAssetChain: string,
+    _stablecoinAssetChainId: BigNumberish,
+    _protocolTokenPrice: BigNumberish,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
   deployRelayer(
     _lzEndpoint: string,
     overrides?: Overrides & { from?: string }
@@ -748,6 +793,8 @@ export interface BaseManager extends BaseContract {
 
   protocolFee(overrides?: CallOverrides): Promise<BigNumber>;
 
+  protocolToken(overrides?: CallOverrides): Promise<string>;
+
   receivers(arg0: BigNumberish, overrides?: CallOverrides): Promise<string>;
 
   relayer(overrides?: CallOverrides): Promise<string>;
@@ -778,6 +825,8 @@ export interface BaseManager extends BaseContract {
   settlementFeeNumerator(overrides?: CallOverrides): Promise<BigNumber>;
 
   stablePoolPortion(overrides?: CallOverrides): Promise<BigNumber>;
+
+  stablecoin(overrides?: CallOverrides): Promise<string>;
 
   supportedAsset(
     arg0: BigNumberish,
@@ -860,6 +909,13 @@ export interface BaseManager extends BaseContract {
       [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
     >;
 
+    deployOracle(
+      _stablecoinAssetChain: string,
+      _stablecoinAssetChainId: BigNumberish,
+      _protocolTokenPrice: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     deployRelayer(
       _lzEndpoint: string,
       overrides?: CallOverrides
@@ -914,6 +970,8 @@ export interface BaseManager extends BaseContract {
 
     protocolFee(overrides?: CallOverrides): Promise<BigNumber>;
 
+    protocolToken(overrides?: CallOverrides): Promise<string>;
+
     receivers(arg0: BigNumberish, overrides?: CallOverrides): Promise<string>;
 
     relayer(overrides?: CallOverrides): Promise<string>;
@@ -941,6 +999,8 @@ export interface BaseManager extends BaseContract {
     settlementFeeNumerator(overrides?: CallOverrides): Promise<BigNumber>;
 
     stablePoolPortion(overrides?: CallOverrides): Promise<BigNumber>;
+
+    stablecoin(overrides?: CallOverrides): Promise<string>;
 
     supportedAsset(
       arg0: BigNumberish,
@@ -1030,6 +1090,13 @@ export interface BaseManager extends BaseContract {
 
     currentFees(overrides?: CallOverrides): Promise<BigNumber>;
 
+    deployOracle(
+      _stablecoinAssetChain: string,
+      _stablecoinAssetChainId: BigNumberish,
+      _protocolTokenPrice: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
     deployRelayer(
       _lzEndpoint: string,
       overrides?: Overrides & { from?: string }
@@ -1078,6 +1145,8 @@ export interface BaseManager extends BaseContract {
 
     protocolFee(overrides?: CallOverrides): Promise<BigNumber>;
 
+    protocolToken(overrides?: CallOverrides): Promise<BigNumber>;
+
     receivers(
       arg0: BigNumberish,
       overrides?: CallOverrides
@@ -1111,6 +1180,8 @@ export interface BaseManager extends BaseContract {
     settlementFeeNumerator(overrides?: CallOverrides): Promise<BigNumber>;
 
     stablePoolPortion(overrides?: CallOverrides): Promise<BigNumber>;
+
+    stablecoin(overrides?: CallOverrides): Promise<BigNumber>;
 
     supportedAsset(
       arg0: BigNumberish,
@@ -1180,6 +1251,13 @@ export interface BaseManager extends BaseContract {
 
     currentFees(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    deployOracle(
+      _stablecoinAssetChain: string,
+      _stablecoinAssetChainId: BigNumberish,
+      _protocolTokenPrice: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
     deployRelayer(
       _lzEndpoint: string,
       overrides?: Overrides & { from?: string }
@@ -1230,6 +1308,8 @@ export interface BaseManager extends BaseContract {
 
     protocolFee(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    protocolToken(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     receivers(
       arg0: BigNumberish,
       overrides?: CallOverrides
@@ -1265,6 +1345,8 @@ export interface BaseManager extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     stablePoolPortion(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    stablecoin(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     supportedAsset(
       arg0: BigNumberish,
