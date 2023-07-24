@@ -3,7 +3,7 @@
 pragma solidity ^0.8.19;
 
 import "../BaseDeploy.sol";
-import "../../../src/Manager/ChildManager.sol";
+import "../../../src/Manager/AssetChain/AssetChainManager.sol";
 import "../../../src/Staking/Staking.sol";
 import "../../../src/CrossChain/LayerZero/ProcessingChainLz.sol";
 
@@ -13,7 +13,7 @@ contract AddSupportedAsset is BaseDeploy {
     function run() external {
         onlyOnAssetChain();
         string memory json = vm.readFile(assetChainContractsPath);
-        ChildManager manager = ChildManager(abi.decode(json.parseRaw(".manager"), (address)));
+        AssetChainManager manager = AssetChainManager(abi.decode(json.parseRaw(".manager"), (address)));
 
         // Get all assets for this chain ID
         json = vm.readFile(assetsPath);

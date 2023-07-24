@@ -2,39 +2,28 @@
 // Copyright © 2023 TXA PTE. LTD.
 pragma solidity ^0.8.19;
 
-import "../../Rollup/IRollup.sol";
+import "../CrossChainFunctions.sol";
 import "../../Portal/IPortal.sol";
-import "../../Manager/IChildManager.sol";
-import "../../StateUpdateLibrary.sol";
-import "../../util/Id.sol";
+import "../../Manager/AssetChain/IAssetChainManager.sol";
 import "@LayerZero/lzApp/NonblockingLzApp.sol";
 
 /**
  * Deploys on the asset chain and handles sending/receiving messages using LayerZero
  */
-contract AssetChainLz is NonblockingLzApp {
+contract AssetChainLz is NonblockingLzApp, CrossChainFunctions {
     address public manager;
-    address public immutable processingChainSender;
     uint16 public immutable processingChainId;
 
-    constructor(
-        address _admin,
-        address _lzEndpoint,
-        address _processingChainSender,
-        uint16 _processingChainId
-    )
-        NonblockingLzApp(_lzEndpoint)
-    {
+    constructor(address _admin, address _lzEndpoint, uint16 _processingChainId) NonblockingLzApp(_lzEndpoint) {
         // We expect this contract to be deployed through the asset chain manager
         manager = msg.sender;
         _transferOwnership(_admin);
-        processingChainSender = _processingChainSender;
         processingChainId = _processingChainId;
     }
 
     function _nonblockingLzReceive(
         uint16 _srcChainId,
-        bytes memory _srcAddress,
+        bytes memory,
         uint64, /*_nonce*/
         bytes memory _payload
     )
@@ -42,7 +31,13 @@ contract AssetChainLz is NonblockingLzApp {
         override
     {
         if (_srcChainId != processingChainId) revert();
-        (address receiver, IPortal.Obligation[] memory obligations) = abi.decode(_payload, (address, IPortal.Obligation[]));
-        IPortal( IChildManager(manager).portal()).writeObligations(obligations);
+        CrossChainMessage memory message = abi.decode(_payload, (CrossChainMessage));
+        if (message.instruction == WRITE_OBLIGATIONS) {
+            IPortal.Obligation[] memory obligations = abi.decode(message.payload, (IPortal.Obligation[]));
+            IPortal(IAssetChainManager(manager).portal()).writeObligations(obligations);
+        } else if (message.instruction == REJECT_DEPOSITS) {
+            bytes32[] memory depositHashes = abi.decode(message.payload, (bytes32[]));
+            IPortal(IAssetChainManager(manager).portal()).rejectDeposits(depositHashes);
+        }
     }
 }

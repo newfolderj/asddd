@@ -3,7 +3,7 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
-import "../src/Manager/BaseManager.sol";
+import "../src/Portal/Portal.sol";
 
 contract DepositNativeAsset is Script {
     using stdJson for string;
