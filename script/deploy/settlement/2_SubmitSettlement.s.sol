@@ -40,7 +40,7 @@ contract SubmitSettlement is BaseDeploy {
                         ),
                         ID_ONE,
                         StateUpdateLibrary.Balance(
-                            vm.envAddress("VALIDATOR_ADDR"), address(0), Id.wrap(vm.envUint("ASSET_CHAINID")), 1 ether
+                            vm.envAddress("VALIDATOR_ADDR"), address(0), Id.wrap(vm.envUint("ASSET_CHAINID")), 0.5 ether
                         ),
                         StateUpdateLibrary.Balance(
                             vm.envAddress("VALIDATOR_ADDR"), address(0), Id.wrap(vm.envUint("ASSET_CHAINID")), 0
