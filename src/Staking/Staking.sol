@@ -25,7 +25,7 @@ contract Staking is IStaking {
 
     // TIME CONSTANTS
     // Minimum number of blocks for which funds must be locked
-    uint256 public constant PERIOD_LENGTH = 28_800 * 15; // About 60 days on Ethereum
+    uint256 public constant PERIOD_LENGTH = 50; // About 10 minutes on Ethereum
     // How many staking periods are available at one time
     uint256 public constant ACTIVE_PERIODS = 3;
 

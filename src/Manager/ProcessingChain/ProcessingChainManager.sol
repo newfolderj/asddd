@@ -26,7 +26,7 @@ contract ProcessingChainManager is IProcessingChainManager, FeeManager {
     address public protocolToken;
 
     /// Number of blocks that must pass after a state root is submitted in Rollup before it can be confirmed.
-    uint256 public fraudPeriod = 28_800; // ~ 4 days on Ethereum
+    uint256 public fraudPeriod = 5; // ~ 1 minute on Ethereum
     /// Amount of protocol token that must be locked to propose a state root
     uint256 public rootProposalLockAmount = 10_000e18;
     /// Maps chain ID to boolean indicated whether or not this EVM chain is supported by the protocol.

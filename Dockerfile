@@ -18,4 +18,4 @@ ENV RPC_URL=""
 
 
 # ENTRYPOINT ["sh", "-c", "PRIVATE_KEY=$PRIVATE_KEY forge script --rpc-url $RPC_URL ./script/DeployBaseChain.s.sol --broadcast"]
-ENTRYPOINT ["sh", "./entry.sh"]
+# ENTRYPOINT ["sh", "./entry.sh"]
