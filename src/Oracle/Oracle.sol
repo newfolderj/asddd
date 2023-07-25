@@ -24,7 +24,7 @@ contract Oracle is IOracle {
     mapping(uint256 => mapping(address => uint8)) public tokenPrecision;
 
     /// Number of blocks after which a price is considered expired and can no longer be used.
-    uint256 public constant PRICE_EXPIRY = 1800; // About 6 hours on Ethereum
+    uint256 public constant PRICE_EXPIRY = 18000; // About 6 hours on Ethereum
     /// Number of blocks that must pass before price can be updated again
     uint256 public constant PRICE_COOLDOWN = 75; // About 15 minutes on Ethereum
 

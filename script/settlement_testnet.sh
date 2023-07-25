@@ -22,17 +22,10 @@ if [ -z "$PRIVATE_KEY" ]; then
 fi
 
 script_files=(
-  "processing/1_DeployProcessingChain.s.sol"
-   "asset/1_DeployAssetChain.s.sol"
-   "asset/2_AddSupportedChain.s.sol"
-   "asset/3_AddSupportedAsset.s.sol"
-   "asset/4_AddSupportedAssetProcessing.s.sol"
+  "settlement/1_DepositAssets.s.sol"
+  "settlement/2_SubmitSettlement.s.sol"
 )
-
 rpc_urls=(
-  $ARB_RPC_URL
-  $ETH_RPC_URL
-  $ARB_RPC_URL
   $ETH_RPC_URL
   $ARB_RPC_URL
 )

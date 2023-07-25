@@ -91,3 +91,12 @@ publish:
     - .docker-build
   rules:
     - if: '$CI_COMMIT_BRANCH == "develop" && $CI_COMMIT_MESSAGE =~ /^Merge branch .+/'
+
+publish-beta:
+  stage: publish
+  variables:
+    IMAGE_TAG: "$CI_REGISTRY_IMAGE/txa-network-contracts:beta"
+  extends:
+    - .docker-build
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "staking-beta" && $CI_COMMIT_MESSAGE =~ /^Merge branch .+/'
