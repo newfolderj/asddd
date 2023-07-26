@@ -2,27 +2,24 @@
 // Copyright © 2023 TXA PTE. LTD.
 pragma solidity ^0.8.19;
 
-import "./Manager.sol";
-import "./IChildManager.sol";
-import "../CrossChain/LayerZero/AssetChainLz.sol";
+import "../../Portal/Portal.sol";
+import "./IAssetChainManager.sol";
+import "../../CrossChain/LayerZero/AssetChainLz.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-contract ChildManager is Manager, IChildManager {
-    address public immutable relayer;
+contract AssetChainManager is IAssetChainManager {
+    address public admin;
+    address public participatingInterface;
     address public immutable portal;
     address public receiver;
 
+    uint256 defaultMinimumDeposit = 1e6;
     mapping(address => bool) public supportedAsset;
+    mapping(address => uint256) public minimumDeposit;
 
-    constructor(
-        address _participatingInterface,
-        address _admin,
-        address _validator,
-        address _relayer
-    )
-        Manager(_participatingInterface, _admin, _validator)
-    {
-        relayer = _relayer;
+    constructor(address _participatingInterface, address _admin) {
+        admin = _admin;
+        participatingInterface = _participatingInterface;
         portal = address(new Portal(_participatingInterface, address(this)));
     }
 
@@ -33,7 +30,6 @@ contract ChildManager is Manager, IChildManager {
             new AssetChainLz(
             admin,
             _lzEndpoint,
-            relayer,
             _lzProcessingChainId
             )
         );
@@ -51,12 +47,29 @@ contract ChildManager is Manager, IChildManager {
             IERC20Metadata asset = IERC20Metadata(_asset);
             if (asset.decimals() == 0) revert();
             uint256 balance = asset.balanceOf(address(this));
-            require(asset.transferFrom(_approved, address(this), 1), "Failed to transferFrom _approved to manager contract");
-            require(asset.balanceOf(address(this)) == balance + 1, "transferFrom didn't update manager contract's balance correctly");
-            require(asset.transfer(_approved, 1) , "Failed to transfer token back to _approved");
-            require(asset.balanceOf(address(this)) == balance, "transfer failed to update manager contract's balance correctly");
+            require(
+                asset.transferFrom(_approved, address(this), 1), "Failed to transferFrom _approved to manager contract"
+            );
+            require(
+                asset.balanceOf(address(this)) == balance + 1,
+                "transferFrom didn't update manager contract's balance correctly"
+            );
+            require(asset.transfer(_approved, 1), "Failed to transfer token back to _approved");
+            require(
+                asset.balanceOf(address(this)) == balance,
+                "transfer failed to update manager contract's balance correctly"
+            );
         }
         supportedAsset[_asset] = true;
     }
 
+    /// Called by admin to set the `_minimum` deposit amount for an `_asset`
+    function setMinimumDeposit(address _asset, uint256 _minimum) external {
+        if (msg.sender != admin) revert("Only admin");
+        minimumDeposit[_asset] = _minimum;
+    }
+
+    function getMinimumDeposit(address _asset) external view returns (uint256) {
+        return minimumDeposit[_asset] == 0 ? defaultMinimumDeposit : minimumDeposit[_asset];
+    }
 }

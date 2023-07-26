@@ -3,7 +3,7 @@
 pragma solidity ^0.8.19;
 
 import "./IOracle.sol";
-import "../Manager/IBaseManager.sol";
+import "../Manager/ProcessingChain/IProcessingChainManager.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /// @title Oracle
@@ -24,7 +24,7 @@ contract Oracle is IOracle {
     mapping(uint256 => mapping(address => uint8)) public tokenPrecision;
 
     /// Number of blocks after which a price is considered expired and can no longer be used.
-    uint256 public constant PRICE_EXPIRY = 1800; // About 6 hours on Ethereum
+    uint256 public constant PRICE_EXPIRY = 18000; // About 6 hours on Ethereum
     /// Number of blocks that must pass before price can be updated again
     uint256 public constant PRICE_COOLDOWN = 75; // About 15 minutes on Ethereum
 
@@ -75,9 +75,8 @@ contract Oracle is IOracle {
     /// @param _asset  Token address of the asset (address(0) if it's the native asset)
     /// @param _price  Price of the asset in stablecoin. Uses 18 decimals of precision
     function initializePrice(uint256 _chainId, address _asset, uint256 _price) external {
-        // TODO: chain ID must be supported
         if (!isReporter[msg.sender]) revert("Only reporter");
-        uint8 precision = IBaseManager(manager).supportedAsset(_chainId, _asset);
+        uint8 precision = IProcessingChainManager(manager).supportedAsset(_chainId, _asset);
         if (precision == 0) revert("Unsupported asset");
         uint256 lastPrice = latestPrice[_chainId][_asset];
         if (lastPrice > 0) revert("Already initialized");
@@ -134,7 +133,7 @@ contract Oracle is IOracle {
     }
 
     /// Converts a given `_amount` of stablecoin to equivalent amount of protocol token.
-    /// Assumes stablecoin token uses 6 decimals of precision and protocl token uses 18.
+    /// Assumes stablecoin token uses 6 decimals of precision and protocol token uses 18.
     /// @param _amount Amount of stablecoin to convert to protocol token
     function stablecoinToProtocol(uint256 _amount) external view returns (uint256) {
         if (block.number >= lastReport[block.chainid][protocolToken] + PRICE_EXPIRY) {

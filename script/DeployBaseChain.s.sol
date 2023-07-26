@@ -3,8 +3,8 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Script.sol";
-import "../src/Manager/BaseManager.sol";
-import "../src/Manager/ChildManager.sol";
+import "../src/Manager/ProcessingChain/ProcessingChainManager.sol";
+import "../src/Manager/AssetChain/AssetChainManager.sol";
 import "@LayerZero/mocks/LZEndpointMock.sol";
 import "../src/CrossChain/LayerZero/AssetChainLz.sol";
 import "../src/CrossChain/LayerZero/ProcessingChainLz.sol";
@@ -17,8 +17,8 @@ contract DeployBaseChain is Script {
     address internal admin;
     address internal validator;
 
-    BaseManager internal manager;
-    ChildManager internal assetChainManager;
+    ProcessingChainManager internal manager;
+    AssetChainManager internal assetChainManager;
 
     function run() external {
         uint256 deployerPrivateKey = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
@@ -35,7 +35,7 @@ contract DeployBaseChain is Script {
         ERC20PresetFixedSupply stablecoin = new ERC20PresetFixedSupply("Stablecoin", "USDT", 1e20 ether, validator);
         ERC20PresetFixedSupply protocolToken = new ERC20PresetFixedSupply("ProtocolToken", "TXA", 1e20 ether, validator);
 
-        manager = new BaseManager({
+        manager = new ProcessingChainManager({
             _participatingInterface: participatingInterface, 
             _admin: admin,
             _validator: validator,
@@ -54,11 +54,9 @@ contract DeployBaseChain is Script {
         LZEndpointMock lzEndpointMockDest = new LZEndpointMock(uint16(block.chainid));
         manager.deployRelayer(address(lzEndpointMock));
         ProcessingChainLz processingChainLz = ProcessingChainLz(manager.relayer());
-        assetChainManager = new ChildManager({
+        assetChainManager = new AssetChainManager({
             _participatingInterface: participatingInterface, 
-            _admin: admin,
-            _validator: validator,
-            _relayer: manager.relayer()
+            _admin: admin
         });
         assetChainManager.addSupportedAsset(address(0), address(0));
         assetChainManager.deployReceiver(address(lzEndpointMockDest), uint16(block.chainid));
@@ -70,9 +68,6 @@ contract DeployBaseChain is Script {
         evm[0] = block.chainid;
         lz[0] = uint16(block.chainid);
         processingChainLz.setChainIds(evm, lz);
-        address[] memory dests = new address[](1);
-        dests[0] = assetChainManager.receiver();
-        processingChainLz.setPortalAddress(evm, dests);
         AssetChainLz assetChainLz = AssetChainLz(assetChainManager.receiver());
         assetChainLz.setTrustedRemote(
             uint16(block.chainid), abi.encodePacked(address(processingChainLz), address(assetChainLz))
@@ -80,10 +75,10 @@ contract DeployBaseChain is Script {
         lzEndpointMock.setDestLzEndpoint(address(assetChainLz), address(lzEndpointMockDest));
 
         Staking staking = new Staking(address(manager), address(stablecoin), address(protocolToken));
-        manager.setCollateral(address(staking));
+        manager.setStaking(address(staking));
         uint256[3] memory tranches = staking.getActiveTranches();
-        protocolToken.approve(manager.collateral(), 1e20 ether);
-        stablecoin.approve(manager.collateral(), 1e20 ether);
+        protocolToken.approve(manager.staking(), 1e20 ether);
+        stablecoin.approve(manager.staking(), 1e20 ether);
         staking.stake(address(stablecoin), 1e20 ether, tranches[1]);
         staking.stake(address(protocolToken), 1e20 ether, tranches[1]);
 

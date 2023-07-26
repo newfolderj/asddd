@@ -3,7 +3,7 @@
 pragma solidity ^0.8.19;
 
 import "../BaseDeploy.sol";
-import "../../../src/Manager/BaseManager.sol";
+import "../../../src/Manager/ProcessingChain/ProcessingChainManager.sol";
 import "../../../src/CrossChain/LayerZero/ProcessingChainLz.sol";
 
 contract AddSupportedAssetProcessing is BaseDeploy {
@@ -12,7 +12,7 @@ contract AddSupportedAssetProcessing is BaseDeploy {
     function run() external {
         onlyOnProcessingChain();
         string memory json = vm.readFile(processingChainContractsPath);
-        BaseManager manager = BaseManager(abi.decode(json.parseRaw(".manager"), (address)));
+        ProcessingChainManager manager = ProcessingChainManager(abi.decode(json.parseRaw(".manager"), (address)));
         Oracle oracle = Oracle(manager.oracle());
 
         // Get all assets for this chain ID

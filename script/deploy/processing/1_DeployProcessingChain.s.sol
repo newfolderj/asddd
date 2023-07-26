@@ -3,7 +3,7 @@
 pragma solidity ^0.8.19;
 
 import "../BaseDeploy.sol";
-import "../../../src/Manager/BaseManager.sol";
+import "../../../src/Manager/ProcessingChain/ProcessingChainManager.sol";
 import "../../../src/Staking/Staking.sol";
 import "../../../src/CrossChain/LayerZero/ProcessingChainLz.sol";
 
@@ -24,7 +24,7 @@ contract DeployProcessingChain is BaseDeploy {
         address admin = vm.addr(deployerPrivateKey);
         address validator = vm.addr(deployerPrivateKey);
         // Deploy Manager
-        BaseManager manager = new BaseManager({
+        ProcessingChainManager manager = new ProcessingChainManager({
             _participatingInterface: participatingInterface, 
             _admin: admin,
             _validator: validator,
@@ -37,7 +37,7 @@ contract DeployProcessingChain is BaseDeploy {
         // Deploy Staking
         Staking staking =
             new Staking(address(manager), address(stablecoinProcessingChain), address(protocolTokenProcessingChain));
-        manager.setCollateral(address(staking));
+        manager.setStaking(address(staking));
 
         // Deploy Oracle
         manager.deployOracle(address(stablecoin), block.chainid, vm.envUint("PROTOCOL_TOKEN_PRICE"));
@@ -49,7 +49,7 @@ contract DeployProcessingChain is BaseDeploy {
         vm.serializeAddress(obj1, "rollup", manager.rollup());
         vm.serializeAddress(obj1, "processingChainLz", manager.relayer());
         vm.serializeAddress(obj1, "oracle", manager.oracle());
-        vm.serializeAddress(obj1, "staking", manager.collateral());
+        vm.serializeAddress(obj1, "staking", manager.staking());
         vm.writeJson(vm.serializeAddress(obj1, "manager", address(manager)), processingChainContractsPath);
     }
 }
