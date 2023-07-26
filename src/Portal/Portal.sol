@@ -48,6 +48,8 @@ contract Portal is IPortal {
     event RejectedDeposit(address trader, address asset, uint256 amount);
     event Withdraw(address wallet, uint256 amount, address token);
     event WithdrawRejectedDeposit(address wallet, uint256 amount, address token);
+    event DepositsPaused();
+    event DepositsResumed();
 
     mapping(address => uint256) public collateralized;
     mapping(address => mapping(address => uint256)) public settled;
@@ -61,11 +63,13 @@ contract Portal is IPortal {
     function pauseDeposits() external {
         if (msg.sender != manager.admin()) revert();
         depositsPaused = true;
+        emit DepositsPaused();
     }
 
     function resumeDeposits() external {
         if (msg.sender != manager.admin()) revert();
         depositsPaused = false;
+        emit DepositsResumed();
     }
 
     /// Called by a trader to deposit the native asset of this chain for trading on the participating interface.

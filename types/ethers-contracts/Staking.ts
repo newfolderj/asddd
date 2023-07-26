@@ -14,7 +14,11 @@ import type {
   Signer,
   utils,
 } from "ethers";
-import type { FunctionFragment, Result } from "@ethersproject/abi";
+import type {
+  FunctionFragment,
+  Result,
+  EventFragment,
+} from "@ethersproject/abi";
 import type { Listener, Provider } from "@ethersproject/providers";
 import type {
   TypedEventFilter,
@@ -332,8 +336,107 @@ export interface StakingInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "unlock", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
 
-  events: {};
+  events: {
+    "Claimed(address,uint256,address,uint256)": EventFragment;
+    "InsurancePaid(uint256,address,uint256)": EventFragment;
+    "Locked(address,uint256,uint256)": EventFragment;
+    "RewardAdded(uint256,uint256,address,uint256)": EventFragment;
+    "Staked(address,address,uint256,uint256,uint256)": EventFragment;
+    "Unlocked(uint256[])": EventFragment;
+    "WithdrawStaked(address,address,uint256)": EventFragment;
+  };
+
+  getEvent(nameOrSignatureOrTopic: "Claimed"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "InsurancePaid"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Locked"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "RewardAdded"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Staked"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Unlocked"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "WithdrawStaked"): EventFragment;
 }
+
+export interface ClaimedEventObject {
+  staker: string;
+  chainId: BigNumber;
+  asset: string;
+  amount: BigNumber;
+}
+export type ClaimedEvent = TypedEvent<
+  [string, BigNumber, string, BigNumber],
+  ClaimedEventObject
+>;
+
+export type ClaimedEventFilter = TypedEventFilter<ClaimedEvent>;
+
+export interface InsurancePaidEventObject {
+  chainId: BigNumber;
+  asset: string;
+  amount: BigNumber;
+}
+export type InsurancePaidEvent = TypedEvent<
+  [BigNumber, string, BigNumber],
+  InsurancePaidEventObject
+>;
+
+export type InsurancePaidEventFilter = TypedEventFilter<InsurancePaidEvent>;
+
+export interface LockedEventObject {
+  asset: string;
+  amount: BigNumber;
+  lockId: BigNumber;
+}
+export type LockedEvent = TypedEvent<
+  [string, BigNumber, BigNumber],
+  LockedEventObject
+>;
+
+export type LockedEventFilter = TypedEventFilter<LockedEvent>;
+
+export interface RewardAddedEventObject {
+  lockId: BigNumber;
+  chainId: BigNumber;
+  asset: string;
+  amount: BigNumber;
+}
+export type RewardAddedEvent = TypedEvent<
+  [BigNumber, BigNumber, string, BigNumber],
+  RewardAddedEventObject
+>;
+
+export type RewardAddedEventFilter = TypedEventFilter<RewardAddedEvent>;
+
+export interface StakedEventObject {
+  staker: string;
+  asset: string;
+  amount: BigNumber;
+  unlockTime: BigNumber;
+  depositId: BigNumber;
+}
+export type StakedEvent = TypedEvent<
+  [string, string, BigNumber, BigNumber, BigNumber],
+  StakedEventObject
+>;
+
+export type StakedEventFilter = TypedEventFilter<StakedEvent>;
+
+export interface UnlockedEventObject {
+  lockIds: BigNumber[];
+}
+export type UnlockedEvent = TypedEvent<[BigNumber[]], UnlockedEventObject>;
+
+export type UnlockedEventFilter = TypedEventFilter<UnlockedEvent>;
+
+export interface WithdrawStakedEventObject {
+  staker: string;
+  asset: string;
+  amount: BigNumber;
+}
+export type WithdrawStakedEvent = TypedEvent<
+  [string, string, BigNumber],
+  WithdrawStakedEventObject
+>;
+
+export type WithdrawStakedEventFilter = TypedEventFilter<WithdrawStakedEvent>;
 
 export interface Staking extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -787,7 +890,84 @@ export interface Staking extends BaseContract {
     ): Promise<void>;
   };
 
-  filters: {};
+  filters: {
+    "Claimed(address,uint256,address,uint256)"(
+      staker?: string | null,
+      chainId?: BigNumberish | null,
+      asset?: string | null,
+      amount?: null
+    ): ClaimedEventFilter;
+    Claimed(
+      staker?: string | null,
+      chainId?: BigNumberish | null,
+      asset?: string | null,
+      amount?: null
+    ): ClaimedEventFilter;
+
+    "InsurancePaid(uint256,address,uint256)"(
+      chainId?: BigNumberish | null,
+      asset?: string | null,
+      amount?: null
+    ): InsurancePaidEventFilter;
+    InsurancePaid(
+      chainId?: BigNumberish | null,
+      asset?: string | null,
+      amount?: null
+    ): InsurancePaidEventFilter;
+
+    "Locked(address,uint256,uint256)"(
+      asset?: string | null,
+      amount?: null,
+      lockId?: null
+    ): LockedEventFilter;
+    Locked(
+      asset?: string | null,
+      amount?: null,
+      lockId?: null
+    ): LockedEventFilter;
+
+    "RewardAdded(uint256,uint256,address,uint256)"(
+      lockId?: BigNumberish | null,
+      chainId?: BigNumberish | null,
+      asset?: string | null,
+      amount?: null
+    ): RewardAddedEventFilter;
+    RewardAdded(
+      lockId?: BigNumberish | null,
+      chainId?: BigNumberish | null,
+      asset?: string | null,
+      amount?: null
+    ): RewardAddedEventFilter;
+
+    "Staked(address,address,uint256,uint256,uint256)"(
+      staker?: string | null,
+      asset?: string | null,
+      amount?: null,
+      unlockTime?: null,
+      depositId?: null
+    ): StakedEventFilter;
+    Staked(
+      staker?: string | null,
+      asset?: string | null,
+      amount?: null,
+      unlockTime?: null,
+      depositId?: null
+    ): StakedEventFilter;
+
+    "Unlocked(uint256[])"(lockIds?: null): UnlockedEventFilter;
+    Unlocked(lockIds?: null): UnlockedEventFilter;
+
+    "WithdrawStaked(address,address,uint256)"(
+      staker?: string | null,
+      asset?: string | null,
+      amount?: null
+    ): WithdrawStakedEventFilter;
+    WithdrawStaked(
+      staker?: string | null,
+      asset?: string | null,
+      amount?: null
+    ): WithdrawStakedEventFilter;
+  };
 
   estimateGas: {
     ACTIVE_PERIODS(overrides?: CallOverrides): Promise<BigNumber>;

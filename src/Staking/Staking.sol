@@ -21,6 +21,15 @@ contract Staking is IStaking {
     using IdLib for Id;
     using EnumerableSet for EnumerableSet.UintSet;
 
+    event Staked(address indexed staker, address indexed asset, uint256 amount, uint256 unlockTime, uint256 depositId);
+    event WithdrawStaked(address indexed staker, address indexed asset, uint256 amount);
+    event Locked(address indexed asset, uint256 amount, uint256 lockId);
+    event Unlocked(uint256[] lockIds);
+    event RewardAdded(uint256 indexed lockId, uint256 indexed chainId, address indexed asset, uint256 amount);
+    event InsurancePaid(uint256 indexed chainId, address indexed asset, uint256 amount);
+    event Claimed(address indexed staker, uint256 indexed chainId, address indexed asset, uint256 amount);
+
+
     error INSUFFICIENT_COLLATERAL(uint256 amountToLock, uint256 amountLeft);
 
     // TIME CONSTANTS
@@ -107,6 +116,7 @@ contract Staking is IStaking {
         totalStaked[_asset] += _amount;
         individualStaked[msg.sender][_asset] += _amount;
 
+        emit Staked(msg.sender, _asset, _amount, _unlockTime, Id.unwrap(currentDepositId));
         currentDepositId = currentDepositId.increment();
     }
 
@@ -136,11 +146,13 @@ contract Staking is IStaking {
             require(IERC20(stablecoin).transfer(msg.sender, stablecoinAmount));
             totalStaked[stablecoin] -= stablecoinAmount;
             individualStaked[msg.sender][stablecoin] -= stablecoinAmount;
+            emit WithdrawStaked(msg.sender, address(stablecoin), stablecoinAmount);
         }
         if (protocolTokenAmount > 0) {
             require(IERC20(protocolToken).transfer(msg.sender, protocolTokenAmount));
-            totalStaked[protocolToken] -= stablecoinAmount;
-            individualStaked[msg.sender][protocolToken] -= stablecoinAmount;
+            totalStaked[protocolToken] -= protocolTokenAmount;
+            individualStaked[msg.sender][protocolToken] -= protocolTokenAmount;
+            emit WithdrawStaked(msg.sender, address(protocolToken), protocolTokenAmount);
         }
     }
 
@@ -171,7 +183,9 @@ contract Staking is IStaking {
         if (amountLeft > 0) revert INSUFFICIENT_COLLATERAL({ amountToLock: _amountToLock, amountLeft: amountLeft });
 
         locks[Id.unwrap(currentLockId)] = LockRecord(_amountToLock, totalAvailable, block.number, _asset);
+        emit Locked(_asset, _amountToLock, Id.unwrap(currentLockId));
         currentLockId = currentLockId.increment();
+        
         return Id.unwrap(currentLockId) - 1;
     }
 
@@ -209,17 +223,20 @@ contract Staking is IStaking {
             }
             locks[_lockIds[i]].amountLocked = 0;
         }
+        emit Unlocked(_lockIds);
     }
 
     function reward(uint256 _lockId, uint256 _chainId, address _asset, uint256 _amount) external {
         if (msg.sender != manager.rollup()) revert();
         rewards[_lockId][_chainId][_asset] += _amount;
+        emit RewardAdded(_lockId, _chainId, _asset, _amount);
     }
 
     // Called by rollup contract to delegate a portion of settlement fee to the insurance fund
     function payInsurance(uint256 _chainId, address _asset, uint256 _amount) external {
         if (msg.sender != manager.rollup()) revert();
         insuranceFees[_chainId][_asset] += _amount;
+        emit InsurancePaid(_chainId, _asset, _amount);
     }
 
     struct ClaimParams {
@@ -276,6 +293,7 @@ contract Staking is IStaking {
             obligations[i] = IPortal.Obligation(msg.sender, _params.rewardAsset[i], amountToClaim);
             // Set to 0 so it can't be used again
             toClaim[msg.sender][_params.rewardChainId][_params.rewardAsset[i]] = 0;
+            emit Claimed(msg.sender, _params.rewardChainId, _params.rewardAsset[i], amountToClaim);
         }
         IProcessingChainLz(IProcessingChainManager(address(manager)).relayer()).sendObligations{ value: msg.value }(
             _params.rewardChainId, obligations, bytes(""), msg.sender
