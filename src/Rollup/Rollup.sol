@@ -54,6 +54,8 @@ contract Rollup is IRollup {
     /// Tracks each time a state root is used to lock collateral for a settlement
     mapping(uint256 => StateRootRecord) internal lockIdStateRoot;
 
+    event SettlementFeePaid(address indexed trader, uint256 indexed chainId, address indexed token, uint256 amount);
+
     error CALLER_NOT_VALIDATOR();
     error EMPTY_STATE_ROOT();
     error INVALID_PROOF_SETTLEMENT();
@@ -186,6 +188,7 @@ contract Rollup is IRollup {
             // Calculate settlement fee
             (uint256 insuranceFee, uint256 stakerReward) =
                 IFeeManager(address(manager)).calculateSettlementFees(state.settlement.balanceBefore.amount);
+            emit SettlementFeePaid(state.settlement.balanceBefore.trader, Id.unwrap(_chainId), state.settlement.balanceBefore.asset, insuranceFee + stakerReward);
             // create an obligation to be relayed
             obligations[i] = IPortal.Obligation(
                 state.settlement.balanceBefore.trader,
