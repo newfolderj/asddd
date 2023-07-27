@@ -33,7 +33,10 @@ contract DeployBaseChain is Script {
         admin = vm.addr(deployerPrivateKey);
         validator = vm.addr(deployerPrivateKey);
         ERC20PresetFixedSupply stablecoin = new ERC20PresetFixedSupply("Stablecoin", "USDT", 1e20 ether, validator);
+        ERC20PresetFixedSupply dummyCoin = new ERC20PresetFixedSupply("DummyCoin", "DMC", 1e20 ether, validator);
         ERC20PresetFixedSupply protocolToken = new ERC20PresetFixedSupply("ProtocolToken", "TXA", 1e20 ether, validator);
+        dummyCoin.transfer(vm.addr(alicePk), 1e18);
+        dummyCoin.transfer(vm.addr(bobPk), 1e18);
 
         manager = new BaseManager({
             _participatingInterface: participatingInterface, 
@@ -44,11 +47,13 @@ contract DeployBaseChain is Script {
         });
         manager.addSupportedChain(block.chainid);
         manager.addSupportedAsset(block.chainid, address(0), 18);
+        manager.addSupportedAsset(block.chainid, address(dummyCoin), 18);
         // Setup oracle with initial prices
         manager.deployOracle(address(stablecoin), block.chainid, 0.3e18);
         Oracle oracle = Oracle(manager.oracle());
         oracle.grantReporter(admin);
         oracle.initializePrice(block.chainid, address(0), 1895.25e18);
+        oracle.initializePrice(block.chainid, address(dummyCoin), 0.01e18);
 
         LZEndpointMock lzEndpointMock = new LZEndpointMock(uint16(block.chainid));
         LZEndpointMock lzEndpointMockDest = new LZEndpointMock(uint16(block.chainid));
@@ -61,6 +66,8 @@ contract DeployBaseChain is Script {
             _relayer: manager.relayer()
         });
         assetChainManager.addSupportedAsset(address(0), address(0));
+        dummyCoin.approve(address(assetChainManager), 1);
+        assetChainManager.addSupportedAsset(address(dummyCoin), address(validator));
         assetChainManager.deployReceiver(address(lzEndpointMockDest), uint16(block.chainid));
         processingChainLz.setTrustedRemote(
             uint16(block.chainid), abi.encodePacked(assetChainManager.receiver(), address(processingChainLz))
@@ -92,6 +99,7 @@ contract DeployBaseChain is Script {
         string memory obj1 = '{"manager":"","portal":"","rollup":""}';
         vm.serializeAddress(obj1, "portal", assetChainManager.portal());
         vm.serializeAddress(obj1, "rollup", manager.rollup());
+        vm.serializeAddress(obj1, "dummyCoin", address(dummyCoin));
         vm.writeJson(vm.serializeAddress(obj1, "manager", address(manager)), "./out/contracts.json");
     }
 }
