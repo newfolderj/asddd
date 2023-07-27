@@ -339,7 +339,7 @@ contract Staking is IStaking {
 
     /// Returns all deposit IDs for a staker where there is some amount unlocked.
     /// Front-end will need to filter out any "0" from the array
-    function getUserUnlockedDepositIds(address _user) external view returns (uint256[] memory) {
+    function getAvailableDeposits(address _user) external view returns (uint256[] memory) {
         uint256[] memory depositIds = userDeposits[_user].values();
         for (uint256 i = 0; i < depositIds.length; i++) {
             DepositRecord memory depositRecord = deposits[depositIds[i]];
