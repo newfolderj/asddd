@@ -76,8 +76,8 @@ contract RollupTest is BaseTest {
         lockId[0] = 1;
         lockId[1] = 2;
         uint256[] memory depositId = new uint256[](2);
-        depositId[0] = 0;
-        depositId[1] = 1;
+        depositId[0] = 1;
+        depositId[1] = 2;
         address[] memory rewardAsset = new address[](1);
         rewardAsset[0] = address(0);
         Staking.ClaimParams memory claimParams = Staking.ClaimParams(lockId, depositId, chainId, rewardAsset);

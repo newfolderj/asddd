@@ -50,7 +50,7 @@ contract Staking is IStaking {
         uint256 withdrawn;
     }
 
-    Id public currentDepositId = ID_ZERO;
+    Id public currentDepositId = ID_ONE;
     Id public currentLockId = ID_ZERO;
     mapping(uint256 => DepositRecord) public deposits;
     mapping(address => EnumerableSet.UintSet) internal userDeposits;
@@ -335,6 +335,25 @@ contract Staking is IStaking {
             records[i] = deposits[depositIds[i]];
         }
         return records;
+    }
+
+    /// Returns all deposit IDs for a staker where there is some amount unlocked.
+    /// Front-end will need to filter out any "0" from the array
+    function getUserUnlockedDepositIds(address _user) external view returns (uint256[] memory) {
+        uint256[] memory depositIds = userDeposits[_user].values();
+        for (uint256 i = 0; i < depositIds.length; i++) {
+            DepositRecord memory depositRecord = deposits[depositIds[i]];
+            if (depositRecord.unlockTime > block.number) {
+                depositIds[i] = 0;
+                continue;
+            }
+            // get totals for this tranche and calculate how much of this amount is available for withdraw
+            TotalAmount memory total = totals[depositRecord.asset][depositRecord.unlockTime];
+            uint256 unlocked = ((total.total - total.locked) * depositRecord.amount) / total.total;
+            uint256 available = unlocked - depositRecord.withdrawn;
+            if (available == 0) depositIds[i] = 0;
+        }
+        return depositIds;
     }
 
     function getAllLockRecords() external view returns (LockRecord[] memory) {
