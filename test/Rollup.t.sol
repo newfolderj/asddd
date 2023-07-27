@@ -101,8 +101,14 @@ contract RollupTest is BaseTest {
         vm.prank(validator);
         rollup.confirmStateRoot();
 
+        // unlocked deposits view function should be all 0s
+        uint256[] memory unlockedIds = staking.getAvailableDeposits(validator);
+        for (uint256 i = 0; i < unlockedIds.length; i++) {
+            if (unlockedIds[i] != 0) revert();
+        }
+
         // Simulate passage of time to unlock time of deposit
-        (,,,,uint256 unlockTime,) = staking.deposits(depositId[0]);
+        (,,,, uint256 unlockTime,) = staking.deposits(depositId[0]);
         vm.roll(unlockTime);
         // Staker should not be able to withdraw collateral since it wasn't unlocked
         vm.prank(validator);
@@ -112,8 +118,19 @@ contract RollupTest is BaseTest {
         // Unlock collateral
         staking.unlock(lockId);
 
-        // vm.prank(validator);
-        // staking.withdraw(depositId);
+        // none of the unlocked deposit IDs should be 0
+        unlockedIds = staking.getAvailableDeposits(validator);
+        for (uint256 i = 0; i < unlockedIds.length; i++) {
+            if (unlockedIds[i] == 0) revert();
+        }
 
+        // after withdrawing remaining funds, unlocked deposit IDs should show 0
+        vm.prank(validator);
+        staking.withdraw(depositId);
+
+        unlockedIds = staking.getAvailableDeposits(validator);
+        for (uint256 i = 0; i < unlockedIds.length; i++) {
+            if (unlockedIds[i] != 0) revert();
+        }
     }
 }

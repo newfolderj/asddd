@@ -103,12 +103,12 @@ export interface StakingInterface extends utils.Interface {
     "getActiveTranches()": FunctionFragment;
     "getActiveTranches(uint256)": FunctionFragment;
     "getAllLockRecords()": FunctionFragment;
+    "getAvailableDeposits(address)": FunctionFragment;
     "getAvailableToClaim(address,uint256,address)": FunctionFragment;
     "getLockRecords(uint256,uint256)": FunctionFragment;
     "getUnlocked(address)": FunctionFragment;
     "getUserDepositIds(address)": FunctionFragment;
     "getUserDepositRecords(address)": FunctionFragment;
-    "getUserUnlockedDepositIds(address)": FunctionFragment;
     "individualStaked(address,address)": FunctionFragment;
     "lock(address,uint256)": FunctionFragment;
     "locks(uint256)": FunctionFragment;
@@ -135,12 +135,12 @@ export interface StakingInterface extends utils.Interface {
       | "getActiveTranches()"
       | "getActiveTranches(uint256)"
       | "getAllLockRecords"
+      | "getAvailableDeposits"
       | "getAvailableToClaim"
       | "getLockRecords"
       | "getUnlocked"
       | "getUserDepositIds"
       | "getUserDepositRecords"
-      | "getUserUnlockedDepositIds"
       | "individualStaked"
       | "lock"
       | "locks"
@@ -193,6 +193,10 @@ export interface StakingInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "getAvailableDeposits",
+    values: [string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "getAvailableToClaim",
     values: [string, BigNumberish, string]
   ): string;
@@ -207,10 +211,6 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "getUserDepositRecords",
-    values: [string]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getUserUnlockedDepositIds",
     values: [string]
   ): string;
   encodeFunctionData(
@@ -291,6 +291,10 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "getAvailableDeposits",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "getAvailableToClaim",
     data: BytesLike
   ): Result;
@@ -308,10 +312,6 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "getUserDepositRecords",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getUserUnlockedDepositIds",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -523,6 +523,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[Staking.LockRecordStructOutput[]]>;
 
+    getAvailableDeposits(
+      _user: string,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber[]]>;
+
     getAvailableToClaim(
       _staker: string,
       _chainId: BigNumberish,
@@ -555,11 +560,6 @@ export interface Staking extends BaseContract {
       _user: string,
       overrides?: CallOverrides
     ): Promise<[Staking.DepositRecordStructOutput[]]>;
-
-    getUserUnlockedDepositIds(
-      _user: string,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber[]]>;
 
     individualStaked(
       arg0: string,
@@ -668,6 +668,11 @@ export interface Staking extends BaseContract {
     overrides?: CallOverrides
   ): Promise<Staking.LockRecordStructOutput[]>;
 
+  getAvailableDeposits(
+    _user: string,
+    overrides?: CallOverrides
+  ): Promise<BigNumber[]>;
+
   getAvailableToClaim(
     _staker: string,
     _chainId: BigNumberish,
@@ -700,11 +705,6 @@ export interface Staking extends BaseContract {
     _user: string,
     overrides?: CallOverrides
   ): Promise<Staking.DepositRecordStructOutput[]>;
-
-  getUserUnlockedDepositIds(
-    _user: string,
-    overrides?: CallOverrides
-  ): Promise<BigNumber[]>;
 
   individualStaked(
     arg0: string,
@@ -813,6 +813,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<Staking.LockRecordStructOutput[]>;
 
+    getAvailableDeposits(
+      _user: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber[]>;
+
     getAvailableToClaim(
       _staker: string,
       _chainId: BigNumberish,
@@ -845,11 +850,6 @@ export interface Staking extends BaseContract {
       _user: string,
       overrides?: CallOverrides
     ): Promise<Staking.DepositRecordStructOutput[]>;
-
-    getUserUnlockedDepositIds(
-      _user: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber[]>;
 
     individualStaked(
       arg0: string,
@@ -1019,6 +1019,11 @@ export interface Staking extends BaseContract {
 
     getAllLockRecords(overrides?: CallOverrides): Promise<BigNumber>;
 
+    getAvailableDeposits(
+      _user: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     getAvailableToClaim(
       _staker: string,
       _chainId: BigNumberish,
@@ -1040,11 +1045,6 @@ export interface Staking extends BaseContract {
     ): Promise<BigNumber>;
 
     getUserDepositRecords(
-      _user: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    getUserUnlockedDepositIds(
       _user: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -1136,6 +1136,11 @@ export interface Staking extends BaseContract {
 
     getAllLockRecords(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    getAvailableDeposits(
+      _user: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     getAvailableToClaim(
       _staker: string,
       _chainId: BigNumberish,
@@ -1160,11 +1165,6 @@ export interface Staking extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     getUserDepositRecords(
-      _user: string,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    getUserUnlockedDepositIds(
       _user: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
