@@ -14,7 +14,11 @@ import type {
   Signer,
   utils,
 } from "ethers";
-import type { FunctionFragment, Result } from "@ethersproject/abi";
+import type {
+  FunctionFragment,
+  Result,
+  EventFragment,
+} from "@ethersproject/abi";
 import type { Listener, Provider } from "@ethersproject/providers";
 import type {
   TypedEventFilter,
@@ -306,8 +310,26 @@ export interface RollupInterface extends utils.Interface {
     data: BytesLike
   ): Result;
 
-  events: {};
+  events: {
+    "SettlementFeePaid(address,uint256,address,uint256)": EventFragment;
+  };
+
+  getEvent(nameOrSignatureOrTopic: "SettlementFeePaid"): EventFragment;
 }
+
+export interface SettlementFeePaidEventObject {
+  trader: string;
+  chainId: BigNumber;
+  token: string;
+  amount: BigNumber;
+}
+export type SettlementFeePaidEvent = TypedEvent<
+  [string, BigNumber, string, BigNumber],
+  SettlementFeePaidEventObject
+>;
+
+export type SettlementFeePaidEventFilter =
+  TypedEventFilter<SettlementFeePaidEvent>;
 
 export interface Rollup extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -610,7 +632,20 @@ export interface Rollup extends BaseContract {
     ): Promise<void>;
   };
 
-  filters: {};
+  filters: {
+    "SettlementFeePaid(address,uint256,address,uint256)"(
+      trader?: string | null,
+      chainId?: BigNumberish | null,
+      token?: string | null,
+      amount?: null
+    ): SettlementFeePaidEventFilter;
+    SettlementFeePaid(
+      trader?: string | null,
+      chainId?: BigNumberish | null,
+      token?: string | null,
+      amount?: null
+    ): SettlementFeePaidEventFilter;
+  };
 
   estimateGas: {
     claimTradingFees(

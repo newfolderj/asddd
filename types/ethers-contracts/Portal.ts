@@ -219,6 +219,8 @@ export interface PortalInterface extends utils.Interface {
   events: {
     "Deposit(address,uint256,address,uint256)": EventFragment;
     "DepositUtxo(address,uint256,address,address,uint256,bytes32)": EventFragment;
+    "DepositsPaused()": EventFragment;
+    "DepositsResumed()": EventFragment;
     "RejectedDeposit(address,address,uint256)": EventFragment;
     "SettlementProcessed(address,address,uint256)": EventFragment;
     "SettlementRequested(address,address,uint256)": EventFragment;
@@ -228,6 +230,8 @@ export interface PortalInterface extends utils.Interface {
 
   getEvent(nameOrSignatureOrTopic: "Deposit"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "DepositUtxo"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "DepositsPaused"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "DepositsResumed"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RejectedDeposit"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "SettlementProcessed"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "SettlementRequested"): EventFragment;
@@ -262,6 +266,16 @@ export type DepositUtxoEvent = TypedEvent<
 >;
 
 export type DepositUtxoEventFilter = TypedEventFilter<DepositUtxoEvent>;
+
+export interface DepositsPausedEventObject {}
+export type DepositsPausedEvent = TypedEvent<[], DepositsPausedEventObject>;
+
+export type DepositsPausedEventFilter = TypedEventFilter<DepositsPausedEvent>;
+
+export interface DepositsResumedEventObject {}
+export type DepositsResumedEvent = TypedEvent<[], DepositsResumedEventObject>;
+
+export type DepositsResumedEventFilter = TypedEventFilter<DepositsResumedEvent>;
 
 export interface RejectedDepositEventObject {
   trader: string;
@@ -683,6 +697,12 @@ export interface Portal extends BaseContract {
       chainSequenceId?: null,
       utxo?: null
     ): DepositUtxoEventFilter;
+
+    "DepositsPaused()"(): DepositsPausedEventFilter;
+    DepositsPaused(): DepositsPausedEventFilter;
+
+    "DepositsResumed()"(): DepositsResumedEventFilter;
+    DepositsResumed(): DepositsResumedEventFilter;
 
     "RejectedDeposit(address,address,uint256)"(
       trader?: null,

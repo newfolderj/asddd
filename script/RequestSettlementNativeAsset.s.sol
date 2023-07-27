@@ -13,6 +13,7 @@ contract RequestSettlementNativeAsset is Script {
         string memory path = string.concat(root, "/out/contracts.json");
         string memory json = vm.readFile(path);
         address portalAddress = abi.decode(json.parseRaw(".portal"), (address));
+        address dummyCoin = abi.decode(json.parseRaw(".dummyCoin"), (address));
         uint256 alicePk = 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d;
         uint256 bobPk = 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a;
         Portal portal = Portal(portalAddress);
@@ -23,7 +24,7 @@ contract RequestSettlementNativeAsset is Script {
         vm.stopBroadcast();
 
         vm.startBroadcast(bobPk);
-        portal.requestSettlement(address(0));
+        portal.requestSettlement(dummyCoin);
         vm.stopBroadcast();
     }
 }
