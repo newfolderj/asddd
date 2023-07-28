@@ -29,7 +29,6 @@ contract Staking is IStaking {
     event InsurancePaid(uint256 indexed chainId, address indexed asset, uint256 amount);
     event Claimed(address indexed staker, uint256 indexed chainId, address indexed asset, uint256 amount);
 
-
     error INSUFFICIENT_COLLATERAL(uint256 amountToLock, uint256 amountLeft);
 
     // TIME CONSTANTS
@@ -185,7 +184,7 @@ contract Staking is IStaking {
         locks[Id.unwrap(currentLockId)] = LockRecord(_amountToLock, totalAvailable, block.number, _asset);
         emit Locked(_asset, _amountToLock, Id.unwrap(currentLockId));
         currentLockId = currentLockId.increment();
-        
+
         return Id.unwrap(currentLockId) - 1;
     }
 
@@ -403,7 +402,8 @@ contract Staking is IStaking {
     {
         uint256 fraudPeriod = manager.fraudPeriod();
         for (uint256 i = 0; i < userDeposits[_staker].length(); i++) {
-            DepositRecord memory depositRecord = deposits[userDeposits[_staker].at(i)];
+            uint256 depositId = userDeposits[_staker].at(i);
+            DepositRecord memory depositRecord = deposits[depositId];
 
             for (uint256 l = 0; l < Id.unwrap(currentLockId); l++) {
                 LockRecord memory lockRecord = locks[l];
@@ -420,7 +420,7 @@ contract Staking is IStaking {
                 // totalReward * (deposited / totalDeposited)
                 uint256 claimable = (totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAvailable * 1e5);
                 // get how much has already been claimed
-                uint256 claimed = claimedRewards[i][l][_chainId][_asset];
+                uint256 claimed = claimedRewards[depositId][l][_chainId][_asset];
                 // check if there's anything that can be claimed
                 if (claimed < claimable) {
                     uint256 amountToClaim = claimable - claimed;
