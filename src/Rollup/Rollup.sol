@@ -96,7 +96,9 @@ contract Rollup is IRollup {
     function replaceStateRoot(bytes32 _stateRoot, Id _epoch) external {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
         if (lastConfirmedEpoch >= _epoch) revert("Cannot replace state root that's been confirmed");
-        if(processedSettlements[_epoch][_stateRoot].length() > 0) revert("A settlement has already been processed for this state root");
+        if (processedSettlements[_epoch][_stateRoot].length() > 0) {
+            revert("A settlement has already been processed for this state root");
+        }
 
         proposedStateRoot[_epoch] = _stateRoot;
         proposalBlock[_stateRoot] = block.number;
@@ -133,7 +135,34 @@ contract Rollup is IRollup {
         bytes32[] proof;
     }
 
-    function processSettlements(Id _chainId, SettlementParams[] calldata _params) external payable {
+    // Confirms a state root and processes a settlement in a single transaction.
+    // Used for testing validator's ability to construct state roots, will be removed.
+    function submitSettlement(
+        bytes32 _stateRoot,
+        StateUpdateLibrary.SignedStateUpdate calldata _signedUpdate,
+        bytes32[] calldata _proof
+    )
+        external
+        payable
+    {
+        if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
+        if (_stateRoot == "") revert("Proposed empty state root");
+        IStaking staking = IStaking(manager.staking());
+        uint256 lockId = staking.lock(staking.protocolToken(), manager.rootProposalLockAmount());
+
+        proposedStateRoot[epoch] = _stateRoot;
+        proposalBlock[_stateRoot] = block.number;
+        lockIdStateRoot[lockId] = StateRootRecord(_stateRoot, epoch);
+        epoch = epoch.increment();
+
+        StateUpdateLibrary.Settlement memory settlement =
+            abi.decode(_signedUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
+        SettlementParams[] memory params = new SettlementParams[](1);
+        params[0] = SettlementParams(_signedUpdate, epoch, _proof);
+        processSettlements(settlement.balanceBefore.chainId, params);
+    }
+
+    function processSettlements(Id _chainId, SettlementParams[] memory _params) public payable {
         if (!manager.isValidator(msg.sender)) revert("Only validator can process settlements");
         ProcessSettlementState memory state;
         IPortal.Obligation[] memory obligations = new IPortal.Obligation[](_params.length);
@@ -146,7 +175,7 @@ contract Rollup is IRollup {
                 if (state.stateRoot == 0) revert EMPTY_STATE_ROOT();
             }
             {
-                bool valid = MerkleProof.verifyCalldata(
+                bool valid = MerkleProof.verify(
                     _params[i].proof, state.stateRoot, keccak256(abi.encode(_params[i].signedUpdate))
                 );
                 if (!valid) revert INVALID_PROOF_SETTLEMENT();
@@ -188,7 +217,12 @@ contract Rollup is IRollup {
             // Calculate settlement fee
             (uint256 insuranceFee, uint256 stakerReward) =
                 IFeeManager(address(manager)).calculateSettlementFees(state.settlement.balanceBefore.amount);
-            emit SettlementFeePaid(state.settlement.balanceBefore.trader, Id.unwrap(_chainId), state.settlement.balanceBefore.asset, insuranceFee + stakerReward);
+            emit SettlementFeePaid(
+                state.settlement.balanceBefore.trader,
+                Id.unwrap(_chainId),
+                state.settlement.balanceBefore.asset,
+                insuranceFee + stakerReward
+            );
             // create an obligation to be relayed
             obligations[i] = IPortal.Obligation(
                 state.settlement.balanceBefore.trader,
