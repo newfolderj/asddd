@@ -81,8 +81,14 @@ contract RollupTest is BaseTest {
         address[] memory rewardAsset = new address[](1);
         rewardAsset[0] = address(0);
         Staking.ClaimParams memory claimParams = Staking.ClaimParams(lockId, depositId, chainId, rewardAsset);
+
+        uint256 claimAmount = staking.getAvailableToClaim(validator, chainId, address(0));
+        if (claimAmount == 0) revert("Claim amount should not be 0");
         vm.startPrank(validator);
         staking.claim{ value: 1 ether }(claimParams);
+        if (staking.getAvailableToClaim(validator, chainId, address(0)) != 0) {
+            revert("Claim amount should be 0 after claiming");
+        }
         portal.withdraw(stakerRewards, rewardAsset[0]);
 
         // Staker should not be able to withdraw staked assets
