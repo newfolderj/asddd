@@ -108,10 +108,14 @@ contract RollupTest is BaseTest {
         rollup.confirmStateRoot();
 
         // unlocked deposits view function should be all 0s
-        uint256[] memory unlockedIds = staking.getAvailableDeposits(validator);
+        Staking.AvailableDeposit[] memory unlockedIds = staking.getAvailableDeposits(validator);
         for (uint256 i = 0; i < unlockedIds.length; i++) {
-            if (unlockedIds[i] != 0) revert();
+            if (unlockedIds[i].id != 0) revert();
         }
+        // getUnlockedAmount view function should return 0
+        (uint256 unlockedStablecoin, uint256 unlockedProtocol) = staking.getUnlocked(validator);
+        if (unlockedStablecoin != 0) revert();
+        if (unlockedProtocol != 0) revert();
 
         // Simulate passage of time to unlock time of deposit
         (,,,, uint256 unlockTime,) = staking.deposits(depositId[0]);
@@ -127,8 +131,12 @@ contract RollupTest is BaseTest {
         // none of the unlocked deposit IDs should be 0
         unlockedIds = staking.getAvailableDeposits(validator);
         for (uint256 i = 0; i < unlockedIds.length; i++) {
-            if (unlockedIds[i] == 0) revert();
+            if (unlockedIds[i].id == 0) revert();
         }
+        // getUnlockedAmount view function should NOT return 0
+        (unlockedStablecoin, unlockedProtocol) = staking.getUnlocked(validator);
+        if (unlockedStablecoin == 0) revert();
+        if (unlockedProtocol == 0) revert();
 
         // after withdrawing remaining funds, unlocked deposit IDs should show 0
         vm.prank(validator);
@@ -136,7 +144,11 @@ contract RollupTest is BaseTest {
 
         unlockedIds = staking.getAvailableDeposits(validator);
         for (uint256 i = 0; i < unlockedIds.length; i++) {
-            if (unlockedIds[i] != 0) revert();
+            if (unlockedIds[i].id != 0) revert();
         }
+        // getUnlockedAmount should be 0 again
+        (unlockedStablecoin, unlockedProtocol) = staking.getUnlocked(validator);
+        if (unlockedStablecoin != 0) revert();
+        if (unlockedProtocol != 0) revert();
     }
 }
