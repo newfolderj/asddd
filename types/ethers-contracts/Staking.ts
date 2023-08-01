@@ -66,6 +66,18 @@ export declare namespace Staking {
     asset: string;
   };
 
+  export type AvailableDepositStruct = {
+    id: BigNumberish;
+    asset: string;
+    amount: BigNumberish;
+  };
+
+  export type AvailableDepositStructOutput = [BigNumber, string, BigNumber] & {
+    id: BigNumber;
+    asset: string;
+    amount: BigNumber;
+  };
+
   export type DepositRecordStruct = {
     staker: string;
     asset: string;
@@ -526,7 +538,7 @@ export interface Staking extends BaseContract {
     getAvailableDeposits(
       _user: string,
       overrides?: CallOverrides
-    ): Promise<[BigNumber[]]>;
+    ): Promise<[Staking.AvailableDepositStructOutput[]]>;
 
     getAvailableToClaim(
       _staker: string,
@@ -671,7 +683,7 @@ export interface Staking extends BaseContract {
   getAvailableDeposits(
     _user: string,
     overrides?: CallOverrides
-  ): Promise<BigNumber[]>;
+  ): Promise<Staking.AvailableDepositStructOutput[]>;
 
   getAvailableToClaim(
     _staker: string,
@@ -816,7 +828,7 @@ export interface Staking extends BaseContract {
     getAvailableDeposits(
       _user: string,
       overrides?: CallOverrides
-    ): Promise<BigNumber[]>;
+    ): Promise<Staking.AvailableDepositStructOutput[]>;
 
     getAvailableToClaim(
       _staker: string,

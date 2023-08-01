@@ -336,23 +336,30 @@ contract Staking is IStaking {
         return records;
     }
 
+    struct AvailableDeposit {
+        uint256 id;
+        address asset;
+        uint256 amount;
+    }
+
     /// Returns all deposit IDs for a staker where there is some amount unlocked.
     /// Front-end will need to filter out any "0" from the array
-    function getAvailableDeposits(address _user) external view returns (uint256[] memory) {
+    function getAvailableDeposits(address _user) external view returns (AvailableDeposit[] memory) {
         uint256[] memory depositIds = userDeposits[_user].values();
+        AvailableDeposit[] memory data = new AvailableDeposit[](depositIds.length);
         for (uint256 i = 0; i < depositIds.length; i++) {
             DepositRecord memory depositRecord = deposits[depositIds[i]];
             if (depositRecord.unlockTime > block.number) {
-                depositIds[i] = 0;
                 continue;
             }
             // get totals for this tranche and calculate how much of this amount is available for withdraw
             TotalAmount memory total = totals[depositRecord.asset][depositRecord.unlockTime];
             uint256 unlocked = ((total.total - total.locked) * depositRecord.amount) / total.total;
             uint256 available = unlocked - depositRecord.withdrawn;
-            if (available == 0) depositIds[i] = 0;
+            if (available == 0) continue;
+            data[i] = AvailableDeposit(depositIds[i], depositRecord.asset, available);
         }
-        return depositIds;
+        return data;
     }
 
     function getAllLockRecords() external view returns (LockRecord[] memory) {
@@ -379,6 +386,9 @@ contract Staking is IStaking {
     {
         for (uint256 i = 0; i < userDeposits[_staker].length(); i++) {
             DepositRecord memory depositRecord = deposits[userDeposits[_staker].at(i)];
+            if (depositRecord.unlockTime > block.number) {
+                continue;
+            }
             TotalAmount memory total = totals[depositRecord.asset][depositRecord.unlockTime];
             uint256 unlocked = ((total.total - total.locked) * depositRecord.amount) / total.total;
             uint256 available = unlocked - depositRecord.withdrawn;
