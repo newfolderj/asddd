@@ -11,15 +11,23 @@ import "@murky/Merkle.sol";
 contract SubmitSettlement is BaseDeploy {
     using stdJson for string;
 
+    Rollup rollup;
+    Staking staking;
+    Oracle oracle;
+
+    IERC20 stablecoin;
+    IERC20 protocolToken;
+
     function run() external {
         onlyOnProcessingChain();
         string memory json = vm.readFile(processingChainContractsPath);
         ProcessingChainManager manager = ProcessingChainManager(abi.decode(json.parseRaw(".manager"), (address)));
-        Rollup rollup = Rollup(manager.rollup());
-        Staking staking = Staking(manager.staking());
+        rollup = Rollup(manager.rollup());
+        staking = Staking(manager.staking());
+        oracle = Oracle(manager.oracle());
 
-        IERC20 stablecoin = IERC20(manager.stablecoin());
-        IERC20 protocolToken = IERC20(manager.protocolToken());
+        stablecoin = IERC20(manager.stablecoin());
+        protocolToken = IERC20(manager.protocolToken());
         uint256[3] memory tranches = staking.getActiveTranches();
         Id epoch = rollup.epoch();
 
@@ -73,6 +81,11 @@ contract SubmitSettlement is BaseDeploy {
         staking.stake({ _asset: address(protocolToken), _amount: 50_000e18, _unlockTime: tranches[2] });
         // propose a state root
         rollup.proposeStateRoot(stateRoot);
+        // check if oracle price needs to be updated
+        uint256 lastReport = oracle.lastReport(vm.envUint("ASSET_CHAINID"), address(0));
+        if (block.number > lastReport + oracle.PRICE_EXPIRY()) {
+            oracle.report(vm.envUint("ASSET_CHAINID"), address(0), 1888.77e18, true);
+        }
         // process a settlement
         rollup.processSettlements{ value: 0.5 ether }(Id.wrap(vm.envUint("ASSET_CHAINID")), params);
 
