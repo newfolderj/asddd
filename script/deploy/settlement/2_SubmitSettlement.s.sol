@@ -81,10 +81,16 @@ contract SubmitSettlement is BaseDeploy {
         staking.stake({ _asset: address(protocolToken), _amount: 50_000e18, _unlockTime: tranches[2] });
         // propose a state root
         rollup.proposeStateRoot(stateRoot);
-        // check if oracle price needs to be updated
+        // check if oracle prices need to be updated
+        // check if price of asset being settled has expired
         uint256 lastReport = oracle.lastReport(vm.envUint("ASSET_CHAINID"), address(0));
         if (block.number > lastReport + oracle.PRICE_EXPIRY()) {
             oracle.report(vm.envUint("ASSET_CHAINID"), address(0), 1888.77e18, true);
+        }
+        // check if price of protocol token has expired
+        lastReport = oracle.lastReport(vm.envUint("PROCESSING_CHAINID"), address(protocolToken));
+        if (block.number > lastReport + oracle.PRICE_EXPIRY()) {
+            oracle.report(vm.envUint("PROCESSING_CHAINID"), address(protocolToken), vm.envUint("PROTOCOL_TOKEN_PRICE"), true);
         }
         // process a settlement
         rollup.processSettlements{ value: 0.5 ether }(Id.wrap(vm.envUint("ASSET_CHAINID")), params);
