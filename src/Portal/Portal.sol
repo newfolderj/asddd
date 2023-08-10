@@ -105,7 +105,7 @@ contract Portal is IPortal, Deposits {
     function requestSettlement(address _token) external {
         if(!manager.supportedAsset(_token)) revert("Asset is not supported");
         settlementRequests[chainSequenceId] = StateUpdateLibrary.SettlementRequest(
-            msg.sender, _token, participatingInterface, chainSequenceId, Id.wrap(block.chainid), nextRequestId
+            msg.sender, _token, participatingInterface, chainSequenceId, Id.wrap(block.chainid)
         );
         emit SettlementRequested(Id.unwrap(nextRequestId), msg.sender, _token, chainSequenceId);
         chainSequenceId = chainSequenceId.increment();

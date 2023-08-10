@@ -205,7 +205,7 @@ contract BaseTest is Test {
         returns (StateUpdateLibrary.StateUpdate memory)
     {
         StateUpdateLibrary.SettlementRequest memory settlementRequest = StateUpdateLibrary.SettlementRequest(
-            _trader, _token, participatingInterface, _chainSequenceId, Id.wrap(chainId), _settlementId
+            _trader, _token, participatingInterface, _chainSequenceId, Id.wrap(chainId)
         );
         StateUpdateLibrary.Settlement memory settlement = StateUpdateLibrary.Settlement(
             settlementRequest,
