@@ -44,44 +44,36 @@ export declare namespace IPortal {
 export interface PortalInterface extends utils.Interface {
   functions: {
     "chainSequenceId()": FunctionFragment;
+    "claimed(bytes32)": FunctionFragment;
     "collateralized(address)": FunctionFragment;
     "depositNativeAsset()": FunctionFragment;
     "depositToken(address,uint256)": FunctionFragment;
     "deposits(bytes32)": FunctionFragment;
-    "depositsPaused()": FunctionFragment;
     "getAvailableBalance(address,address)": FunctionFragment;
-    "pauseDeposits()": FunctionFragment;
-    "rejectDeposits(bytes32[])": FunctionFragment;
-    "rejected(address,address)": FunctionFragment;
-    "rejectedDeposits(bytes32)": FunctionFragment;
+    "isValidSettlementRequest(uint256,bytes32)": FunctionFragment;
+    "nextRequestId()": FunctionFragment;
     "requestSettlement(address)": FunctionFragment;
-    "resumeDeposits()": FunctionFragment;
     "settled(address,address)": FunctionFragment;
     "settlementRequests(uint256)": FunctionFragment;
     "withdraw(uint256,address)": FunctionFragment;
-    "withdrawRejected(uint256,address)": FunctionFragment;
     "writeObligations((address,address,uint256)[])": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
       | "chainSequenceId"
+      | "claimed"
       | "collateralized"
       | "depositNativeAsset"
       | "depositToken"
       | "deposits"
-      | "depositsPaused"
       | "getAvailableBalance"
-      | "pauseDeposits"
-      | "rejectDeposits"
-      | "rejected"
-      | "rejectedDeposits"
+      | "isValidSettlementRequest"
+      | "nextRequestId"
       | "requestSettlement"
-      | "resumeDeposits"
       | "settled"
       | "settlementRequests"
       | "withdraw"
-      | "withdrawRejected"
       | "writeObligations"
   ): FunctionFragment;
 
@@ -89,6 +81,7 @@ export interface PortalInterface extends utils.Interface {
     functionFragment: "chainSequenceId",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "claimed", values: [BytesLike]): string;
   encodeFunctionData(
     functionFragment: "collateralized",
     values: [string]
@@ -103,36 +96,20 @@ export interface PortalInterface extends utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "deposits", values: [BytesLike]): string;
   encodeFunctionData(
-    functionFragment: "depositsPaused",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "getAvailableBalance",
     values: [string, string]
   ): string;
   encodeFunctionData(
-    functionFragment: "pauseDeposits",
+    functionFragment: "isValidSettlementRequest",
+    values: [BigNumberish, BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "nextRequestId",
     values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "rejectDeposits",
-    values: [BytesLike[]]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "rejected",
-    values: [string, string]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "rejectedDeposits",
-    values: [BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "requestSettlement",
     values: [string]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "resumeDeposits",
-    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "settled",
@@ -147,10 +124,6 @@ export interface PortalInterface extends utils.Interface {
     values: [BigNumberish, string]
   ): string;
   encodeFunctionData(
-    functionFragment: "withdrawRejected",
-    values: [BigNumberish, string]
-  ): string;
-  encodeFunctionData(
     functionFragment: "writeObligations",
     values: [IPortal.ObligationStruct[]]
   ): string;
@@ -159,6 +132,7 @@ export interface PortalInterface extends utils.Interface {
     functionFragment: "chainSequenceId",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "claimed", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "collateralized",
     data: BytesLike
@@ -173,32 +147,19 @@ export interface PortalInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "deposits", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "depositsPaused",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "getAvailableBalance",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "pauseDeposits",
+    functionFragment: "isValidSettlementRequest",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "rejectDeposits",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "rejected", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "rejectedDeposits",
+    functionFragment: "nextRequestId",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "requestSettlement",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "resumeDeposits",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "settled", data: BytesLike): Result;
@@ -208,10 +169,6 @@ export interface PortalInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "withdrawRejected",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "writeObligations",
     data: BytesLike
   ): Result;
@@ -219,24 +176,16 @@ export interface PortalInterface extends utils.Interface {
   events: {
     "Deposit(address,uint256,address,uint256)": EventFragment;
     "DepositUtxo(address,uint256,address,address,uint256,bytes32)": EventFragment;
-    "DepositsPaused()": EventFragment;
-    "DepositsResumed()": EventFragment;
-    "RejectedDeposit(address,address,uint256)": EventFragment;
-    "SettlementProcessed(address,address,uint256)": EventFragment;
-    "SettlementRequested(address,address,uint256)": EventFragment;
+    "ObligationWritten(address,address,address,uint256)": EventFragment;
+    "SettlementRequested(uint256,address,address,uint256)": EventFragment;
     "Withdraw(address,uint256,address)": EventFragment;
-    "WithdrawRejectedDeposit(address,uint256,address)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "Deposit"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "DepositUtxo"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "DepositsPaused"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "DepositsResumed"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "RejectedDeposit"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "SettlementProcessed"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "ObligationWritten"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "SettlementRequested"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Withdraw"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "WithdrawRejectedDeposit"): EventFragment;
 }
 
 export interface DepositEventObject {
@@ -267,48 +216,28 @@ export type DepositUtxoEvent = TypedEvent<
 
 export type DepositUtxoEventFilter = TypedEventFilter<DepositUtxoEvent>;
 
-export interface DepositsPausedEventObject {}
-export type DepositsPausedEvent = TypedEvent<[], DepositsPausedEventObject>;
-
-export type DepositsPausedEventFilter = TypedEventFilter<DepositsPausedEvent>;
-
-export interface DepositsResumedEventObject {}
-export type DepositsResumedEvent = TypedEvent<[], DepositsResumedEventObject>;
-
-export type DepositsResumedEventFilter = TypedEventFilter<DepositsResumedEvent>;
-
-export interface RejectedDepositEventObject {
-  trader: string;
-  asset: string;
-  amount: BigNumber;
-}
-export type RejectedDepositEvent = TypedEvent<
-  [string, string, BigNumber],
-  RejectedDepositEventObject
->;
-
-export type RejectedDepositEventFilter = TypedEventFilter<RejectedDepositEvent>;
-
-export interface SettlementProcessedEventObject {
-  trader: string;
+export interface ObligationWrittenEventObject {
+  deliverer: string;
+  recipient: string;
   token: string;
   amount: BigNumber;
 }
-export type SettlementProcessedEvent = TypedEvent<
-  [string, string, BigNumber],
-  SettlementProcessedEventObject
+export type ObligationWrittenEvent = TypedEvent<
+  [string, string, string, BigNumber],
+  ObligationWrittenEventObject
 >;
 
-export type SettlementProcessedEventFilter =
-  TypedEventFilter<SettlementProcessedEvent>;
+export type ObligationWrittenEventFilter =
+  TypedEventFilter<ObligationWrittenEvent>;
 
 export interface SettlementRequestedEventObject {
+  settlementID: BigNumber;
   trader: string;
   token: string;
   chainSequenceId: BigNumber;
 }
 export type SettlementRequestedEvent = TypedEvent<
-  [string, string, BigNumber],
+  [BigNumber, string, string, BigNumber],
   SettlementRequestedEventObject
 >;
 
@@ -326,19 +255,6 @@ export type WithdrawEvent = TypedEvent<
 >;
 
 export type WithdrawEventFilter = TypedEventFilter<WithdrawEvent>;
-
-export interface WithdrawRejectedDepositEventObject {
-  wallet: string;
-  amount: BigNumber;
-  token: string;
-}
-export type WithdrawRejectedDepositEvent = TypedEvent<
-  [string, BigNumber, string],
-  WithdrawRejectedDepositEventObject
->;
-
-export type WithdrawRejectedDepositEventFilter =
-  TypedEventFilter<WithdrawRejectedDepositEvent>;
 
 export interface Portal extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -369,6 +285,8 @@ export interface Portal extends BaseContract {
   functions: {
     chainSequenceId(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    claimed(arg0: BytesLike, overrides?: CallOverrides): Promise<[boolean]>;
+
     collateralized(
       arg0: string,
       overrides?: CallOverrides
@@ -398,40 +316,22 @@ export interface Portal extends BaseContract {
       }
     >;
 
-    depositsPaused(overrides?: CallOverrides): Promise<[boolean]>;
-
     getAvailableBalance(
       _trader: string,
       _token: string,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
-    pauseDeposits(
-      overrides?: Overrides & { from?: string }
-    ): Promise<ContractTransaction>;
-
-    rejectDeposits(
-      _depositHashes: BytesLike[],
-      overrides?: Overrides & { from?: string }
-    ): Promise<ContractTransaction>;
-
-    rejected(
-      arg0: string,
-      arg1: string,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
-    rejectedDeposits(
-      arg0: BytesLike,
+    isValidSettlementRequest(
+      _chainSequenceId: BigNumberish,
+      _settlementHash: BytesLike,
       overrides?: CallOverrides
     ): Promise<[boolean]>;
 
+    nextRequestId(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     requestSettlement(
       _token: string,
-      overrides?: Overrides & { from?: string }
-    ): Promise<ContractTransaction>;
-
-    resumeDeposits(
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
@@ -460,12 +360,6 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
-    withdrawRejected(
-      _amount: BigNumberish,
-      _token: string,
-      overrides?: Overrides & { from?: string }
-    ): Promise<ContractTransaction>;
-
     writeObligations(
       obligations: IPortal.ObligationStruct[],
       overrides?: Overrides & { from?: string }
@@ -473,6 +367,8 @@ export interface Portal extends BaseContract {
   };
 
   chainSequenceId(overrides?: CallOverrides): Promise<BigNumber>;
+
+  claimed(arg0: BytesLike, overrides?: CallOverrides): Promise<boolean>;
 
   collateralized(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -500,40 +396,22 @@ export interface Portal extends BaseContract {
     }
   >;
 
-  depositsPaused(overrides?: CallOverrides): Promise<boolean>;
-
   getAvailableBalance(
     _trader: string,
     _token: string,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
-  pauseDeposits(
-    overrides?: Overrides & { from?: string }
-  ): Promise<ContractTransaction>;
-
-  rejectDeposits(
-    _depositHashes: BytesLike[],
-    overrides?: Overrides & { from?: string }
-  ): Promise<ContractTransaction>;
-
-  rejected(
-    arg0: string,
-    arg1: string,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
-
-  rejectedDeposits(
-    arg0: BytesLike,
+  isValidSettlementRequest(
+    _chainSequenceId: BigNumberish,
+    _settlementHash: BytesLike,
     overrides?: CallOverrides
   ): Promise<boolean>;
 
+  nextRequestId(overrides?: CallOverrides): Promise<BigNumber>;
+
   requestSettlement(
     _token: string,
-    overrides?: Overrides & { from?: string }
-  ): Promise<ContractTransaction>;
-
-  resumeDeposits(
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
@@ -562,12 +440,6 @@ export interface Portal extends BaseContract {
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
-  withdrawRejected(
-    _amount: BigNumberish,
-    _token: string,
-    overrides?: Overrides & { from?: string }
-  ): Promise<ContractTransaction>;
-
   writeObligations(
     obligations: IPortal.ObligationStruct[],
     overrides?: Overrides & { from?: string }
@@ -575,6 +447,8 @@ export interface Portal extends BaseContract {
 
   callStatic: {
     chainSequenceId(overrides?: CallOverrides): Promise<BigNumber>;
+
+    claimed(arg0: BytesLike, overrides?: CallOverrides): Promise<boolean>;
 
     collateralized(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -600,35 +474,21 @@ export interface Portal extends BaseContract {
       }
     >;
 
-    depositsPaused(overrides?: CallOverrides): Promise<boolean>;
-
     getAvailableBalance(
       _trader: string,
       _token: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    pauseDeposits(overrides?: CallOverrides): Promise<void>;
-
-    rejectDeposits(
-      _depositHashes: BytesLike[],
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    rejected(
-      arg0: string,
-      arg1: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    rejectedDeposits(
-      arg0: BytesLike,
+    isValidSettlementRequest(
+      _chainSequenceId: BigNumberish,
+      _settlementHash: BytesLike,
       overrides?: CallOverrides
     ): Promise<boolean>;
 
-    requestSettlement(_token: string, overrides?: CallOverrides): Promise<void>;
+    nextRequestId(overrides?: CallOverrides): Promise<BigNumber>;
 
-    resumeDeposits(overrides?: CallOverrides): Promise<void>;
+    requestSettlement(_token: string, overrides?: CallOverrides): Promise<void>;
 
     settled(
       arg0: string,
@@ -650,12 +510,6 @@ export interface Portal extends BaseContract {
     >;
 
     withdraw(
-      _amount: BigNumberish,
-      _token: string,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    withdrawRejected(
       _amount: BigNumberish,
       _token: string,
       overrides?: CallOverrides
@@ -698,40 +552,27 @@ export interface Portal extends BaseContract {
       utxo?: null
     ): DepositUtxoEventFilter;
 
-    "DepositsPaused()"(): DepositsPausedEventFilter;
-    DepositsPaused(): DepositsPausedEventFilter;
-
-    "DepositsResumed()"(): DepositsResumedEventFilter;
-    DepositsResumed(): DepositsResumedEventFilter;
-
-    "RejectedDeposit(address,address,uint256)"(
-      trader?: null,
-      asset?: null,
-      amount?: null
-    ): RejectedDepositEventFilter;
-    RejectedDeposit(
-      trader?: null,
-      asset?: null,
-      amount?: null
-    ): RejectedDepositEventFilter;
-
-    "SettlementProcessed(address,address,uint256)"(
-      trader?: null,
+    "ObligationWritten(address,address,address,uint256)"(
+      deliverer?: null,
+      recipient?: null,
       token?: null,
       amount?: null
-    ): SettlementProcessedEventFilter;
-    SettlementProcessed(
-      trader?: null,
+    ): ObligationWrittenEventFilter;
+    ObligationWritten(
+      deliverer?: null,
+      recipient?: null,
       token?: null,
       amount?: null
-    ): SettlementProcessedEventFilter;
+    ): ObligationWrittenEventFilter;
 
-    "SettlementRequested(address,address,uint256)"(
+    "SettlementRequested(uint256,address,address,uint256)"(
+      settlementID?: null,
       trader?: null,
       token?: null,
       chainSequenceId?: null
     ): SettlementRequestedEventFilter;
     SettlementRequested(
+      settlementID?: null,
       trader?: null,
       token?: null,
       chainSequenceId?: null
@@ -743,21 +584,12 @@ export interface Portal extends BaseContract {
       token?: null
     ): WithdrawEventFilter;
     Withdraw(wallet?: null, amount?: null, token?: null): WithdrawEventFilter;
-
-    "WithdrawRejectedDeposit(address,uint256,address)"(
-      wallet?: null,
-      amount?: null,
-      token?: null
-    ): WithdrawRejectedDepositEventFilter;
-    WithdrawRejectedDeposit(
-      wallet?: null,
-      amount?: null,
-      token?: null
-    ): WithdrawRejectedDepositEventFilter;
   };
 
   estimateGas: {
     chainSequenceId(overrides?: CallOverrides): Promise<BigNumber>;
+
+    claimed(arg0: BytesLike, overrides?: CallOverrides): Promise<BigNumber>;
 
     collateralized(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -773,40 +605,22 @@ export interface Portal extends BaseContract {
 
     deposits(arg0: BytesLike, overrides?: CallOverrides): Promise<BigNumber>;
 
-    depositsPaused(overrides?: CallOverrides): Promise<BigNumber>;
-
     getAvailableBalance(
       _trader: string,
       _token: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    pauseDeposits(
-      overrides?: Overrides & { from?: string }
-    ): Promise<BigNumber>;
-
-    rejectDeposits(
-      _depositHashes: BytesLike[],
-      overrides?: Overrides & { from?: string }
-    ): Promise<BigNumber>;
-
-    rejected(
-      arg0: string,
-      arg1: string,
+    isValidSettlementRequest(
+      _chainSequenceId: BigNumberish,
+      _settlementHash: BytesLike,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    rejectedDeposits(
-      arg0: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
+    nextRequestId(overrides?: CallOverrides): Promise<BigNumber>;
 
     requestSettlement(
       _token: string,
-      overrides?: Overrides & { from?: string }
-    ): Promise<BigNumber>;
-
-    resumeDeposits(
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
@@ -827,12 +641,6 @@ export interface Portal extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
-    withdrawRejected(
-      _amount: BigNumberish,
-      _token: string,
-      overrides?: Overrides & { from?: string }
-    ): Promise<BigNumber>;
-
     writeObligations(
       obligations: IPortal.ObligationStruct[],
       overrides?: Overrides & { from?: string }
@@ -841,6 +649,11 @@ export interface Portal extends BaseContract {
 
   populateTransaction: {
     chainSequenceId(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    claimed(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     collateralized(
       arg0: string,
@@ -862,40 +675,22 @@ export interface Portal extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    depositsPaused(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
     getAvailableBalance(
       _trader: string,
       _token: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    pauseDeposits(
-      overrides?: Overrides & { from?: string }
-    ): Promise<PopulatedTransaction>;
-
-    rejectDeposits(
-      _depositHashes: BytesLike[],
-      overrides?: Overrides & { from?: string }
-    ): Promise<PopulatedTransaction>;
-
-    rejected(
-      arg0: string,
-      arg1: string,
+    isValidSettlementRequest(
+      _chainSequenceId: BigNumberish,
+      _settlementHash: BytesLike,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    rejectedDeposits(
-      arg0: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
+    nextRequestId(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     requestSettlement(
       _token: string,
-      overrides?: Overrides & { from?: string }
-    ): Promise<PopulatedTransaction>;
-
-    resumeDeposits(
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
@@ -911,12 +706,6 @@ export interface Portal extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     withdraw(
-      _amount: BigNumberish,
-      _token: string,
-      overrides?: Overrides & { from?: string }
-    ): Promise<PopulatedTransaction>;
-
-    withdrawRejected(
       _amount: BigNumberish,
       _token: string,
       overrides?: Overrides & { from?: string }

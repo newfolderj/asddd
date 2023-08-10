@@ -146,7 +146,6 @@ library StateUpdateLibrary {
         address participatingInterface;
         Id chainSequenceId;
         Id chainId;
-        Id settlementId;
     }
 
     struct TradeParams {
