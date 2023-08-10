@@ -241,7 +241,7 @@ contract Rollup is IRollup {
                 staking.payInsurance(
                     Id.unwrap(state.settlement.balanceBefore.chainId),
                     state.settlement.balanceBefore.asset,
-                    insuranceFee
+                    insuranceFee + stakerReward
                 );
             }
 
