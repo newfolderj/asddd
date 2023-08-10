@@ -53,6 +53,7 @@ contract Rollup is IRollup {
 
     /// Tracks each time a state root is used to lock collateral for a settlement
     mapping(uint256 => StateRootRecord) internal lockIdStateRoot;
+    mapping(Id => mapping(bytes32 => uint256)) internal stateRootLockId;
 
     error CALLER_NOT_VALIDATOR();
     error EMPTY_STATE_ROOT();
@@ -86,6 +87,7 @@ contract Rollup is IRollup {
         proposedStateRoot[epoch] = _stateRoot;
         proposalBlock[_stateRoot] = block.number;
         lockIdStateRoot[lockId] = StateRootRecord(_stateRoot, epoch);
+        stateRootLockId[epoch][_stateRoot] = lockId;
         epoch = epoch.increment();
     }
 
@@ -94,8 +96,11 @@ contract Rollup is IRollup {
     function replaceStateRoot(bytes32 _stateRoot, Id _epoch) external {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
         if (lastConfirmedEpoch >= _epoch) revert("Cannot replace state root that's been confirmed");
-        if(processedSettlements[_epoch][_stateRoot].length() > 0) revert("A settlement has already been processed for this state root");
+        if (processedSettlements[_epoch][_stateRoot].length() > 0) {
+            revert("A settlement has already been processed for this state root");
+        }
 
+        lockIdStateRoot[stateRootLockId[_epoch][proposedStateRoot[_epoch]]].stateRoot = _stateRoot;
         proposedStateRoot[_epoch] = _stateRoot;
         proposalBlock[_stateRoot] = block.number;
     }
