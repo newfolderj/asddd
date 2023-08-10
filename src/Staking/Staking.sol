@@ -43,6 +43,7 @@ contract Staking is IStaking {
 
     Id public currentDepositId = ID_ZERO;
     Id public currentLockId = ID_ZERO;
+    Id public nextIdToUnlock = ID_ZERO;
     mapping(uint256 => DepositRecord) public deposits;
     mapping(address => EnumerableSet.UintSet) internal userDeposits;
     // depositId => lockId => chainId => rewardAsset => claimed
@@ -72,6 +73,8 @@ contract Staking is IStaking {
     // Used to sum up rewards for a single staker across multiple deposits, locks, and assets
     mapping(address => mapping(uint256 => mapping(address => uint256))) internal toClaim;
     mapping(uint256 => mapping(address => uint256)) internal insuranceFees;
+    // Maps Lock ID to amount slashed
+    mapping(uint256 => uint256) amountSlashed;
 
     struct TotalAmount {
         uint256 total;
@@ -178,6 +181,7 @@ contract Staking is IStaking {
     function unlock(uint256[] calldata _lockIds) external {
         IRollup rollup = IRollup(manager.rollup());
         for (uint256 i = 0; i < _lockIds.length; i++) {
+            if (Id.unwrap(nextIdToUnlock) != _lockIds[i]) revert("Must unlock in sequential order");
             // State root associated with lock ID must be confirmed and cannot be fraudulent
             if (rollup.isFraudulentLockId(_lockIds[i])) {
                 revert("State root associated with lock ID was marked as fraudulent");
@@ -208,12 +212,27 @@ contract Staking is IStaking {
                 }
             }
             locks[_lockIds[i]].amountLocked = 0;
+            nextIdToUnlock = nextIdToUnlock.increment();
         }
     }
 
     function reward(uint256 _lockId, uint256 _chainId, address _asset, uint256 _amount) external {
         if (msg.sender != manager.rollup()) revert();
         rewards[_lockId][_chainId][_asset] += _amount;
+    }
+
+    function slash(uint256 _lockId) external {
+        IRollup rollup = IRollup(manager.rollup());
+        if (!rollup.isFraudulentLockId(_lockId)) {
+            revert("State root associated with lock ID was NOT marked as fraudulent");
+        }
+        if (Id.unwrap(nextIdToUnlock) != _lockId) {
+            revert("Slashing must occur in sequential order");
+        }
+
+        // TODO: slashing logic
+
+        nextIdToUnlock = nextIdToUnlock.increment();
     }
 
     // Called by rollup contract to delegate a portion of settlement fee to the insurance fund

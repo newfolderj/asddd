@@ -109,9 +109,11 @@ export interface StakingInterface extends utils.Interface {
     "locks(uint256)": FunctionFragment;
     "minimumProtocolStake()": FunctionFragment;
     "minimumStablecoinStake()": FunctionFragment;
+    "nextIdToUnlock()": FunctionFragment;
     "payInsurance(uint256,address,uint256)": FunctionFragment;
     "protocolToken()": FunctionFragment;
     "reward(uint256,uint256,address,uint256)": FunctionFragment;
+    "slash(uint256)": FunctionFragment;
     "stablecoin()": FunctionFragment;
     "stake(address,uint256,uint256)": FunctionFragment;
     "totalStaked(address)": FunctionFragment;
@@ -140,9 +142,11 @@ export interface StakingInterface extends utils.Interface {
       | "locks"
       | "minimumProtocolStake"
       | "minimumStablecoinStake"
+      | "nextIdToUnlock"
       | "payInsurance"
       | "protocolToken"
       | "reward"
+      | "slash"
       | "stablecoin"
       | "stake"
       | "totalStaked"
@@ -221,6 +225,10 @@ export interface StakingInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "nextIdToUnlock",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "payInsurance",
     values: [BigNumberish, string, BigNumberish]
   ): string;
@@ -232,6 +240,7 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "reward",
     values: [BigNumberish, BigNumberish, string, BigNumberish]
   ): string;
+  encodeFunctionData(functionFragment: "slash", values: [BigNumberish]): string;
   encodeFunctionData(
     functionFragment: "stablecoin",
     values?: undefined
@@ -315,6 +324,10 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "nextIdToUnlock",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "payInsurance",
     data: BytesLike
   ): Result;
@@ -323,6 +336,7 @@ export interface StakingInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "reward", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "slash", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "stablecoin", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "stake", data: BytesLike): Result;
   decodeFunctionResult(
@@ -471,6 +485,8 @@ export interface Staking extends BaseContract {
 
     minimumStablecoinStake(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    nextIdToUnlock(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     payInsurance(
       _chainId: BigNumberish,
       _asset: string,
@@ -485,6 +501,11 @@ export interface Staking extends BaseContract {
       _chainId: BigNumberish,
       _asset: string,
       _amount: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    slash(
+      _lockId: BigNumberish,
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
@@ -611,6 +632,8 @@ export interface Staking extends BaseContract {
 
   minimumStablecoinStake(overrides?: CallOverrides): Promise<BigNumber>;
 
+  nextIdToUnlock(overrides?: CallOverrides): Promise<BigNumber>;
+
   payInsurance(
     _chainId: BigNumberish,
     _asset: string,
@@ -625,6 +648,11 @@ export interface Staking extends BaseContract {
     _chainId: BigNumberish,
     _asset: string,
     _amount: BigNumberish,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  slash(
+    _lockId: BigNumberish,
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
@@ -751,6 +779,8 @@ export interface Staking extends BaseContract {
 
     minimumStablecoinStake(overrides?: CallOverrides): Promise<BigNumber>;
 
+    nextIdToUnlock(overrides?: CallOverrides): Promise<BigNumber>;
+
     payInsurance(
       _chainId: BigNumberish,
       _asset: string,
@@ -767,6 +797,8 @@ export interface Staking extends BaseContract {
       _amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
+
+    slash(_lockId: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
     stablecoin(overrides?: CallOverrides): Promise<string>;
 
@@ -857,6 +889,8 @@ export interface Staking extends BaseContract {
 
     minimumStablecoinStake(overrides?: CallOverrides): Promise<BigNumber>;
 
+    nextIdToUnlock(overrides?: CallOverrides): Promise<BigNumber>;
+
     payInsurance(
       _chainId: BigNumberish,
       _asset: string,
@@ -871,6 +905,11 @@ export interface Staking extends BaseContract {
       _chainId: BigNumberish,
       _asset: string,
       _amount: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
+    slash(
+      _lockId: BigNumberish,
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
@@ -979,6 +1018,8 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    nextIdToUnlock(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     payInsurance(
       _chainId: BigNumberish,
       _asset: string,
@@ -993,6 +1034,11 @@ export interface Staking extends BaseContract {
       _chainId: BigNumberish,
       _asset: string,
       _amount: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    slash(
+      _lockId: BigNumberish,
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
