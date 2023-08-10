@@ -94,6 +94,10 @@ contract RollupTest is BaseTest {
         vm.roll(block.number + manager.fraudPeriod());
 
         // should not be able to unlock stake until state root is confirmed
+        lockId = new uint256[](3);
+        lockId[0] = 0;
+        lockId[1] = 1;
+        lockId[2] = 2;
         vm.expectRevert();
         staking.unlock(lockId);
 
