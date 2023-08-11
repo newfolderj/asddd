@@ -262,11 +262,15 @@ contract Staking is IStaking {
                 LockRecord storage lockRecord = locks[lockId];
 
                 // Deposit should be eligible for the given lock record
-                if (
-                    depositRecord.blockNumber >= lockRecord.blockNumber
-                        || lockRecord.blockNumber > depositRecord.unlockTime - manager.fraudPeriod()
-                        || lockRecord.asset != depositRecord.asset
-                ) continue;
+                {
+                    uint256[ACTIVE_PERIODS] memory eligibleTranches = getActiveTranches(lockRecord.blockNumber);
+                    if (
+                        depositRecord.blockNumber >= lockRecord.blockNumber
+                            || depositRecord.unlockTime > eligibleTranches[ACTIVE_PERIODS - 1]
+                            || lockRecord.blockNumber > depositRecord.unlockTime - manager.fraudPeriod()
+                            || lockRecord.asset != depositRecord.asset
+                    ) continue;
+                }
                 for (uint256 i = 0; i < _params.rewardAsset.length; i++) {
                     address rewardAsset = _params.rewardAsset[i];
                     // get rewards for lock record
