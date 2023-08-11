@@ -93,11 +93,14 @@ contract Rollup is IRollup {
 
     /// If a state root has not yet been confirmed and no settlements have been processed, the validator can replace the
     /// state root in case of errors.
+    /// Fraudulent state roots can be replaced without restriction.
     function replaceStateRoot(bytes32 _stateRoot, Id _epoch) external {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
-        if (lastConfirmedEpoch >= _epoch) revert("Cannot replace state root that's been confirmed");
-        if (processedSettlements[_epoch][_stateRoot].length() > 0) {
-            revert("A settlement has already been processed for this state root");
+        if (!fraudulent[_epoch][proposedStateRoot[_epoch]]) {
+            if (lastConfirmedEpoch >= _epoch) revert("Cannot replace state root that's been confirmed");
+            if (processedSettlements[_epoch][_stateRoot].length() > 0) {
+                revert("A settlement has already been processed for this state root");
+            }
         }
 
         lockIdStateRoot[stateRootLockId[_epoch][proposedStateRoot[_epoch]]].stateRoot = _stateRoot;
@@ -147,6 +150,9 @@ contract Rollup is IRollup {
                 requiresCollateral = true;
                 state.stateRoot = proposedStateRoot[_params[i].stateRootId];
                 if (state.stateRoot == 0) revert EMPTY_STATE_ROOT();
+            }
+            if (fraudulent[_params[i].stateRootId][state.stateRoot]) {
+                revert("Cannot process settlements for a fraudulent state root.");
             }
             {
                 bool valid = MerkleProof.verifyCalldata(
