@@ -156,11 +156,11 @@ contract Staking is IStaking {
         uint256 totalAvailable = 0;
         uint256 amountLeft = _amountToLock;
         for (uint256 i = 0; i < tranches.length; i++) {
-            if (amountLeft == 0) break;
             // get balance of asset in tranche
             uint256 available = totals[_asset][tranches[i]].total - totals[_asset][tranches[i]].locked;
             if (available == 0) continue;
             totalAvailable += available;
+            if (amountLeft == 0) continue;
             if (available <= amountLeft) {
                 amountLeft -= available;
                 // set available in tranche to 0
