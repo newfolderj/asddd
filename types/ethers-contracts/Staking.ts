@@ -45,7 +45,7 @@ export declare namespace Staking {
 
   export type LockRecordStruct = {
     amountLocked: BigNumberish;
-    totalAvailable: BigNumberish;
+    totalAmountStaked: BigNumberish;
     blockNumber: BigNumberish;
     asset: string;
   };
@@ -57,7 +57,7 @@ export declare namespace Staking {
     string
   ] & {
     amountLocked: BigNumber;
-    totalAvailable: BigNumber;
+    totalAmountStaked: BigNumber;
     blockNumber: BigNumber;
     asset: string;
   };
@@ -475,7 +475,7 @@ export interface Staking extends BaseContract {
     ): Promise<
       [BigNumber, BigNumber, BigNumber, string] & {
         amountLocked: BigNumber;
-        totalAvailable: BigNumber;
+        totalAmountStaked: BigNumber;
         blockNumber: BigNumber;
         asset: string;
       }
@@ -622,7 +622,7 @@ export interface Staking extends BaseContract {
   ): Promise<
     [BigNumber, BigNumber, BigNumber, string] & {
       amountLocked: BigNumber;
-      totalAvailable: BigNumber;
+      totalAmountStaked: BigNumber;
       blockNumber: BigNumber;
       asset: string;
     }
@@ -769,7 +769,7 @@ export interface Staking extends BaseContract {
     ): Promise<
       [BigNumber, BigNumber, BigNumber, string] & {
         amountLocked: BigNumber;
-        totalAvailable: BigNumber;
+        totalAmountStaked: BigNumber;
         blockNumber: BigNumber;
         asset: string;
       }

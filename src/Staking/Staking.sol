@@ -57,7 +57,7 @@ contract Staking is IStaking {
         // amount of the asset that was locked
         uint256 amountLocked;
         // total amount of the asset deposited in active tranches
-        uint256 totalAvailable;
+        uint256 totalAmountStaked;
         // block number at which the lock occurred
         uint256 blockNumber;
         address asset;
@@ -153,13 +153,13 @@ contract Staking is IStaking {
         if (!(_asset == stablecoin || _asset == protocolToken)) revert("Can only lock stablecoin or protocolToken");
 
         uint256[ACTIVE_PERIODS] memory tranches = getActiveTranches();
-        uint256 totalAvailable = 0;
+        uint256 totalAmountStaked = 0;
         uint256 amountLeft = _amountToLock;
         for (uint256 i = 0; i < tranches.length; i++) {
             // get balance of asset in tranche
             uint256 available = totals[_asset][tranches[i]].total - totals[_asset][tranches[i]].locked;
             if (available == 0) continue;
-            totalAvailable += available;
+            totalAmountStaked += totals[_asset][tranches[i]].total;
             if (amountLeft == 0) continue;
             if (available <= amountLeft) {
                 amountLeft -= available;
@@ -173,7 +173,7 @@ contract Staking is IStaking {
         }
         if (amountLeft > 0) revert INSUFFICIENT_COLLATERAL({ amountToLock: _amountToLock, amountLeft: amountLeft });
 
-        locks[Id.unwrap(currentLockId)] = LockRecord(_amountToLock, totalAvailable, block.number, _asset);
+        locks[Id.unwrap(currentLockId)] = LockRecord(_amountToLock, totalAmountStaked, block.number, _asset);
         currentLockId = currentLockId.increment();
         return Id.unwrap(currentLockId) - 1;
     }
@@ -277,7 +277,7 @@ contract Staking is IStaking {
                     uint256 totalRewards = rewards[lockId][_params.rewardChainId][rewardAsset];
                     // calculate how much goes to deposit record
                     // totalReward * (deposited / totalDeposited)
-                    uint256 claimable = (totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAvailable * 1e5);
+                    uint256 claimable = (totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAmountStaked * 1e5);
                     // get how much has already been claimed
                     uint256 claimed = claimedRewards[depositId][lockId][_params.rewardChainId][rewardAsset];
                     // check if there's anything that can be claimed
@@ -404,7 +404,7 @@ contract Staking is IStaking {
                 uint256 totalRewards = rewards[l][_chainId][_asset];
                 // calculate how much goes to deposit record
                 // totalReward * (deposited / totalDeposited)
-                uint256 claimable = (totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAvailable * 1e5);
+                uint256 claimable = (totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAmountStaked * 1e5);
                 // get how much has already been claimed
                 uint256 claimed = claimedRewards[i][l][_chainId][_asset];
                 // check if there's anything that can be claimed
