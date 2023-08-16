@@ -12,6 +12,7 @@ import "../Staking/IStaking.sol";
 import "../StateUpdateLibrary.sol";
 import "../util/Id.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /// @title Rollup
@@ -25,6 +26,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 contract Rollup is IRollup {
     using IdLib for Id;
     using EnumerableSet for EnumerableSet.UintSet;
+    using ECDSA for bytes32;
 
     /// Incremental identifier to track history of proposed state roots
     Id public epoch = ID_ONE;
@@ -164,6 +166,16 @@ contract Rollup is IRollup {
                     revert INVALID_STATE_UPDATE_SETTLEMENT();
                 }
 
+                // Check signature of state update
+                if (
+                    participatingInterface
+                        != keccak256(abi.encode(_params[i].signedUpdate.stateUpdate)).recover(
+                            _params[i].signedUpdate.v, _params[i].signedUpdate.r, _params[i].signedUpdate.s
+                        )
+                ) {
+                    revert("Invalid signature for state update");
+                }
+
                 // Check if settlement has already been processed
                 if (
                     processedSettlements[_params[i].stateRootId][state.stateRoot].contains(
@@ -291,6 +303,16 @@ contract Rollup is IRollup {
                 if (_params[i].signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_DepositRejection) {
                     revert INVALID_STATE_UPDATE_REJECTED_DEPOSIT();
                 }
+
+                // Check signature of state update
+                if (
+                    participatingInterface
+                        != keccak256(abi.encode(_params[i].signedUpdate.stateUpdate)).recover(
+                            _params[i].signedUpdate.v, _params[i].signedUpdate.r, _params[i].signedUpdate.s
+                        )
+                ) {
+                    revert("Invalid signature for state update");
+                }
             }
 
             StateUpdateLibrary.DepositRejection memory depositRejection =
@@ -339,6 +361,18 @@ contract Rollup is IRollup {
                     keccak256(abi.encode(_claims[i].tradeProof[t].tradeUpdate))
                 );
                 if (!valid) revert("Invalid merkle proof for trade");
+
+                // Check signature of state update
+                if (
+                    participatingInterface
+                        != keccak256(abi.encode(_claims[i].tradeProof[t].tradeUpdate.stateUpdate)).recover(
+                            _claims[i].tradeProof[t].tradeUpdate.v,
+                            _claims[i].tradeProof[t].tradeUpdate.r,
+                            _claims[i].tradeProof[t].tradeUpdate.s
+                        )
+                ) {
+                    revert("Invalid signature for state update");
+                }
 
                 // validate state update
                 if (_claims[i].tradeProof[t].tradeUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Trade)
