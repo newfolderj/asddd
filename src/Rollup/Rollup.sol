@@ -98,6 +98,7 @@ contract Rollup is IRollup {
     /// Fraudulent state roots can be replaced without restriction.
     function replaceStateRoot(bytes32 _stateRoot, Id _epoch) external {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
+        if (_epoch >= epoch) revert("Cannot replace state root that is yet to be proposed");
         if (!fraudulent[_epoch][proposedStateRoot[_epoch]]) {
             if (lastConfirmedEpoch >= _epoch) revert("Cannot replace state root that's been confirmed");
             if (processedSettlements[_epoch][_stateRoot].length() > 0) {
