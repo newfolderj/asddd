@@ -166,7 +166,7 @@ contract BaseTest is Test {
         view
         returns (StateUpdateLibrary.SignedStateUpdate memory)
     {
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(piKey, sigUtil.typeHashStateUpdate(_stateUpdate));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(piKey, keccak256(abi.encode(_stateUpdate)));
         return StateUpdateLibrary.SignedStateUpdate(_stateUpdate, v, r, s);
     }
 
