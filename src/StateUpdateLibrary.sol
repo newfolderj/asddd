@@ -227,6 +227,30 @@ library StateUpdateLibrary {
         uint64 extra;
     }
 
+    function packBalance(Balance memory balance) public view returns (bool) {
+        return true;
+    }
+
+    function packTradeParams(TradeParams memory tradeParams) public view returns (bool) {
+        return true;
+    }
+
+    function packTrade(Trade memory trade) public view returns (bool) {
+        return true;
+    }
+
+    function packDepositAcknowledgement(DepositAcknowledgement memory depositAcknowledgement)
+        public
+        view
+        returns (bool)
+    {
+        return true;
+    }
+
+    function packDeposit(Deposit memory deposit) public view returns (bool) {
+        return true;
+    }
+
     function packSettlementRequest(SettlementRequest memory settlementRequest) public view returns (bool) {
         return true;
     }
