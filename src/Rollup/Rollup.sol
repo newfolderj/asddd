@@ -153,12 +153,14 @@ contract Rollup is IRollup {
         proposedStateRoot[epoch] = _stateRoot;
         proposalBlock[_stateRoot] = block.number;
         lockIdStateRoot[lockId] = StateRootRecord(_stateRoot, epoch);
-        epoch = epoch.increment();
 
         StateUpdateLibrary.Settlement memory settlement =
             abi.decode(_signedUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
         SettlementParams[] memory params = new SettlementParams[](1);
         params[0] = SettlementParams(_signedUpdate, epoch, _proof);
+
+        epoch = epoch.increment();
+        
         processSettlements(settlement.balanceBefore.chainId, params);
     }
 

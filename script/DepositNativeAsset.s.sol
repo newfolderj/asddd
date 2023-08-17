@@ -10,7 +10,7 @@ contract DepositNativeAsset is Script {
 
     function run() external {
         string memory root = vm.projectRoot();
-        string memory path = string.concat(root, "/out/contracts.json");
+        string memory path = string.concat(root, string.concat("/out/contracts_", vm.toString(block.chainid), ".json"));
         string memory json = vm.readFile(path);
         address portalAddress = abi.decode(json.parseRaw(".portal"), (address));
         uint256 alicePk = 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d;
