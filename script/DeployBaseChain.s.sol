@@ -11,8 +11,11 @@ import "../src/CrossChain/LayerZero/ProcessingChainLz.sol";
 import "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
 import "../src/Staking/Staking.sol";
 import "../src/Oracle/Oracle.sol";
+import "../src/util/helpers/Token.sol";
 
 contract DeployBaseChain is Script {
+    using stdJson for string;
+
     address internal participatingInterface;
     address internal admin;
     address internal validator;
@@ -21,19 +24,17 @@ contract DeployBaseChain is Script {
     AssetChainManager internal assetChainManager;
 
     function run() external {
-        uint256 deployerPrivateKey = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
-        uint256 alicePk = 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d;
-        uint256 bobPk = 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a;
-        // string[] memory chainNames = new string[](1);
-        // Id[] memory chainIds = new Id[](1);
-        // chainNames[0] = "Polygon";
-        // chainIds[0] = Id.wrap(2501);
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        string memory root = vm.projectRoot();
+        string memory path = string.concat(root, "/script/token_accounts.json");
+        string memory json = vm.readFile(path);
+        address[] memory airdrop = json.readAddressArray("$");
         vm.startBroadcast(deployerPrivateKey);
         participatingInterface = vm.addr(deployerPrivateKey);
         admin = vm.addr(deployerPrivateKey);
         validator = vm.addr(deployerPrivateKey);
-        ERC20PresetFixedSupply stablecoin = new ERC20PresetFixedSupply("Stablecoin", "USDT", 1e20 ether, validator);
-        ERC20PresetFixedSupply protocolToken = new ERC20PresetFixedSupply("ProtocolToken", "TXA", 1e20 ether, validator);
+        Token stablecoin = new Token(airdrop, "Stablecoin", "USDT", 6);
+        Token protocolToken = new Token(airdrop, "ProtocolToken", "TXA", 18);
 
         manager = new ProcessingChainManager({
             _participatingInterface: participatingInterface, 
@@ -44,6 +45,7 @@ contract DeployBaseChain is Script {
         });
         manager.addSupportedChain(block.chainid);
         manager.addSupportedAsset(block.chainid, address(0), 18);
+        manager.addSupportedAsset(block.chainid, address(stablecoin), 6);
         // Setup oracle with initial prices
         manager.deployOracle(address(stablecoin), block.chainid, 0.3e18);
         Oracle oracle = Oracle(manager.oracle());
@@ -59,6 +61,8 @@ contract DeployBaseChain is Script {
             _admin: admin
         });
         assetChainManager.addSupportedAsset(address(0), address(0));
+        stablecoin.approve(address(assetChainManager), 1);
+        assetChainManager.addSupportedAsset(address(stablecoin), validator);
         assetChainManager.deployReceiver(address(lzEndpointMockDest), uint16(block.chainid));
         processingChainLz.setTrustedRemote(
             uint16(block.chainid), abi.encodePacked(assetChainManager.receiver(), address(processingChainLz))
@@ -77,16 +81,22 @@ contract DeployBaseChain is Script {
         Staking staking = new Staking(address(manager), address(stablecoin), address(protocolToken));
         manager.setStaking(address(staking));
         uint256[3] memory tranches = staking.getActiveTranches();
-        protocolToken.approve(manager.staking(), 1e20 ether);
-        stablecoin.approve(manager.staking(), 1e20 ether);
-        staking.stake(address(stablecoin), 1e20 ether, tranches[1]);
-        staking.stake(address(protocolToken), 1e20 ether, tranches[1]);
+        protocolToken.approve(manager.staking(), 50_000e18);
+        stablecoin.approve(manager.staking(), 10_000e6);
+        staking.stake(address(stablecoin), 10_000e6, tranches[2]);
+        staking.stake(address(protocolToken), 50_000e18, tranches[2]);
 
         vm.stopBroadcast();
 
-        string memory obj1 = '{"manager":"","portal":"","rollup":""}';
+        string memory obj1 =
+            '{"manager":"","assetManager":"","portal":"","rollup":"","oracle":"","staking":"","protolToken":"","stablecoin":""}';
         vm.serializeAddress(obj1, "portal", assetChainManager.portal());
         vm.serializeAddress(obj1, "rollup", manager.rollup());
-        vm.writeJson(vm.serializeAddress(obj1, "manager", address(manager)), "./out/contracts.json");
+        vm.serializeAddress(obj1, "oracle", manager.oracle());
+        vm.serializeAddress(obj1, "staking", manager.staking());
+        vm.serializeAddress(obj1, "protocolToken", manager.protocolToken());
+        vm.serializeAddress(obj1, "stablecoin", manager.stablecoin());
+        vm.serializeAddress(obj1, "assetManager", address(assetChainManager));
+        vm.writeJson(vm.serializeAddress(obj1, "manager", address(manager)), string.concat("./out/contracts_", vm.toString(block.chainid), ".json"));
     }
 }
