@@ -148,8 +148,10 @@ library StateUpdateLibrary {
 
     struct Product {
         address baseAsset;
+        uint8 baseAssetPrecision;
         uint256 baseAssetChainId;
         address counterAsset;
+        uint8 counterAssetPrecision;
         uint256 counterAssetChainId;
     }
 
