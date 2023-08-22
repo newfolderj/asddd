@@ -72,6 +72,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     "supportedAsset(uint256,address)": FunctionFragment;
     "supportedChains(uint256)": FunctionFragment;
     "updateFees()": FunctionFragment;
+    "updateRootProposalLockAmount(uint256)": FunctionFragment;
     "validators(address)": FunctionFragment;
     "walletDelegation()": FunctionFragment;
   };
@@ -122,6 +123,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
       | "supportedAsset"
       | "supportedChains"
       | "updateFees"
+      | "updateRootProposalLockAmount"
       | "validators"
       | "walletDelegation"
   ): FunctionFragment;
@@ -278,6 +280,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     functionFragment: "updateFees",
     values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "updateRootProposalLockAmount",
+    values: [BigNumberish]
+  ): string;
   encodeFunctionData(functionFragment: "validators", values: [string]): string;
   encodeFunctionData(
     functionFragment: "walletDelegation",
@@ -430,6 +436,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "updateFees", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "updateRootProposalLockAmount",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "validators", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "walletDelegation",
@@ -668,6 +678,11 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
+    updateRootProposalLockAmount(
+      _rootProposalLockAmount: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     validators(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
 
     walletDelegation(overrides?: CallOverrides): Promise<[string]>;
@@ -841,6 +856,11 @@ export interface ProcessingChainManager extends BaseContract {
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
+  updateRootProposalLockAmount(
+    _rootProposalLockAmount: BigNumberish,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
   validators(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
   walletDelegation(overrides?: CallOverrides): Promise<string>;
@@ -1008,6 +1028,11 @@ export interface ProcessingChainManager extends BaseContract {
     ): Promise<boolean>;
 
     updateFees(overrides?: CallOverrides): Promise<void>;
+
+    updateRootProposalLockAmount(
+      _rootProposalLockAmount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     validators(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
@@ -1186,6 +1211,11 @@ export interface ProcessingChainManager extends BaseContract {
 
     updateFees(overrides?: Overrides & { from?: string }): Promise<BigNumber>;
 
+    updateRootProposalLockAmount(
+      _rootProposalLockAmount: BigNumberish,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
     validators(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     walletDelegation(overrides?: CallOverrides): Promise<BigNumber>;
@@ -1348,6 +1378,11 @@ export interface ProcessingChainManager extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     updateFees(
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    updateRootProposalLockAmount(
+      _rootProposalLockAmount: BigNumberish,
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 

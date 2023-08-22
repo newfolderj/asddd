@@ -135,6 +135,15 @@ contract ProcessingChainManager is IProcessingChainManager, FeeManager {
         supportedAsset[_chainId][_asset] = _precision;
     }
 
+    /// Called by admin to update the amount of the protocol token a validator needs to lock in order to propose a state
+    /// root.
+    /// @param _rootProposalLockAmount Updated amount of protocol token a validator must lock to propose a state root
+    function updateRootProposalLockAmount(uint256 _rootProposalLockAmount) external {
+        if (msg.sender != admin) revert("Only admin");
+        if (_rootProposalLockAmount == 0) revert("Lock amount cannot be 0");
+        rootProposalLockAmount = _rootProposalLockAmount;
+    }
+
     /// Called by the participating interface to propose new trading fees.
     /// See `FeeManager.sol` for `_proposeFees`
     /// @param _makerFee Numerator of the new maker fee
