@@ -33,8 +33,8 @@ contract DeployBaseChain is Script {
         participatingInterface = vm.addr(deployerPrivateKey);
         admin = vm.addr(deployerPrivateKey);
         validator = vm.addr(deployerPrivateKey);
-        Token stablecoin = new Token(airdrop, "Stablecoin", "USDT", 6);
-        Token protocolToken = new Token(airdrop, "ProtocolToken", "TXA", 18);
+        Token stablecoin = new Token(airdrop, "Stablecoin", "USDT", 6, 500_000e6);
+        Token protocolToken = new Token(airdrop, "ProtocolToken", "TXA", 18, 10_000_000e18);
 
         manager = new ProcessingChainManager({
             _participatingInterface: participatingInterface, 
@@ -50,7 +50,7 @@ contract DeployBaseChain is Script {
         manager.deployOracle(address(stablecoin), block.chainid, 0.3e18);
         Oracle oracle = Oracle(manager.oracle());
         oracle.grantReporter(admin);
-        oracle.initializePrice(block.chainid, address(0), 1895.25e18);
+        oracle.initializePrice(block.chainid, address(0), 1667e18);
 
         LZEndpointMock lzEndpointMock = new LZEndpointMock(uint16(block.chainid));
         LZEndpointMock lzEndpointMockDest = new LZEndpointMock(uint16(block.chainid));
@@ -81,10 +81,10 @@ contract DeployBaseChain is Script {
         Staking staking = new Staking(address(manager), address(stablecoin), address(protocolToken));
         manager.setStaking(address(staking));
         uint256[3] memory tranches = staking.getActiveTranches();
-        protocolToken.approve(manager.staking(), 50_000e18);
-        stablecoin.approve(manager.staking(), 10_000e6);
-        staking.stake(address(stablecoin), 10_000e6, tranches[2]);
-        staking.stake(address(protocolToken), 50_000e18, tranches[2]);
+        protocolToken.approve(manager.staking(), 400_000e18);
+        stablecoin.approve(manager.staking(), 100_000e6);
+        staking.stake(address(stablecoin), 100_000e6, tranches[2]);
+        staking.stake(address(protocolToken), 400_000e18, tranches[2]);
 
         vm.stopBroadcast();
 
