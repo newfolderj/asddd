@@ -8,4 +8,5 @@ interface IStaking {
     function payInsurance(uint256 _chainId, address _asset, uint256 _amount) external;
     function stablecoin() external view returns (address);
     function protocolToken() external view returns (address);
+    function getAvailableCollateral(address _asset) external view returns (uint256);
 }
