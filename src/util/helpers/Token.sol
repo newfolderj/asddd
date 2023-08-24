@@ -11,12 +11,13 @@ contract Token is ERC20 {
         address[] memory airdrop,
         string memory name,
         string memory symbol,
-        uint8 _precision
+        uint8 _precision,
+        uint256 _airdropAmount
     ) ERC20(name, symbol) {
         if(_precision < 6 ) revert("Insufficient precision");
         precision = _precision;
         for (uint256 i = 0; i < airdrop.length; i++) {
-            _mint(airdrop[i], 100_000e18);
+            _mint(airdrop[i], _airdropAmount);
         }
     }
 
