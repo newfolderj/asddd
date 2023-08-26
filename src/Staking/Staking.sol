@@ -321,8 +321,20 @@ contract Staking is IStaking {
         }
     }
 
-    // Below are view functions used only for querying data off-chain
+    function getAvailableCollateral(address _asset) external view returns (uint256) {
+        if (!(_asset == stablecoin || _asset == protocolToken)) revert("Can only lock stablecoin or protocolToken");
+        uint256[ACTIVE_PERIODS] memory tranches = getActiveTranches();
+        uint256 totalAvailable = 0;
+        for (uint256 i = 0; i < tranches.length; i++) {
+            // get balance of asset in tranche
+            uint256 available = totals[_asset][tranches[i]].total - totals[_asset][tranches[i]].locked;
+            if (available == 0) continue;
+            totalAvailable += available;
+        }
+        return totalAvailable;
+    }
 
+    // Below are view functions used only for querying data off-chain
     function getUserDepositIds(address _user) external view returns (uint256[] memory) {
         return userDeposits[_user].values();
     }

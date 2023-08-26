@@ -148,19 +148,32 @@ contract Rollup is IRollup {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
         if (_stateRoot == "") revert("Proposed empty state root");
         IStaking staking = IStaking(manager.staking());
-        uint256 lockId = staking.lock(staking.protocolToken(), manager.rootProposalLockAmount());
-
-        proposedStateRoot[epoch] = _stateRoot;
-        proposalBlock[_stateRoot] = block.number;
-        lockIdStateRoot[lockId] = StateRootRecord(_stateRoot, epoch);
+        // uint256 lockId = staking.lock(staking.protocolToken(), manager.rootProposalLockAmount());
 
         StateUpdateLibrary.Settlement memory settlement =
             abi.decode(_signedUpdate.stateUpdate.structData, (StateUpdateLibrary.Settlement));
+        // check if there is enough collateral
+        uint256 stablecoinValue = IOracle(manager.oracle()).getStablecoinValue(
+            Id.unwrap(settlement.balanceBefore.chainId), settlement.balanceBefore.asset, settlement.balanceBefore.amount
+        );
+        uint256 protocolValue = IOracle(manager.oracle()).stablecoinToProtocol(stablecoinValue);
+        protocolValue = (protocolValue * 15e6) / 100e6;
+        uint256 stablecoinAvailable = staking.getAvailableCollateral(staking.stablecoin());
+        uint256 protocolTokenAvailable = staking.getAvailableCollateral(staking.protocolToken());
+
+        proposedStateRoot[epoch] = _stateRoot;
+        proposalBlock[_stateRoot] = block.number;
+        // lockIdStateRoot[lockId] = StateRootRecord(_stateRoot, epoch);
+
+        if(!(stablecoinAvailable >= stablecoinValue && protocolTokenAvailable >= protocolValue)) {
+            confirmedStateRoot[epoch] = _stateRoot;
+        }
+
         SettlementParams[] memory params = new SettlementParams[](1);
         params[0] = SettlementParams(_signedUpdate, epoch, _proof);
 
         epoch = epoch.increment();
-        
+
         processSettlements(settlement.balanceBefore.chainId, params);
     }
 
@@ -275,7 +288,7 @@ contract Rollup is IRollup {
                 staking.payInsurance(
                     Id.unwrap(state.settlement.balanceBefore.chainId),
                     state.settlement.balanceBefore.asset,
-                    insuranceFee
+                    insuranceFee + stakerReward
                 );
             }
 

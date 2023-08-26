@@ -115,6 +115,7 @@ export interface StakingInterface extends utils.Interface {
     "getActiveTranches()": FunctionFragment;
     "getActiveTranches(uint256)": FunctionFragment;
     "getAllLockRecords()": FunctionFragment;
+    "getAvailableCollateral(address)": FunctionFragment;
     "getAvailableDeposits(address)": FunctionFragment;
     "getAvailableToClaim(address,uint256,address)": FunctionFragment;
     "getLockRecords(uint256,uint256)": FunctionFragment;
@@ -147,6 +148,7 @@ export interface StakingInterface extends utils.Interface {
       | "getActiveTranches()"
       | "getActiveTranches(uint256)"
       | "getAllLockRecords"
+      | "getAvailableCollateral"
       | "getAvailableDeposits"
       | "getAvailableToClaim"
       | "getLockRecords"
@@ -203,6 +205,10 @@ export interface StakingInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "getAllLockRecords",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getAvailableCollateral",
+    values: [string]
   ): string;
   encodeFunctionData(
     functionFragment: "getAvailableDeposits",
@@ -300,6 +306,10 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "getAllLockRecords",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getAvailableCollateral",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -535,6 +545,11 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[Staking.LockRecordStructOutput[]]>;
 
+    getAvailableCollateral(
+      _asset: string,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     getAvailableDeposits(
       _user: string,
       overrides?: CallOverrides
@@ -680,6 +695,11 @@ export interface Staking extends BaseContract {
     overrides?: CallOverrides
   ): Promise<Staking.LockRecordStructOutput[]>;
 
+  getAvailableCollateral(
+    _asset: string,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   getAvailableDeposits(
     _user: string,
     overrides?: CallOverrides
@@ -824,6 +844,11 @@ export interface Staking extends BaseContract {
     getAllLockRecords(
       overrides?: CallOverrides
     ): Promise<Staking.LockRecordStructOutput[]>;
+
+    getAvailableCollateral(
+      _asset: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     getAvailableDeposits(
       _user: string,
@@ -1031,6 +1056,11 @@ export interface Staking extends BaseContract {
 
     getAllLockRecords(overrides?: CallOverrides): Promise<BigNumber>;
 
+    getAvailableCollateral(
+      _asset: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     getAvailableDeposits(
       _user: string,
       overrides?: CallOverrides
@@ -1147,6 +1177,11 @@ export interface Staking extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     getAllLockRecords(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    getAvailableCollateral(
+      _asset: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     getAvailableDeposits(
       _user: string,
