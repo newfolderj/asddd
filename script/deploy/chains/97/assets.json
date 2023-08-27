@@ -1,0 +1,14 @@
+[
+    {
+        "initialPrice": "216410000000000000000",
+        "precision": 18,
+        "symbol": "BNB",
+        "tokenAddress": "0x0000000000000000000000000000000000000000"
+    },
+    {
+        "initialPrice": "1000000000000000000",
+        "precision": 18,
+        "symbol": "BUSD",
+        "tokenAddress": "0x57546f95163291b04588a2abdc1feb0fa215561a"
+    }
+]
