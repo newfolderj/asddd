@@ -58,7 +58,7 @@ contract RollupTest is BaseTest {
 
         // Propose state root as validator
         vm.prank(validator);
-        rollup.proposeStateRoot(stateRoot);
+        rollup.proposeStateRoot("", stateRoot);
 
         // Report settlement as the validator
         vm.prank(validator);
