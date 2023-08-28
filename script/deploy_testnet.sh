@@ -47,12 +47,14 @@ arb_rollup=$(jq -r '.rollup' "$arb")
 eth_portal=$(jq -r '.portal' "$eth")
 bsc_portal=$(jq -r '.portal' "$bsc")
 matic_portal=$(jq -r '.portal' "$matic")
+arb_staking=$(jq -r '.staking' "$arb")
 
 # Construct a new JSON and write it to the desired file
 jq -n --arg eth_asset_manager "$eth_asset_manager" --arg eth_portal "$eth_portal" \
 --arg bsc_asset_manager "$bsc_asset_manager" --arg bsc_portal "$bsc_portal" \
 --arg matic_asset_manager "$matic_asset_manager" --arg matic_portal "$matic_portal" \
 --arg arb_processing_manager "$arb_processing_manager" --arg arb_rollup "$arb_rollup" \
+--arg arb_staking "$arb_staking" \
 '{
     "ETH_ASSET_MANAGER": $eth_asset_manager,
     "ETH_ASSET_CUSTODY": $eth_portal,
@@ -61,7 +63,8 @@ jq -n --arg eth_asset_manager "$eth_asset_manager" --arg eth_portal "$eth_portal
     "MATIC_ASSET_MANAGER": $matic_asset_manager,
     "MATIC_ASSET_CUSTODY": $matic_portal,
     "ARB_PROCESSING_MANAGER": $arb_processing_manager,
-    "ROLLUP": $arb_rollup
+    "ROLLUP": $arb_rollup,
+    "STAKING": $arb_staking
 }' > contract_address_env_vars.json
 
 # Notify when done
