@@ -30,6 +30,9 @@ contract Staking is IStaking {
     uint256 public constant PERIOD_LENGTH = 28_800 * 15; // About 60 days on Ethereum
     // How many staking periods are available at one time
     uint256 public constant ACTIVE_PERIODS = 3;
+    // Maximum number of blocks in the future from current block for which a staker
+    // can lock collateral.
+    uint256 public constant MAX_PERIOD = PERIOD_LENGTH * 5; // About 300 days
 
     struct DepositRecord {
         address staker;
@@ -106,6 +109,7 @@ contract Staking is IStaking {
         require(IERC20(_asset).transferFrom(msg.sender, address(this), _amount), "Failed to transfer token");
 
         if (_unlockTime % PERIOD_LENGTH != 0) revert("Invalid unlock time");
+        if(_unlockTime > block.number + MAX_PERIOD) revert("Unlock time too far in the future");
         if (block.number >= _unlockTime - manager.fraudPeriod()) revert("Can no longer stake into this tranche");
 
         deposits[Id.unwrap(currentDepositId)] = DepositRecord(msg.sender, _asset, _amount, block.number, _unlockTime, 0);
