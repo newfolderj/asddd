@@ -101,6 +101,8 @@ contract Staking is IStaking {
 
     function stake(address _asset, uint256 _amount, uint256 _unlockTime) public {
         if (!(_asset == stablecoin || _asset == protocolToken)) revert("Invalid asset");
+        uint256 minStake = _asset == stablecoin ? minimumStablecoinStake : minimumProtocolStake;
+        if (_amount < minStake) revert("Stake amount below minimum");
         require(IERC20(_asset).transferFrom(msg.sender, address(this), _amount), "Failed to transfer token");
 
         if (_unlockTime % PERIOD_LENGTH != 0) revert("Invalid unlock time");
