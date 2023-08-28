@@ -171,6 +171,7 @@ contract Portal is IPortal {
             if (rejectedDeposits[_depositHashes[i]]) revert("Deposit already rejected");
             if (collateralized[deposit.asset] < deposit.amount) revert("Insufficient balance");
             rejected[deposit.trader][deposit.asset] += deposit.amount;
+            collateralized[deposit.asset] -= deposit.amount;
             rejectedDeposits[_depositHashes[i]] = true;
             emit RejectedDeposit(deposit.trader, deposit.asset, deposit.amount);
         }
