@@ -24,7 +24,9 @@ contract Staking is IStaking {
     error INSUFFICIENT_COLLATERAL(uint256 amountToLock, uint256 amountLeft);
 
     // TIME CONSTANTS
-    // Minimum number of blocks for which funds must be locked
+    // Length of each staking tranche in number of blocks
+    // Stakers can enter a tranche from its beginning up to the end (minus the fraud period)
+    // No matter what time a staker enters, the funds will be locked until the end of the period.
     uint256 public constant PERIOD_LENGTH = 28_800 * 15; // About 60 days on Ethereum
     // How many staking periods are available at one time
     uint256 public constant ACTIVE_PERIODS = 3;
