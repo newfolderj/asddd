@@ -131,8 +131,8 @@ export interface RollupInterface extends utils.Interface {
     "markFraudulent(uint256)": FunctionFragment;
     "processRejectedDeposits(uint256,(((uint8,uint256,address,bytes),uint8,bytes32,bytes32),uint256,bytes32[])[],bytes)": FunctionFragment;
     "processSettlements(uint256,(((uint8,uint256,address,bytes),uint8,bytes32,bytes32),uint256,bytes32[])[])": FunctionFragment;
-    "proposalBlock(bytes32)": FunctionFragment;
-    "proposeStateRoot(bytes32)": FunctionFragment;
+    "proposalBlock(uint256,bytes32)": FunctionFragment;
+    "proposeStateRoot(bytes32,bytes32)": FunctionFragment;
     "proposedStateRoot(uint256)": FunctionFragment;
     "relayTradingFees(uint256,address[],bytes)": FunctionFragment;
     "replaceStateRoot(bytes32,uint256)": FunctionFragment;
@@ -216,11 +216,11 @@ export interface RollupInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "proposalBlock",
-    values: [BytesLike]
+    values: [BigNumberish, BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "proposeStateRoot",
-    values: [BytesLike]
+    values: [BytesLike, BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "proposedStateRoot",
@@ -401,11 +401,13 @@ export interface Rollup extends BaseContract {
     ): Promise<ContractTransaction>;
 
     proposalBlock(
-      arg0: BytesLike,
+      arg0: BigNumberish,
+      arg1: BytesLike,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
     proposeStateRoot(
+      _lastProposedStateRoot: BytesLike,
       _stateRoot: BytesLike,
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
@@ -493,9 +495,14 @@ export interface Rollup extends BaseContract {
     overrides?: PayableOverrides & { from?: string }
   ): Promise<ContractTransaction>;
 
-  proposalBlock(arg0: BytesLike, overrides?: CallOverrides): Promise<BigNumber>;
+  proposalBlock(
+    arg0: BigNumberish,
+    arg1: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
   proposeStateRoot(
+    _lastProposedStateRoot: BytesLike,
     _stateRoot: BytesLike,
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
@@ -582,11 +589,13 @@ export interface Rollup extends BaseContract {
     ): Promise<void>;
 
     proposalBlock(
-      arg0: BytesLike,
+      arg0: BigNumberish,
+      arg1: BytesLike,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     proposeStateRoot(
+      _lastProposedStateRoot: BytesLike,
       _stateRoot: BytesLike,
       overrides?: CallOverrides
     ): Promise<void>;
@@ -678,11 +687,13 @@ export interface Rollup extends BaseContract {
     ): Promise<BigNumber>;
 
     proposalBlock(
-      arg0: BytesLike,
+      arg0: BigNumberish,
+      arg1: BytesLike,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     proposeStateRoot(
+      _lastProposedStateRoot: BytesLike,
       _stateRoot: BytesLike,
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
@@ -774,11 +785,13 @@ export interface Rollup extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     proposalBlock(
-      arg0: BytesLike,
+      arg0: BigNumberish,
+      arg1: BytesLike,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     proposeStateRoot(
+      _lastProposedStateRoot: BytesLike,
       _stateRoot: BytesLike,
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;

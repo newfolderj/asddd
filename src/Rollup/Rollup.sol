@@ -35,7 +35,7 @@ contract Rollup is IRollup {
     /// Maps Id of the epoch to the state root proposed for the epoch
     mapping(Id => bytes32) public proposedStateRoot;
     /// Maps state root to block number when state root was proposed
-    mapping(bytes32 => uint256) public proposalBlock;
+    mapping(Id => mapping(bytes32 => uint256)) public proposalBlock;
     /// Maps epoch to state root to a flag indicating if the state root was marked as fraudulent for that epoch.
     mapping(Id => mapping(bytes32 => bool)) public fraudulent;
     /// Maps epoch Id to the state root that was confirmed for that epoch
@@ -80,14 +80,15 @@ contract Rollup is IRollup {
     }
 
     /// Called by the validator to propose a state root
-    function proposeStateRoot(bytes32 _stateRoot) external {
+    function proposeStateRoot(bytes32 _lastProposedStateRoot, bytes32 _stateRoot) external {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
         if (_stateRoot == "") revert("Proposed empty state root");
+        if(_lastProposedStateRoot != proposedStateRoot[Id.wrap(Id.unwrap(epoch) - 1)]) revert ("Last proposed state root doesn't match");
         IStaking staking = IStaking(manager.staking());
         uint256 lockId = staking.lock(staking.protocolToken(), manager.rootProposalLockAmount());
 
         proposedStateRoot[epoch] = _stateRoot;
-        proposalBlock[_stateRoot] = block.number;
+        proposalBlock[epoch][_stateRoot] = block.number;
         lockIdStateRoot[lockId] = StateRootRecord(_stateRoot, epoch);
         stateRootLockId[epoch][_stateRoot] = lockId;
         epoch = epoch.increment();
@@ -108,7 +109,7 @@ contract Rollup is IRollup {
 
         lockIdStateRoot[stateRootLockId[_epoch][proposedStateRoot[_epoch]]].stateRoot = _stateRoot;
         proposedStateRoot[_epoch] = _stateRoot;
-        proposalBlock[_stateRoot] = block.number;
+        proposalBlock[_epoch][_stateRoot] = block.number;
     }
 
     /// Called by the validator to confirm a state root
@@ -119,7 +120,7 @@ contract Rollup is IRollup {
         bytes32 stateRoot = proposedStateRoot[lastConfirmedEpoch];
         if (stateRoot == "") revert("Trying to confirm an empty state root");
 
-        uint256 blockNumber = proposalBlock[stateRoot];
+        uint256 blockNumber = proposalBlock[lastConfirmedEpoch][stateRoot];
         if (block.number < blockNumber + manager.fraudPeriod()) {
             revert("Proposed state root has not passed fraud period");
         }
