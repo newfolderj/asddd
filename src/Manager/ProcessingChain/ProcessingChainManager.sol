@@ -111,7 +111,7 @@ contract ProcessingChainManager is IProcessingChainManager, FeeManager {
 
     function revokeValidator(address _validator) external {
         if (msg.sender != admin) revert();
-        validators[_validator] = true;
+        validators[_validator] = false;
     }
 
     /// Called by the admin to add support for a new chain
