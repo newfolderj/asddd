@@ -189,6 +189,7 @@ contract BaseTest is Test {
         });
         rollup = Rollup(manager.rollup());
         vm.startPrank(admin);
+        manager.updateInsuranceFund(validator);
         staking = new Staking(address(manager), address(stablecoin), address(protocolToken));
         manager.setStaking(address(staking));
         lzEndpointMock = new LZEndpointMock(uint16(block.chainid));
@@ -230,6 +231,7 @@ contract BaseTest is Test {
         vm.deal(alice, 10 ether);
         vm.deal(bob, 10 ether);
         vm.deal(validator, 10 ether);
+        vm.deal(admin, 10 ether);
 
 
         sigUtil = new Signature(participatingInterface);

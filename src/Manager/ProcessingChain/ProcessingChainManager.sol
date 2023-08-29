@@ -15,6 +15,7 @@ import "../../Oracle/Oracle.sol";
 /// Each contract on the processing chain defers to the ProcessingChainManager for determining
 contract ProcessingChainManager is IProcessingChainManager, FeeManager {
     address public admin;
+    address public insuranceFund;
     address public participatingInterface;
     address public rollup;
     address public fraudEngine;
@@ -112,6 +113,11 @@ contract ProcessingChainManager is IProcessingChainManager, FeeManager {
     function revokeValidator(address _validator) external {
         if (msg.sender != admin) revert();
         validators[_validator] = false;
+    }
+
+    function updateInsuranceFund(address _insuranceFund) external {
+        if(msg.sender != admin) revert();
+        insuranceFund = _insuranceFund;
     }
 
     /// Called by the admin to add support for a new chain

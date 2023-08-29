@@ -49,6 +49,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     "fraudEngine()": FunctionFragment;
     "fraudPeriod()": FunctionFragment;
     "grantValidator(address)": FunctionFragment;
+    "insuranceFund()": FunctionFragment;
     "insuranceFundFee()": FunctionFragment;
     "isSupportedAsset(uint256,address)": FunctionFragment;
     "isValidator(address)": FunctionFragment;
@@ -72,6 +73,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     "supportedAsset(uint256,address)": FunctionFragment;
     "supportedChains(uint256)": FunctionFragment;
     "updateFees()": FunctionFragment;
+    "updateInsuranceFund(address)": FunctionFragment;
     "updateRootProposalLockAmount(uint256)": FunctionFragment;
     "validators(address)": FunctionFragment;
     "walletDelegation()": FunctionFragment;
@@ -100,6 +102,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
       | "fraudEngine"
       | "fraudPeriod"
       | "grantValidator"
+      | "insuranceFund"
       | "insuranceFundFee"
       | "isSupportedAsset"
       | "isValidator"
@@ -123,6 +126,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
       | "supportedAsset"
       | "supportedChains"
       | "updateFees"
+      | "updateInsuranceFund"
       | "updateRootProposalLockAmount"
       | "validators"
       | "walletDelegation"
@@ -207,6 +211,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     values: [string]
   ): string;
   encodeFunctionData(
+    functionFragment: "insuranceFund",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "insuranceFundFee",
     values?: undefined
   ): string;
@@ -279,6 +287,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "updateFees",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "updateInsuranceFund",
+    values: [string]
   ): string;
   encodeFunctionData(
     functionFragment: "updateRootProposalLockAmount",
@@ -366,6 +378,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "insuranceFund",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "insuranceFundFee",
     data: BytesLike
   ): Result;
@@ -436,6 +452,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "updateFees", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "updateInsuranceFund",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "updateRootProposalLockAmount",
     data: BytesLike
@@ -596,6 +616,8 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
+    insuranceFund(overrides?: CallOverrides): Promise<[string]>;
+
     insuranceFundFee(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     isSupportedAsset(
@@ -675,6 +697,11 @@ export interface ProcessingChainManager extends BaseContract {
     ): Promise<[boolean]>;
 
     updateFees(
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    updateInsuranceFund(
+      _insuranceFund: string,
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
@@ -777,6 +804,8 @@ export interface ProcessingChainManager extends BaseContract {
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
+  insuranceFund(overrides?: CallOverrides): Promise<string>;
+
   insuranceFundFee(overrides?: CallOverrides): Promise<BigNumber>;
 
   isSupportedAsset(
@@ -853,6 +882,11 @@ export interface ProcessingChainManager extends BaseContract {
   ): Promise<boolean>;
 
   updateFees(
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  updateInsuranceFund(
+    _insuranceFund: string,
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
@@ -955,6 +989,8 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    insuranceFund(overrides?: CallOverrides): Promise<string>;
+
     insuranceFundFee(overrides?: CallOverrides): Promise<BigNumber>;
 
     isSupportedAsset(
@@ -1028,6 +1064,11 @@ export interface ProcessingChainManager extends BaseContract {
     ): Promise<boolean>;
 
     updateFees(overrides?: CallOverrides): Promise<void>;
+
+    updateInsuranceFund(
+      _insuranceFund: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     updateRootProposalLockAmount(
       _rootProposalLockAmount: BigNumberish,
@@ -1135,6 +1176,8 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
+    insuranceFund(overrides?: CallOverrides): Promise<BigNumber>;
+
     insuranceFundFee(overrides?: CallOverrides): Promise<BigNumber>;
 
     isSupportedAsset(
@@ -1210,6 +1253,11 @@ export interface ProcessingChainManager extends BaseContract {
     ): Promise<BigNumber>;
 
     updateFees(overrides?: Overrides & { from?: string }): Promise<BigNumber>;
+
+    updateInsuranceFund(
+      _insuranceFund: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
 
     updateRootProposalLockAmount(
       _rootProposalLockAmount: BigNumberish,
@@ -1297,6 +1345,8 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
+    insuranceFund(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     insuranceFundFee(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     isSupportedAsset(
@@ -1378,6 +1428,11 @@ export interface ProcessingChainManager extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     updateFees(
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    updateInsuranceFund(
+      _insuranceFund: string,
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
