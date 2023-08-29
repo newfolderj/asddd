@@ -100,6 +100,7 @@ contract Rollup is IRollup {
     function replaceStateRoot(bytes32 _stateRoot, Id _epoch) external {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
         if (_epoch >= epoch) revert("Cannot replace state root that is yet to be proposed");
+        if (_stateRoot == "") revert("State root is empty");
         if (!fraudulent[_epoch][proposedStateRoot[_epoch]]) {
             if (lastConfirmedEpoch >= _epoch) revert("Cannot replace state root that's been confirmed");
             if (processedSettlements[_epoch][_stateRoot].length() > 0) {
