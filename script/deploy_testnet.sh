@@ -67,5 +67,7 @@ jq -n --arg eth_asset_manager "$eth_asset_manager" --arg eth_portal "$eth_portal
     "STAKING": $arb_staking
 }' > contract_address_env_vars.json
 
+cat contract_address_env_vars.json
+
 # Notify when done
 echo "All scripts executed successfully!"
