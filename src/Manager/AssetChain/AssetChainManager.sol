@@ -67,10 +67,12 @@ contract AssetChainManager is IAssetChainManager {
     /// Called by admin to set the `_minimum` deposit amount for an `_asset`
     function setMinimumDeposit(address _asset, uint256 _minimum) external {
         if (msg.sender != admin) revert("Only admin");
+        if(!supportedAsset[_asset]) revert("Unsupported asset");
         minimumDeposit[_asset] = _minimum;
     }
 
     function getMinimumDeposit(address _asset) external view returns (uint256) {
+        if(!supportedAsset[_asset]) revert("Unsupported asset");
         return minimumDeposit[_asset] == 0 ? defaultMinimumDeposit : minimumDeposit[_asset];
     }
 }
