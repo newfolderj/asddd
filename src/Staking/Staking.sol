@@ -152,8 +152,8 @@ contract Staking is IStaking {
         }
         if (protocolTokenAmount > 0) {
             IERC20(protocolToken).safeTransfer(msg.sender, protocolTokenAmount);
-            totalStaked[protocolToken] -= stablecoinAmount;
-            individualStaked[msg.sender][protocolToken] -= stablecoinAmount;
+            totalStaked[protocolToken] -= protocolTokenAmount;
+            individualStaked[msg.sender][protocolToken] -= protocolTokenAmount;
         }
     }
 
