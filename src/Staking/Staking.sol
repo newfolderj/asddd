@@ -11,6 +11,7 @@ import "../Rollup/IRollup.sol";
 import "../Oracle/IOracle.sol";
 import "../util/Id.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
@@ -18,6 +19,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 /// active tranches with a pre-defined unlock date. Until the unlock date is reached, the locked tokens can be used as
 /// collateral by the validator when processing settlements.
 contract Staking is IStaking {
+    using SafeERC20 for IERC20;
     using IdLib for Id;
     using EnumerableSet for EnumerableSet.UintSet;
 
@@ -106,7 +108,7 @@ contract Staking is IStaking {
         if (!(_asset == stablecoin || _asset == protocolToken)) revert("Invalid asset");
         uint256 minStake = _asset == stablecoin ? minimumStablecoinStake : minimumProtocolStake;
         if (_amount < minStake) revert("Stake amount below minimum");
-        require(IERC20(_asset).transferFrom(msg.sender, address(this), _amount), "Failed to transfer token");
+        IERC20(_asset).safeTransferFrom(msg.sender, address(this), _amount);
 
         if (_unlockTime % PERIOD_LENGTH != 0) revert("Invalid unlock time");
         if(_unlockTime > block.number + MAX_PERIOD) revert("Unlock time too far in the future");
@@ -144,12 +146,12 @@ contract Staking is IStaking {
             }
         }
         if (stablecoinAmount > 0) {
-            require(IERC20(stablecoin).transfer(msg.sender, stablecoinAmount));
+            IERC20(stablecoin).safeTransfer(msg.sender, stablecoinAmount);
             totalStaked[stablecoin] -= stablecoinAmount;
             individualStaked[msg.sender][stablecoin] -= stablecoinAmount;
         }
         if (protocolTokenAmount > 0) {
-            require(IERC20(protocolToken).transfer(msg.sender, protocolTokenAmount));
+            IERC20(protocolToken).safeTransfer(msg.sender, protocolTokenAmount);
             totalStaked[protocolToken] -= stablecoinAmount;
             individualStaked[msg.sender][protocolToken] -= stablecoinAmount;
         }

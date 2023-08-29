@@ -91,6 +91,7 @@ export declare namespace Staking {
 export interface StakingInterface extends utils.Interface {
   functions: {
     "ACTIVE_PERIODS()": FunctionFragment;
+    "MAX_PERIOD()": FunctionFragment;
     "PERIOD_LENGTH()": FunctionFragment;
     "claim((uint256[],uint256[],uint256,address[]))": FunctionFragment;
     "currentDepositId()": FunctionFragment;
@@ -124,6 +125,7 @@ export interface StakingInterface extends utils.Interface {
   getFunction(
     nameOrSignatureOrTopic:
       | "ACTIVE_PERIODS"
+      | "MAX_PERIOD"
       | "PERIOD_LENGTH"
       | "claim"
       | "currentDepositId"
@@ -156,6 +158,10 @@ export interface StakingInterface extends utils.Interface {
 
   encodeFunctionData(
     functionFragment: "ACTIVE_PERIODS",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "MAX_PERIOD",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -263,6 +269,7 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "ACTIVE_PERIODS",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "MAX_PERIOD", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "PERIOD_LENGTH",
     data: BytesLike
@@ -377,6 +384,8 @@ export interface Staking extends BaseContract {
 
   functions: {
     ACTIVE_PERIODS(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    MAX_PERIOD(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     PERIOD_LENGTH(overrides?: CallOverrides): Promise<[BigNumber]>;
 
@@ -533,6 +542,8 @@ export interface Staking extends BaseContract {
 
   ACTIVE_PERIODS(overrides?: CallOverrides): Promise<BigNumber>;
 
+  MAX_PERIOD(overrides?: CallOverrides): Promise<BigNumber>;
+
   PERIOD_LENGTH(overrides?: CallOverrides): Promise<BigNumber>;
 
   claim(
@@ -680,6 +691,8 @@ export interface Staking extends BaseContract {
   callStatic: {
     ACTIVE_PERIODS(overrides?: CallOverrides): Promise<BigNumber>;
 
+    MAX_PERIOD(overrides?: CallOverrides): Promise<BigNumber>;
+
     PERIOD_LENGTH(overrides?: CallOverrides): Promise<BigNumber>;
 
     claim(
@@ -824,6 +837,8 @@ export interface Staking extends BaseContract {
   estimateGas: {
     ACTIVE_PERIODS(overrides?: CallOverrides): Promise<BigNumber>;
 
+    MAX_PERIOD(overrides?: CallOverrides): Promise<BigNumber>;
+
     PERIOD_LENGTH(overrides?: CallOverrides): Promise<BigNumber>;
 
     claim(
@@ -937,6 +952,8 @@ export interface Staking extends BaseContract {
 
   populateTransaction: {
     ACTIVE_PERIODS(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    MAX_PERIOD(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     PERIOD_LENGTH(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 

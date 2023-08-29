@@ -6,8 +6,11 @@ import "../../Portal/Portal.sol";
 import "./IAssetChainManager.sol";
 import "../../CrossChain/LayerZero/AssetChainLz.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract AssetChainManager is IAssetChainManager {
+    using SafeERC20 for IERC20Metadata;
+
     address public admin;
     address public participatingInterface;
     address public immutable portal;
@@ -47,14 +50,12 @@ contract AssetChainManager is IAssetChainManager {
             IERC20Metadata asset = IERC20Metadata(_asset);
             if (asset.decimals() == 0) revert();
             uint256 balance = asset.balanceOf(address(this));
-            require(
-                asset.transferFrom(_approved, address(this), 1), "Failed to transferFrom _approved to manager contract"
-            );
+            asset.safeTransferFrom(_approved, address(this), 1);
             require(
                 asset.balanceOf(address(this)) == balance + 1,
                 "transferFrom didn't update manager contract's balance correctly"
             );
-            require(asset.transfer(_approved, 1), "Failed to transfer token back to _approved");
+            asset.safeTransfer(_approved, 1);
             require(
                 asset.balanceOf(address(this)) == balance,
                 "transfer failed to update manager contract's balance correctly"
