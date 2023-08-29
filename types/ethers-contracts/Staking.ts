@@ -94,6 +94,7 @@ export interface StakingInterface extends utils.Interface {
     "MAX_PERIOD()": FunctionFragment;
     "PERIOD_LENGTH()": FunctionFragment;
     "claim((uint256[],uint256[],uint256,address[]))": FunctionFragment;
+    "claimInsuranceFee(uint256,address[])": FunctionFragment;
     "currentDepositId()": FunctionFragment;
     "currentLockId()": FunctionFragment;
     "deposits(uint256)": FunctionFragment;
@@ -106,6 +107,7 @@ export interface StakingInterface extends utils.Interface {
     "getUserDepositIds(address)": FunctionFragment;
     "getUserDepositRecords(address)": FunctionFragment;
     "individualStaked(address,address)": FunctionFragment;
+    "insuranceFees(uint256,address)": FunctionFragment;
     "lock(address,uint256)": FunctionFragment;
     "locks(uint256)": FunctionFragment;
     "minimumProtocolStake()": FunctionFragment;
@@ -128,6 +130,7 @@ export interface StakingInterface extends utils.Interface {
       | "MAX_PERIOD"
       | "PERIOD_LENGTH"
       | "claim"
+      | "claimInsuranceFee"
       | "currentDepositId"
       | "currentLockId"
       | "deposits"
@@ -140,6 +143,7 @@ export interface StakingInterface extends utils.Interface {
       | "getUserDepositIds"
       | "getUserDepositRecords"
       | "individualStaked"
+      | "insuranceFees"
       | "lock"
       | "locks"
       | "minimumProtocolStake"
@@ -171,6 +175,10 @@ export interface StakingInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "claim",
     values: [Staking.ClaimParamsStruct]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "claimInsuranceFee",
+    values: [BigNumberish, string[]]
   ): string;
   encodeFunctionData(
     functionFragment: "currentDepositId",
@@ -216,6 +224,10 @@ export interface StakingInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "individualStaked",
     values: [string, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "insuranceFees",
+    values: [BigNumberish, string]
   ): string;
   encodeFunctionData(
     functionFragment: "lock",
@@ -276,6 +288,10 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "claim", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "claimInsuranceFee",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "currentDepositId",
     data: BytesLike
   ): Result;
@@ -318,6 +334,10 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "individualStaked",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "insuranceFees",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "lock", data: BytesLike): Result;
@@ -391,6 +411,12 @@ export interface Staking extends BaseContract {
 
     claim(
       _params: Staking.ClaimParamsStruct,
+      overrides?: PayableOverrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    claimInsuranceFee(
+      _chainId: BigNumberish,
+      _assets: string[],
       overrides?: PayableOverrides & { from?: string }
     ): Promise<ContractTransaction>;
 
@@ -468,6 +494,12 @@ export interface Staking extends BaseContract {
 
     individualStaked(
       arg0: string,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    insuranceFees(
+      arg0: BigNumberish,
       arg1: string,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
@@ -551,6 +583,12 @@ export interface Staking extends BaseContract {
     overrides?: PayableOverrides & { from?: string }
   ): Promise<ContractTransaction>;
 
+  claimInsuranceFee(
+    _chainId: BigNumberish,
+    _assets: string[],
+    overrides?: PayableOverrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
   currentDepositId(overrides?: CallOverrides): Promise<BigNumber>;
 
   currentLockId(overrides?: CallOverrides): Promise<BigNumber>;
@@ -617,6 +655,12 @@ export interface Staking extends BaseContract {
 
   individualStaked(
     arg0: string,
+    arg1: string,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  insuranceFees(
+    arg0: BigNumberish,
     arg1: string,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
@@ -700,6 +744,12 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    claimInsuranceFee(
+      _chainId: BigNumberish,
+      _assets: string[],
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     currentDepositId(overrides?: CallOverrides): Promise<BigNumber>;
 
     currentLockId(overrides?: CallOverrides): Promise<BigNumber>;
@@ -766,6 +816,12 @@ export interface Staking extends BaseContract {
 
     individualStaked(
       arg0: string,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    insuranceFees(
+      arg0: BigNumberish,
       arg1: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -846,6 +902,12 @@ export interface Staking extends BaseContract {
       overrides?: PayableOverrides & { from?: string }
     ): Promise<BigNumber>;
 
+    claimInsuranceFee(
+      _chainId: BigNumberish,
+      _assets: string[],
+      overrides?: PayableOverrides & { from?: string }
+    ): Promise<BigNumber>;
+
     currentDepositId(overrides?: CallOverrides): Promise<BigNumber>;
 
     currentLockId(overrides?: CallOverrides): Promise<BigNumber>;
@@ -888,6 +950,12 @@ export interface Staking extends BaseContract {
 
     individualStaked(
       arg0: string,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    insuranceFees(
+      arg0: BigNumberish,
       arg1: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
@@ -962,6 +1030,12 @@ export interface Staking extends BaseContract {
       overrides?: PayableOverrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
+    claimInsuranceFee(
+      _chainId: BigNumberish,
+      _assets: string[],
+      overrides?: PayableOverrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
     currentDepositId(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     currentLockId(overrides?: CallOverrides): Promise<PopulatedTransaction>;
@@ -1012,6 +1086,12 @@ export interface Staking extends BaseContract {
 
     individualStaked(
       arg0: string,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    insuranceFees(
+      arg0: BigNumberish,
       arg1: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright © 2023 TXA PTE. LTD.
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "./IRollup.sol";
 import "../Oracle/IOracle.sol";
@@ -100,12 +100,14 @@ contract Rollup is IRollup {
     function replaceStateRoot(bytes32 _stateRoot, Id _epoch) external {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
         if (_epoch >= epoch) revert("Cannot replace state root that is yet to be proposed");
+        if (_stateRoot == "") revert("State root is empty");
         if (!fraudulent[_epoch][proposedStateRoot[_epoch]]) {
             if (lastConfirmedEpoch >= _epoch) revert("Cannot replace state root that's been confirmed");
             if (processedSettlements[_epoch][_stateRoot].length() > 0) {
                 revert("A settlement has already been processed for this state root");
             }
         }
+        if(fraudulent[_epoch][_stateRoot]) revert("State root is fraudulent");
 
         lockIdStateRoot[stateRootLockId[_epoch][proposedStateRoot[_epoch]]].stateRoot = _stateRoot;
         proposedStateRoot[_epoch] = _stateRoot;
@@ -431,11 +433,13 @@ contract Rollup is IRollup {
 
     function isFraudulentLockId(uint256 _lockId) external view returns (bool) {
         StateRootRecord memory r = lockIdStateRoot[_lockId];
+        if(r.stateRoot == "") revert("Invalid lock ID");
         return fraudulent[r.epoch][r.stateRoot];
     }
 
     function isConfirmedLockId(uint256 _lockId) external view returns (bool) {
         StateRootRecord memory r = lockIdStateRoot[_lockId];
+        if(r.stateRoot == "") revert("Invalid lock ID");
         return confirmedStateRoot[r.epoch] == r.stateRoot;
     }
 

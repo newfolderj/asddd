@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright © 2023 TXA PTE. LTD.
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "./util/BaseTest.sol";
 import "forge-std/console.sol";
@@ -116,8 +116,14 @@ contract RollupTest is BaseTest {
         // Unlock collateral
         staking.unlock(lockId);
 
-        // vm.prank(validator);
-        // staking.withdraw(depositId);
+        // Get insurance fund fee
+        uint256 insuranceFundAmount = staking.insuranceFees(chainId, address(0));
+        if(insuranceFundAmount <= 0) revert("Insurance fee should have been set aside");
 
+        vm.prank(admin);
+        staking.claimInsuranceFee{ value: 0.5 ether }(chainId, rewardAsset);
+
+        vm.prank(validator);
+        portal.withdraw(insuranceFundAmount, address(0));
     }
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright © 2023 TXA PTE. LTD.
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "./IStaking.sol";
 import "../StateUpdateLibrary.sol";
@@ -79,7 +79,7 @@ contract Staking is IStaking {
     mapping(uint256 => mapping(uint256 => mapping(address => uint256))) internal rewards;
     // Used to sum up rewards for a single staker across multiple deposits, locks, and assets
     mapping(address => mapping(uint256 => mapping(address => uint256))) internal toClaim;
-    mapping(uint256 => mapping(address => uint256)) internal insuranceFees;
+    mapping(uint256 => mapping(address => uint256)) public insuranceFees;
     // Maps Lock ID to amount slashed
     mapping(uint256 => uint256) amountSlashed;
 
@@ -111,7 +111,7 @@ contract Staking is IStaking {
         IERC20(_asset).safeTransferFrom(msg.sender, address(this), _amount);
 
         if (_unlockTime % PERIOD_LENGTH != 0) revert("Invalid unlock time");
-        if(_unlockTime > block.number + MAX_PERIOD) revert("Unlock time too far in the future");
+        if (_unlockTime > block.number + MAX_PERIOD) revert("Unlock time too far in the future");
         if (block.number >= _unlockTime - manager.fraudPeriod()) revert("Can no longer stake into this tranche");
 
         deposits[Id.unwrap(currentDepositId)] = DepositRecord(msg.sender, _asset, _amount, block.number, _unlockTime, 0);
@@ -152,8 +152,8 @@ contract Staking is IStaking {
         }
         if (protocolTokenAmount > 0) {
             IERC20(protocolToken).safeTransfer(msg.sender, protocolTokenAmount);
-            totalStaked[protocolToken] -= stablecoinAmount;
-            individualStaked[msg.sender][protocolToken] -= stablecoinAmount;
+            totalStaked[protocolToken] -= protocolTokenAmount;
+            individualStaked[msg.sender][protocolToken] -= protocolTokenAmount;
         }
     }
 
@@ -251,6 +251,23 @@ contract Staking is IStaking {
         insuranceFees[_chainId][_asset] += _amount;
     }
 
+    // Called by admin to claim assets set aside for insurance fund
+    function claimInsuranceFee(uint256 _chainId, address[] calldata _assets) external payable {
+        if (msg.sender != manager.admin()) revert("Only admin can claim insurance fees");
+        address insuranceFund = manager.insuranceFund();
+        if (insuranceFund == address(0)) revert("Insurance fund address not set");
+        IPortal.Obligation[] memory obligations = new IPortal.Obligation[](_assets.length);
+        for (uint256 i = 0; i < _assets.length; i++) {
+            uint256 amountToClaim = insuranceFees[_chainId][_assets[i]];
+            if (amountToClaim == 0) revert("Amount to claim is 0");
+            obligations[i] = IPortal.Obligation(insuranceFund, _assets[i], amountToClaim);
+            insuranceFees[_chainId][_assets[i]] = 0;
+        }
+        IProcessingChainLz(IProcessingChainManager(address(manager)).relayer()).sendObligations{ value: msg.value }(
+            _chainId, obligations, bytes(""), msg.sender
+        );
+    }
+
     struct ClaimParams {
         uint256[] lockId;
         uint256[] depositId;
@@ -287,7 +304,8 @@ contract Staking is IStaking {
                     uint256 totalRewards = rewards[lockId][_params.rewardChainId][rewardAsset];
                     // calculate how much goes to deposit record
                     // totalReward * (deposited / totalDeposited)
-                    uint256 claimable = (totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAmountStaked * 1e5);
+                    uint256 claimable =
+                        (totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAmountStaked * 1e5);
                     // get how much has already been claimed
                     uint256 claimed = claimedRewards[depositId][lockId][_params.rewardChainId][rewardAsset];
                     // check if there's anything that can be claimed

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright © 2023 TXA PTE. LTD.
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../../util/Id.sol";
@@ -88,6 +88,7 @@ abstract contract FeeManager {
         currentFees = proposedFees;
         feeSequenceId = feeSequenceId.increment();
         feeHistory[feeSequenceId] = proposedFees;
+        proposalTime = type(uint256).max;
         emit TradingFeesUpdated(feeSequenceId, proposedFees.makerFee, proposedFees.takerFee);
     }
 }

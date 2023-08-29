@@ -3,7 +3,7 @@
 //
 // An identifier that can only be incremented by one.
 //
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 type Id is uint256;
 using {neq as !=, eq as ==, gt as >, gte as >=} for Id global;
