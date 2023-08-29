@@ -88,6 +88,7 @@ abstract contract FeeManager {
         currentFees = proposedFees;
         feeSequenceId = feeSequenceId.increment();
         feeHistory[feeSequenceId] = proposedFees;
+        proposalTime = type(uint256).max;
         emit TradingFeesUpdated(feeSequenceId, proposedFees.makerFee, proposedFees.takerFee);
     }
 }
