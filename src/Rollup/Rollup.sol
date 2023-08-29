@@ -107,6 +107,7 @@ contract Rollup is IRollup {
                 revert("A settlement has already been processed for this state root");
             }
         }
+        if(fraudulent[_epoch][_stateRoot]) revert("State root is fraudulent");
 
         lockIdStateRoot[stateRootLockId[_epoch][proposedStateRoot[_epoch]]].stateRoot = _stateRoot;
         proposedStateRoot[_epoch] = _stateRoot;
