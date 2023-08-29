@@ -25,4 +25,5 @@ ENV PRIVATE_KEY=
 RUN chmod +x ./script/deploy_testnet.sh
 
 # Set the script as the entry point
-ENTRYPOINT ["/bin/bash", "-c", "./script/deploy_testnet.sh"]
+# ENTRYPOINT ["/bin/bash", "-c", "./script/deploy_testnet.sh"]
+CMD ["/bin/bash"]
