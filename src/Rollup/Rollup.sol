@@ -433,11 +433,13 @@ contract Rollup is IRollup {
 
     function isFraudulentLockId(uint256 _lockId) external view returns (bool) {
         StateRootRecord memory r = lockIdStateRoot[_lockId];
+        if(r.stateRoot == "") revert("Invalid lock ID");
         return fraudulent[r.epoch][r.stateRoot];
     }
 
     function isConfirmedLockId(uint256 _lockId) external view returns (bool) {
         StateRootRecord memory r = lockIdStateRoot[_lockId];
+        if(r.stateRoot == "") revert("Invalid lock ID");
         return confirmedStateRoot[r.epoch] == r.stateRoot;
     }
 
