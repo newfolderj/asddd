@@ -10,7 +10,7 @@ include:
 
 variables:
     IMAGE_TAG: "$CI_REGISTRY_IMAGE/txa-network-contracts:latest"
-    VERSIONED_IMAGE_TAG: "$CI_REGISTRY_IMAGE/txa-network-contracts:0.2.1"
+    VERSIONED_IMAGE_TAG: "$CI_REGISTRY_IMAGE/txa-network-contracts:0.2.2"
     GPG_FILE: "settlements.csv"
     DOCKER_TLS_CERTDIR: "/certs"
     GIT_SUBMODULE_STRATEGY: recursive
