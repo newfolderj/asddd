@@ -2,6 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type { AssetChainManager } from "./AssetChainManager";
+export type { Oracle } from "./Oracle";
 export type { Portal } from "./Portal";
 export type { ProcessingChainManager } from "./ProcessingChainManager";
 export type { Rollup } from "./Rollup";
@@ -12,3 +13,4 @@ export { ProcessingChainManager__factory } from "./factories/ProcessingChainMana
 export { AssetChainManager__factory } from "./factories/AssetChainManager__factory";
 export { Rollup__factory } from "./factories/Rollup__factory";
 export { Staking__factory } from "./factories/Staking__factory";
+export { Oracle__factory } from "./factories/Oracle__factory";

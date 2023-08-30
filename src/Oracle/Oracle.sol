@@ -85,6 +85,18 @@ contract Oracle is IOracle {
         latestPrice[_chainId][_asset] = _price;
     }
 
+    struct PriceReport {
+        uint256 chainId;
+        address asset;
+        uint256 price;
+    }
+    
+    function reportPrices(PriceReport[] calldata _prices) external {
+        for(uint256 i = 0; i < _prices.length; i++) {
+            report(_prices[i].chainId, _prices[i].asset, _prices[i].price, true);
+        }
+    }
+
     /// Called by address authorized as the reporter to submit a new price for an asset.
     /// Price cannot change by more than 15% each time the function is called.
     /// Price cannot change more than once within every `PRICE_COOLDOWN` range of blocks.
@@ -92,7 +104,7 @@ contract Oracle is IOracle {
     /// @param _asset  Token address of the asset
     /// @param _price  Updated price of the asset
     /// @param _modulo Flag indicating to use max/min amount if price is out of those bounds.
-    function report(uint256 _chainId, address _asset, uint256 _price, bool _modulo) external {
+    function report(uint256 _chainId, address _asset, uint256 _price, bool _modulo) public {
         if (!isReporter[msg.sender]) revert("Only reporter");
         if (block.number < lastReport[_chainId][_asset] + PRICE_COOLDOWN) {
             revert("Price cooldown period has not passed");
