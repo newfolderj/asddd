@@ -43,6 +43,7 @@ contract DeployProcessingChain is BaseDeploy {
         manager.deployOracle(address(stablecoin), block.chainid, vm.envUint("PROTOCOL_TOKEN_PRICE"));
         Oracle oracle = Oracle(manager.oracle());
         oracle.grantReporter(admin);
+        oracle.grantReporter(vm.envAddress("ORACLE_REPORTER_ADDR"));
         vm.stopBroadcast();
 
         string memory obj1 = '{}';
