@@ -2,6 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export { AssetChainManager__factory } from "./AssetChainManager__factory";
+export { Oracle__factory } from "./Oracle__factory";
 export { Portal__factory } from "./Portal__factory";
 export { ProcessingChainManager__factory } from "./ProcessingChainManager__factory";
 export { Rollup__factory } from "./Rollup__factory";
