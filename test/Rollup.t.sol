@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright © 2023 TXA PTE. LTD.
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "./util/BaseTest.sol";
 import "forge-std/console.sol";
@@ -58,7 +58,7 @@ contract RollupTest is BaseTest {
 
         // Propose state root as validator
         vm.prank(validator);
-        rollup.proposeStateRoot(stateRoot);
+        rollup.proposeStateRoot("", stateRoot);
 
         // Report settlement as the validator
         vm.prank(validator);
@@ -100,6 +100,10 @@ contract RollupTest is BaseTest {
         vm.roll(block.number + manager.fraudPeriod());
 
         // should not be able to unlock stake until state root is confirmed
+        lockId = new uint256[](3);
+        lockId[0] = 0;
+        lockId[1] = 1;
+        lockId[2] = 2;
         vm.expectRevert();
         staking.unlock(lockId);
 
@@ -150,6 +154,16 @@ contract RollupTest is BaseTest {
         (unlockedStablecoin, unlockedProtocol) = staking.getUnlocked(validator);
         if (unlockedStablecoin != 0) revert();
         if (unlockedProtocol != 0) revert();
+
+        // Get insurance fund fee
+        uint256 insuranceFundAmount = staking.insuranceFees(chainId, address(0));
+        if (insuranceFundAmount <= 0) revert("Insurance fee should have been set aside");
+
+        vm.prank(admin);
+        staking.claimInsuranceFee{ value: 0.5 ether }(chainId, rewardAsset);
+
+        vm.prank(validator);
+        portal.withdraw(insuranceFundAmount, address(0));
     }
 
     function test_submitSettlement() external {

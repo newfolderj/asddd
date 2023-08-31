@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright © 2023 TXA PTE. LTD.
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "./IRollup.sol";
 import "../Oracle/IOracle.sol";
@@ -12,6 +12,7 @@ import "../Staking/IStaking.sol";
 import "../StateUpdateLibrary.sol";
 import "../util/Id.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /// @title Rollup
@@ -25,6 +26,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 contract Rollup is IRollup {
     using IdLib for Id;
     using EnumerableSet for EnumerableSet.UintSet;
+    using ECDSA for bytes32;
 
     /// Incremental identifier to track history of proposed state roots
     Id public epoch = ID_ONE;
@@ -33,7 +35,7 @@ contract Rollup is IRollup {
     /// Maps Id of the epoch to the state root proposed for the epoch
     mapping(Id => bytes32) public proposedStateRoot;
     /// Maps state root to block number when state root was proposed
-    mapping(bytes32 => uint256) public proposalBlock;
+    mapping(Id => mapping(bytes32 => uint256)) public proposalBlock;
     /// Maps epoch to state root to a flag indicating if the state root was marked as fraudulent for that epoch.
     mapping(Id => mapping(bytes32 => bool)) public fraudulent;
     /// Maps epoch Id to the state root that was confirmed for that epoch
@@ -53,6 +55,7 @@ contract Rollup is IRollup {
 
     /// Tracks each time a state root is used to lock collateral for a settlement
     mapping(uint256 => StateRootRecord) internal lockIdStateRoot;
+    mapping(Id => mapping(bytes32 => uint256)) internal stateRootLockId;
 
     event SettlementFeePaid(address indexed trader, uint256 indexed chainId, address indexed token, uint256 amount);
 
@@ -79,29 +82,38 @@ contract Rollup is IRollup {
     }
 
     /// Called by the validator to propose a state root
-    function proposeStateRoot(bytes32 _stateRoot) external {
+    function proposeStateRoot(bytes32 _lastProposedStateRoot, bytes32 _stateRoot) external {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
         if (_stateRoot == "") revert("Proposed empty state root");
+        if(_lastProposedStateRoot != proposedStateRoot[Id.wrap(Id.unwrap(epoch) - 1)]) revert ("Last proposed state root doesn't match");
         IStaking staking = IStaking(manager.staking());
         uint256 lockId = staking.lock(staking.protocolToken(), manager.rootProposalLockAmount());
 
         proposedStateRoot[epoch] = _stateRoot;
-        proposalBlock[_stateRoot] = block.number;
+        proposalBlock[epoch][_stateRoot] = block.number;
         lockIdStateRoot[lockId] = StateRootRecord(_stateRoot, epoch);
+        stateRootLockId[epoch][_stateRoot] = lockId;
         epoch = epoch.increment();
     }
 
     /// If a state root has not yet been confirmed and no settlements have been processed, the validator can replace the
     /// state root in case of errors.
+    /// Fraudulent state roots can be replaced without restriction.
     function replaceStateRoot(bytes32 _stateRoot, Id _epoch) external {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
-        if (lastConfirmedEpoch >= _epoch) revert("Cannot replace state root that's been confirmed");
-        if (processedSettlements[_epoch][_stateRoot].length() > 0) {
-            revert("A settlement has already been processed for this state root");
+        if (_epoch >= epoch) revert("Cannot replace state root that is yet to be proposed");
+        if (_stateRoot == "") revert("State root is empty");
+        if (!fraudulent[_epoch][proposedStateRoot[_epoch]]) {
+            if (lastConfirmedEpoch >= _epoch) revert("Cannot replace state root that's been confirmed");
+            if (processedSettlements[_epoch][_stateRoot].length() > 0) {
+                revert("A settlement has already been processed for this state root");
+            }
         }
+        if(fraudulent[_epoch][_stateRoot]) revert("State root is fraudulent");
 
+        lockIdStateRoot[stateRootLockId[_epoch][proposedStateRoot[_epoch]]].stateRoot = _stateRoot;
         proposedStateRoot[_epoch] = _stateRoot;
-        proposalBlock[_stateRoot] = block.number;
+        proposalBlock[_epoch][_stateRoot] = block.number;
     }
 
     /// Called by the validator to confirm a state root
@@ -112,7 +124,7 @@ contract Rollup is IRollup {
         bytes32 stateRoot = proposedStateRoot[lastConfirmedEpoch];
         if (stateRoot == "") revert("Trying to confirm an empty state root");
 
-        uint256 blockNumber = proposalBlock[stateRoot];
+        uint256 blockNumber = proposalBlock[lastConfirmedEpoch][stateRoot];
         if (block.number < blockNumber + manager.fraudPeriod()) {
             revert("Proposed state root has not passed fraud period");
         }
@@ -162,7 +174,7 @@ contract Rollup is IRollup {
         uint256 protocolTokenAvailable = staking.getAvailableCollateral(staking.protocolToken());
 
         proposedStateRoot[epoch] = _stateRoot;
-        proposalBlock[_stateRoot] = block.number;
+        proposalBlock[epoch][_stateRoot] = block.number;
         // lockIdStateRoot[lockId] = StateRootRecord(_stateRoot, epoch);
 
         if(!(stablecoinAvailable >= stablecoinValue && protocolTokenAvailable >= protocolValue)) {
@@ -189,6 +201,9 @@ contract Rollup is IRollup {
                 state.stateRoot = proposedStateRoot[_params[i].stateRootId];
                 if (state.stateRoot == 0) revert EMPTY_STATE_ROOT();
             }
+            if (fraudulent[_params[i].stateRootId][state.stateRoot]) {
+                revert("Cannot process settlements for a fraudulent state root.");
+            }
             {
                 bool valid = MerkleProof.verify(
                     _params[i].proof, state.stateRoot, keccak256(abi.encode(_params[i].signedUpdate))
@@ -198,6 +213,16 @@ contract Rollup is IRollup {
                 if (_params[i].signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Settlement) {
                     revert INVALID_STATE_UPDATE_SETTLEMENT();
                 }
+
+                // Check signature of state update
+                // if (
+                //     participatingInterface
+                //         != keccak256(abi.encode(_params[i].signedUpdate.stateUpdate)).recover(
+                //             _params[i].signedUpdate.v, _params[i].signedUpdate.r, _params[i].signedUpdate.s
+                //         )
+                // ) {
+                //     revert("Invalid signature for state update");
+                // }
 
                 // Check if settlement has already been processed
                 if (
@@ -332,6 +357,16 @@ contract Rollup is IRollup {
                 if (_params[i].signedUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_DepositRejection) {
                     revert INVALID_STATE_UPDATE_REJECTED_DEPOSIT();
                 }
+
+                // Check signature of state update
+                // if (
+                //     participatingInterface
+                //         != keccak256(abi.encode(_params[i].signedUpdate.stateUpdate)).recover(
+                //             _params[i].signedUpdate.v, _params[i].signedUpdate.r, _params[i].signedUpdate.s
+                //         )
+                // ) {
+                //     revert("Invalid signature for state update");
+                // }
             }
 
             StateUpdateLibrary.DepositRejection memory depositRejection =
@@ -380,6 +415,18 @@ contract Rollup is IRollup {
                     keccak256(abi.encode(_claims[i].tradeProof[t].tradeUpdate))
                 );
                 if (!valid) revert("Invalid merkle proof for trade");
+
+                // Check signature of state update
+                if (
+                    participatingInterface
+                        != keccak256(abi.encode(_claims[i].tradeProof[t].tradeUpdate.stateUpdate)).recover(
+                            _claims[i].tradeProof[t].tradeUpdate.v,
+                            _claims[i].tradeProof[t].tradeUpdate.r,
+                            _claims[i].tradeProof[t].tradeUpdate.s
+                        )
+                ) {
+                    revert("Invalid signature for state update");
+                }
 
                 // validate state update
                 if (_claims[i].tradeProof[t].tradeUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Trade)
@@ -436,11 +483,13 @@ contract Rollup is IRollup {
 
     function isFraudulentLockId(uint256 _lockId) external view returns (bool) {
         StateRootRecord memory r = lockIdStateRoot[_lockId];
+        if(r.stateRoot == "") revert("Invalid lock ID");
         return fraudulent[r.epoch][r.stateRoot];
     }
 
     function isConfirmedLockId(uint256 _lockId) external view returns (bool) {
         StateRootRecord memory r = lockIdStateRoot[_lockId];
+        if(r.stateRoot == "") revert("Invalid lock ID");
         return confirmedStateRoot[r.epoch] == r.stateRoot;
     }
 

@@ -80,7 +80,8 @@ contract SubmitSettlement is BaseDeploy {
         staking.stake({ _asset: address(stablecoin), _amount: 10_000e6, _unlockTime: tranches[2] });
         staking.stake({ _asset: address(protocolToken), _amount: 50_000e18, _unlockTime: tranches[2] });
         // propose a state root
-        rollup.proposeStateRoot(stateRoot);
+        bytes32 proposedRoot = rollup.proposedStateRoot(rollup.epoch());
+        rollup.proposeStateRoot(proposedRoot, stateRoot);
         // check if oracle prices need to be updated
         // check if price of asset being settled has expired
         uint256 lastReport = oracle.lastReport(vm.envUint("ASSET_CHAINID"), address(0));

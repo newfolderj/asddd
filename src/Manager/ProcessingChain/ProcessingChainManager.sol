@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright © 2023 TXA PTE. LTD.
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "./FeeManager.sol";
 import "./IProcessingChainManager.sol";
@@ -15,6 +15,7 @@ import "../../Oracle/Oracle.sol";
 /// Each contract on the processing chain defers to the ProcessingChainManager for determining
 contract ProcessingChainManager is IProcessingChainManager, FeeManager {
     address public admin;
+    address public insuranceFund;
     address public participatingInterface;
     address public rollup;
     address public fraudEngine;
@@ -26,7 +27,7 @@ contract ProcessingChainManager is IProcessingChainManager, FeeManager {
     address public protocolToken;
 
     /// Number of blocks that must pass after a state root is submitted in Rollup before it can be confirmed.
-    uint256 public fraudPeriod = 5; // ~ 1 minute on Ethereum
+    uint256 public fraudPeriod = 28_800; // ~ 4 days on Ethereum
     /// Amount of protocol token that must be locked to propose a state root
     uint256 public rootProposalLockAmount = 10_000e18;
     /// Maps chain ID to boolean indicated whether or not this EVM chain is supported by the protocol.
@@ -111,7 +112,12 @@ contract ProcessingChainManager is IProcessingChainManager, FeeManager {
 
     function revokeValidator(address _validator) external {
         if (msg.sender != admin) revert();
-        validators[_validator] = true;
+        validators[_validator] = false;
+    }
+
+    function updateInsuranceFund(address _insuranceFund) external {
+        if(msg.sender != admin) revert();
+        insuranceFund = _insuranceFund;
     }
 
     /// Called by the admin to add support for a new chain
@@ -133,6 +139,15 @@ contract ProcessingChainManager is IProcessingChainManager, FeeManager {
         if (supportedAsset[_chainId][_asset] != 0) revert("Asset already supported");
         if (_precision == 0) revert("Precision cannot be 0");
         supportedAsset[_chainId][_asset] = _precision;
+    }
+
+    /// Called by admin to update the amount of the protocol token a validator needs to lock in order to propose a state
+    /// root.
+    /// @param _rootProposalLockAmount Updated amount of protocol token a validator must lock to propose a state root
+    function updateRootProposalLockAmount(uint256 _rootProposalLockAmount) external {
+        if (msg.sender != admin) revert("Only admin");
+        if (_rootProposalLockAmount == 0) revert("Lock amount cannot be 0");
+        rootProposalLockAmount = _rootProposalLockAmount;
     }
 
     /// Called by the participating interface to propose new trading fees.

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright © 2023 TXA PTE. LTD.
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import { Test } from "forge-std/Test.sol";
 
@@ -166,7 +166,7 @@ contract BaseTest is Test {
         view
         returns (StateUpdateLibrary.SignedStateUpdate memory)
     {
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(piKey, sigUtil.typeHashStateUpdate(_stateUpdate));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(piKey, keccak256(abi.encode(_stateUpdate)));
         return StateUpdateLibrary.SignedStateUpdate(_stateUpdate, v, r, s);
     }
 
@@ -189,6 +189,7 @@ contract BaseTest is Test {
         });
         rollup = Rollup(manager.rollup());
         vm.startPrank(admin);
+        manager.updateInsuranceFund(validator);
         staking = new Staking(address(manager), address(stablecoin), address(protocolToken));
         manager.setStaking(address(staking));
         lzEndpointMock = new LZEndpointMock(uint16(block.chainid));
@@ -230,6 +231,7 @@ contract BaseTest is Test {
         vm.deal(alice, 10 ether);
         vm.deal(bob, 10 ether);
         vm.deal(validator, 10 ether);
+        vm.deal(admin, 10 ether);
 
 
         sigUtil = new Signature(participatingInterface);

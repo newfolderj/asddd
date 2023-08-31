@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright © 2023 TXA PTE. LTD.
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "./IStaking.sol";
 import "../StateUpdateLibrary.sol";
@@ -11,6 +11,7 @@ import "../Rollup/IRollup.sol";
 import "../Oracle/IOracle.sol";
 import "../util/Id.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
@@ -18,6 +19,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 /// active tranches with a pre-defined unlock date. Until the unlock date is reached, the locked tokens can be used as
 /// collateral by the validator when processing settlements.
 contract Staking is IStaking {
+    using SafeERC20 for IERC20;
     using IdLib for Id;
     using EnumerableSet for EnumerableSet.UintSet;
 
@@ -32,10 +34,15 @@ contract Staking is IStaking {
     error INSUFFICIENT_COLLATERAL(uint256 amountToLock, uint256 amountLeft);
 
     // TIME CONSTANTS
-    // Minimum number of blocks for which funds must be locked
-    uint256 public constant PERIOD_LENGTH = 50; // About 10 minutes on Ethereum
+    // Length of each staking tranche in number of blocks
+    // Stakers can enter a tranche from its beginning up to the end (minus the fraud period)
+    // No matter what time a staker enters, the funds will be locked until the end of the period.
+    uint256 public constant PERIOD_LENGTH = 28_800 * 15; // About 60 days on Ethereum
     // How many staking periods are available at one time
     uint256 public constant ACTIVE_PERIODS = 3;
+    // Maximum number of blocks in the future from current block for which a staker
+    // can lock collateral.
+    uint256 public constant MAX_PERIOD = PERIOD_LENGTH * 5; // About 300 days
 
     struct DepositRecord {
         address staker;
@@ -51,6 +58,7 @@ contract Staking is IStaking {
 
     Id public currentDepositId = ID_ONE;
     Id public currentLockId = ID_ZERO;
+    Id public nextIdToUnlock = ID_ZERO;
     mapping(uint256 => DepositRecord) public deposits;
     mapping(address => EnumerableSet.UintSet) internal userDeposits;
     // depositId => lockId => chainId => rewardAsset => claimed
@@ -64,7 +72,7 @@ contract Staking is IStaking {
         // amount of the asset that was locked
         uint256 amountLocked;
         // total amount of the asset deposited in active tranches
-        uint256 totalAvailable;
+        uint256 totalAmountStaked;
         // block number at which the lock occurred
         uint256 blockNumber;
         address asset;
@@ -79,7 +87,9 @@ contract Staking is IStaking {
     mapping(uint256 => mapping(uint256 => mapping(address => uint256))) internal rewards;
     // Used to sum up rewards for a single staker across multiple deposits, locks, and assets
     mapping(address => mapping(uint256 => mapping(address => uint256))) internal toClaim;
-    mapping(uint256 => mapping(address => uint256)) internal insuranceFees;
+    mapping(uint256 => mapping(address => uint256)) public insuranceFees;
+    // Maps Lock ID to amount slashed
+    mapping(uint256 => uint256) amountSlashed;
 
     struct TotalAmount {
         uint256 total;
@@ -104,9 +114,12 @@ contract Staking is IStaking {
 
     function stake(address _asset, uint256 _amount, uint256 _unlockTime) public {
         if (!(_asset == stablecoin || _asset == protocolToken)) revert("Invalid asset");
-        require(IERC20(_asset).transferFrom(msg.sender, address(this), _amount), "Failed to transfer token");
+        uint256 minStake = _asset == stablecoin ? minimumStablecoinStake : minimumProtocolStake;
+        if (_amount < minStake) revert("Stake amount below minimum");
+        IERC20(_asset).safeTransferFrom(msg.sender, address(this), _amount);
 
         if (_unlockTime % PERIOD_LENGTH != 0) revert("Invalid unlock time");
+        if (_unlockTime > block.number + MAX_PERIOD) revert("Unlock time too far in the future");
         if (block.number >= _unlockTime - manager.fraudPeriod()) revert("Can no longer stake into this tranche");
 
         deposits[Id.unwrap(currentDepositId)] = DepositRecord(msg.sender, _asset, _amount, block.number, _unlockTime, 0);
@@ -142,16 +155,15 @@ contract Staking is IStaking {
             }
         }
         if (stablecoinAmount > 0) {
-            require(IERC20(stablecoin).transfer(msg.sender, stablecoinAmount));
+            IERC20(stablecoin).safeTransfer(msg.sender, stablecoinAmount);
             totalStaked[stablecoin] -= stablecoinAmount;
             individualStaked[msg.sender][stablecoin] -= stablecoinAmount;
             emit WithdrawStaked(msg.sender, address(stablecoin), stablecoinAmount);
         }
         if (protocolTokenAmount > 0) {
-            require(IERC20(protocolToken).transfer(msg.sender, protocolTokenAmount));
+            IERC20(protocolToken).safeTransfer(msg.sender, protocolTokenAmount);
             totalStaked[protocolToken] -= protocolTokenAmount;
             individualStaked[msg.sender][protocolToken] -= protocolTokenAmount;
-            emit WithdrawStaked(msg.sender, address(protocolToken), protocolTokenAmount);
         }
     }
 
@@ -161,14 +173,14 @@ contract Staking is IStaking {
         if (!(_asset == stablecoin || _asset == protocolToken)) revert("Can only lock stablecoin or protocolToken");
 
         uint256[ACTIVE_PERIODS] memory tranches = getActiveTranches();
-        uint256 totalAvailable = 0;
+        uint256 totalAmountStaked = 0;
         uint256 amountLeft = _amountToLock;
         for (uint256 i = 0; i < tranches.length; i++) {
-            if (amountLeft == 0) break;
             // get balance of asset in tranche
             uint256 available = totals[_asset][tranches[i]].total - totals[_asset][tranches[i]].locked;
             if (available == 0) continue;
-            totalAvailable += available;
+            totalAmountStaked += totals[_asset][tranches[i]].total;
+            if (amountLeft == 0) continue;
             if (available <= amountLeft) {
                 amountLeft -= available;
                 // set available in tranche to 0
@@ -181,7 +193,7 @@ contract Staking is IStaking {
         }
         if (amountLeft > 0) revert INSUFFICIENT_COLLATERAL({ amountToLock: _amountToLock, amountLeft: amountLeft });
 
-        locks[Id.unwrap(currentLockId)] = LockRecord(_amountToLock, totalAvailable, block.number, _asset);
+        locks[Id.unwrap(currentLockId)] = LockRecord(_amountToLock, totalAmountStaked, block.number, _asset);
         emit Locked(_asset, _amountToLock, Id.unwrap(currentLockId));
         currentLockId = currentLockId.increment();
 
@@ -191,6 +203,7 @@ contract Staking is IStaking {
     function unlock(uint256[] calldata _lockIds) external {
         IRollup rollup = IRollup(manager.rollup());
         for (uint256 i = 0; i < _lockIds.length; i++) {
+            if (Id.unwrap(nextIdToUnlock) != _lockIds[i]) revert("Must unlock in sequential order");
             // State root associated with lock ID must be confirmed and cannot be fraudulent
             if (rollup.isFraudulentLockId(_lockIds[i])) {
                 revert("State root associated with lock ID was marked as fraudulent");
@@ -221,6 +234,7 @@ contract Staking is IStaking {
                 }
             }
             locks[_lockIds[i]].amountLocked = 0;
+            nextIdToUnlock = nextIdToUnlock.increment();
         }
         emit Unlocked(_lockIds);
     }
@@ -236,6 +250,23 @@ contract Staking is IStaking {
         if (msg.sender != manager.rollup()) revert();
         insuranceFees[_chainId][_asset] += _amount;
         emit InsurancePaid(_chainId, _asset, _amount);
+    }
+
+    // Called by admin to claim assets set aside for insurance fund
+    function claimInsuranceFee(uint256 _chainId, address[] calldata _assets) external payable {
+        if (msg.sender != manager.admin()) revert("Only admin can claim insurance fees");
+        address insuranceFund = manager.insuranceFund();
+        if (insuranceFund == address(0)) revert("Insurance fund address not set");
+        IPortal.Obligation[] memory obligations = new IPortal.Obligation[](_assets.length);
+        for (uint256 i = 0; i < _assets.length; i++) {
+            uint256 amountToClaim = insuranceFees[_chainId][_assets[i]];
+            if (amountToClaim == 0) revert("Amount to claim is 0");
+            obligations[i] = IPortal.Obligation(insuranceFund, _assets[i], amountToClaim);
+            insuranceFees[_chainId][_assets[i]] = 0;
+        }
+        IProcessingChainLz(IProcessingChainManager(address(manager)).relayer()).sendObligations{ value: msg.value }(
+            _chainId, obligations, bytes(""), msg.sender
+        );
     }
 
     struct ClaimParams {
@@ -259,18 +290,23 @@ contract Staking is IStaking {
                 LockRecord storage lockRecord = locks[lockId];
 
                 // Deposit should be eligible for the given lock record
-                if (
-                    depositRecord.blockNumber >= lockRecord.blockNumber
-                        || lockRecord.blockNumber > depositRecord.unlockTime - manager.fraudPeriod()
-                        || lockRecord.asset != depositRecord.asset
-                ) continue;
+                {
+                    uint256[ACTIVE_PERIODS] memory eligibleTranches = getActiveTranches(lockRecord.blockNumber);
+                    if (
+                        depositRecord.blockNumber >= lockRecord.blockNumber
+                            || depositRecord.unlockTime > eligibleTranches[ACTIVE_PERIODS - 1]
+                            || lockRecord.blockNumber > depositRecord.unlockTime - manager.fraudPeriod()
+                            || lockRecord.asset != depositRecord.asset
+                    ) continue;
+                }
                 for (uint256 i = 0; i < _params.rewardAsset.length; i++) {
                     address rewardAsset = _params.rewardAsset[i];
                     // get rewards for lock record
                     uint256 totalRewards = rewards[lockId][_params.rewardChainId][rewardAsset];
                     // calculate how much goes to deposit record
                     // totalReward * (deposited / totalDeposited)
-                    uint256 claimable = (totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAvailable * 1e5);
+                    uint256 claimable =
+                        (totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAmountStaked * 1e5);
                     // get how much has already been claimed
                     uint256 claimed = claimedRewards[depositId][lockId][_params.rewardChainId][rewardAsset];
                     // check if there's anything that can be claimed
@@ -440,7 +476,7 @@ contract Staking is IStaking {
                 uint256 totalRewards = rewards[l][_chainId][_asset];
                 // calculate how much goes to deposit record
                 // totalReward * (deposited / totalDeposited)
-                uint256 claimable = (totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAvailable * 1e5);
+                uint256 claimable = (totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAmountStaked * 1e5);
                 // get how much has already been claimed
                 uint256 claimed = claimedRewards[depositId][l][_chainId][_asset];
                 // check if there's anything that can be claimed

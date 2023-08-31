@@ -49,7 +49,7 @@ export declare namespace Staking {
 
   export type LockRecordStruct = {
     amountLocked: BigNumberish;
-    totalAvailable: BigNumberish;
+    totalAmountStaked: BigNumberish;
     blockNumber: BigNumberish;
     asset: string;
   };
@@ -61,7 +61,7 @@ export declare namespace Staking {
     string
   ] & {
     amountLocked: BigNumber;
-    totalAvailable: BigNumber;
+    totalAmountStaked: BigNumber;
     blockNumber: BigNumber;
     asset: string;
   };
@@ -107,8 +107,10 @@ export declare namespace Staking {
 export interface StakingInterface extends utils.Interface {
   functions: {
     "ACTIVE_PERIODS()": FunctionFragment;
+    "MAX_PERIOD()": FunctionFragment;
     "PERIOD_LENGTH()": FunctionFragment;
     "claim((uint256[],uint256[],uint256,address[]))": FunctionFragment;
+    "claimInsuranceFee(uint256,address[])": FunctionFragment;
     "currentDepositId()": FunctionFragment;
     "currentLockId()": FunctionFragment;
     "deposits(uint256)": FunctionFragment;
@@ -123,10 +125,12 @@ export interface StakingInterface extends utils.Interface {
     "getUserDepositIds(address)": FunctionFragment;
     "getUserDepositRecords(address)": FunctionFragment;
     "individualStaked(address,address)": FunctionFragment;
+    "insuranceFees(uint256,address)": FunctionFragment;
     "lock(address,uint256)": FunctionFragment;
     "locks(uint256)": FunctionFragment;
     "minimumProtocolStake()": FunctionFragment;
     "minimumStablecoinStake()": FunctionFragment;
+    "nextIdToUnlock()": FunctionFragment;
     "payInsurance(uint256,address,uint256)": FunctionFragment;
     "protocolToken()": FunctionFragment;
     "reward(uint256,uint256,address,uint256)": FunctionFragment;
@@ -140,8 +144,10 @@ export interface StakingInterface extends utils.Interface {
   getFunction(
     nameOrSignatureOrTopic:
       | "ACTIVE_PERIODS"
+      | "MAX_PERIOD"
       | "PERIOD_LENGTH"
       | "claim"
+      | "claimInsuranceFee"
       | "currentDepositId"
       | "currentLockId"
       | "deposits"
@@ -156,10 +162,12 @@ export interface StakingInterface extends utils.Interface {
       | "getUserDepositIds"
       | "getUserDepositRecords"
       | "individualStaked"
+      | "insuranceFees"
       | "lock"
       | "locks"
       | "minimumProtocolStake"
       | "minimumStablecoinStake"
+      | "nextIdToUnlock"
       | "payInsurance"
       | "protocolToken"
       | "reward"
@@ -175,12 +183,20 @@ export interface StakingInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "MAX_PERIOD",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "PERIOD_LENGTH",
     values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "claim",
     values: [Staking.ClaimParamsStruct]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "claimInsuranceFee",
+    values: [BigNumberish, string[]]
   ): string;
   encodeFunctionData(
     functionFragment: "currentDepositId",
@@ -236,6 +252,10 @@ export interface StakingInterface extends utils.Interface {
     values: [string, string]
   ): string;
   encodeFunctionData(
+    functionFragment: "insuranceFees",
+    values: [BigNumberish, string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "lock",
     values: [string, BigNumberish]
   ): string;
@@ -246,6 +266,10 @@ export interface StakingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "minimumStablecoinStake",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "nextIdToUnlock",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -282,11 +306,16 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "ACTIVE_PERIODS",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "MAX_PERIOD", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "PERIOD_LENGTH",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "claim", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "claimInsuranceFee",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "currentDepositId",
     data: BytesLike
@@ -340,6 +369,10 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "individualStaked",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "insuranceFees",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "lock", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "locks", data: BytesLike): Result;
   decodeFunctionResult(
@@ -348,6 +381,10 @@ export interface StakingInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "minimumStablecoinStake",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "nextIdToUnlock",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -499,10 +536,18 @@ export interface Staking extends BaseContract {
   functions: {
     ACTIVE_PERIODS(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    MAX_PERIOD(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     PERIOD_LENGTH(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     claim(
       _params: Staking.ClaimParamsStruct,
+      overrides?: PayableOverrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    claimInsuranceFee(
+      _chainId: BigNumberish,
+      _assets: string[],
       overrides?: PayableOverrides & { from?: string }
     ): Promise<ContractTransaction>;
 
@@ -594,6 +639,12 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
+    insuranceFees(
+      arg0: BigNumberish,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     lock(
       _asset: string,
       _amountToLock: BigNumberish,
@@ -606,7 +657,7 @@ export interface Staking extends BaseContract {
     ): Promise<
       [BigNumber, BigNumber, BigNumber, string] & {
         amountLocked: BigNumber;
-        totalAvailable: BigNumber;
+        totalAmountStaked: BigNumber;
         blockNumber: BigNumber;
         asset: string;
       }
@@ -615,6 +666,8 @@ export interface Staking extends BaseContract {
     minimumProtocolStake(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     minimumStablecoinStake(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    nextIdToUnlock(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     payInsurance(
       _chainId: BigNumberish,
@@ -657,10 +710,18 @@ export interface Staking extends BaseContract {
 
   ACTIVE_PERIODS(overrides?: CallOverrides): Promise<BigNumber>;
 
+  MAX_PERIOD(overrides?: CallOverrides): Promise<BigNumber>;
+
   PERIOD_LENGTH(overrides?: CallOverrides): Promise<BigNumber>;
 
   claim(
     _params: Staking.ClaimParamsStruct,
+    overrides?: PayableOverrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  claimInsuranceFee(
+    _chainId: BigNumberish,
+    _assets: string[],
     overrides?: PayableOverrides & { from?: string }
   ): Promise<ContractTransaction>;
 
@@ -744,6 +805,12 @@ export interface Staking extends BaseContract {
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
+  insuranceFees(
+    arg0: BigNumberish,
+    arg1: string,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   lock(
     _asset: string,
     _amountToLock: BigNumberish,
@@ -756,7 +823,7 @@ export interface Staking extends BaseContract {
   ): Promise<
     [BigNumber, BigNumber, BigNumber, string] & {
       amountLocked: BigNumber;
-      totalAvailable: BigNumber;
+      totalAmountStaked: BigNumber;
       blockNumber: BigNumber;
       asset: string;
     }
@@ -765,6 +832,8 @@ export interface Staking extends BaseContract {
   minimumProtocolStake(overrides?: CallOverrides): Promise<BigNumber>;
 
   minimumStablecoinStake(overrides?: CallOverrides): Promise<BigNumber>;
+
+  nextIdToUnlock(overrides?: CallOverrides): Promise<BigNumber>;
 
   payInsurance(
     _chainId: BigNumberish,
@@ -807,10 +876,18 @@ export interface Staking extends BaseContract {
   callStatic: {
     ACTIVE_PERIODS(overrides?: CallOverrides): Promise<BigNumber>;
 
+    MAX_PERIOD(overrides?: CallOverrides): Promise<BigNumber>;
+
     PERIOD_LENGTH(overrides?: CallOverrides): Promise<BigNumber>;
 
     claim(
       _params: Staking.ClaimParamsStruct,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    claimInsuranceFee(
+      _chainId: BigNumberish,
+      _assets: string[],
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -894,6 +971,12 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    insuranceFees(
+      arg0: BigNumberish,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     lock(
       _asset: string,
       _amountToLock: BigNumberish,
@@ -906,7 +989,7 @@ export interface Staking extends BaseContract {
     ): Promise<
       [BigNumber, BigNumber, BigNumber, string] & {
         amountLocked: BigNumber;
-        totalAvailable: BigNumber;
+        totalAmountStaked: BigNumber;
         blockNumber: BigNumber;
         asset: string;
       }
@@ -915,6 +998,8 @@ export interface Staking extends BaseContract {
     minimumProtocolStake(overrides?: CallOverrides): Promise<BigNumber>;
 
     minimumStablecoinStake(overrides?: CallOverrides): Promise<BigNumber>;
+
+    nextIdToUnlock(overrides?: CallOverrides): Promise<BigNumber>;
 
     payInsurance(
       _chainId: BigNumberish,
@@ -1034,10 +1119,18 @@ export interface Staking extends BaseContract {
   estimateGas: {
     ACTIVE_PERIODS(overrides?: CallOverrides): Promise<BigNumber>;
 
+    MAX_PERIOD(overrides?: CallOverrides): Promise<BigNumber>;
+
     PERIOD_LENGTH(overrides?: CallOverrides): Promise<BigNumber>;
 
     claim(
       _params: Staking.ClaimParamsStruct,
+      overrides?: PayableOverrides & { from?: string }
+    ): Promise<BigNumber>;
+
+    claimInsuranceFee(
+      _chainId: BigNumberish,
+      _assets: string[],
       overrides?: PayableOverrides & { from?: string }
     ): Promise<BigNumber>;
 
@@ -1097,6 +1190,12 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    insuranceFees(
+      arg0: BigNumberish,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     lock(
       _asset: string,
       _amountToLock: BigNumberish,
@@ -1108,6 +1207,8 @@ export interface Staking extends BaseContract {
     minimumProtocolStake(overrides?: CallOverrides): Promise<BigNumber>;
 
     minimumStablecoinStake(overrides?: CallOverrides): Promise<BigNumber>;
+
+    nextIdToUnlock(overrides?: CallOverrides): Promise<BigNumber>;
 
     payInsurance(
       _chainId: BigNumberish,
@@ -1151,10 +1252,18 @@ export interface Staking extends BaseContract {
   populateTransaction: {
     ACTIVE_PERIODS(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    MAX_PERIOD(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     PERIOD_LENGTH(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     claim(
       _params: Staking.ClaimParamsStruct,
+      overrides?: PayableOverrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    claimInsuranceFee(
+      _chainId: BigNumberish,
+      _assets: string[],
       overrides?: PayableOverrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
@@ -1222,6 +1331,12 @@ export interface Staking extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    insuranceFees(
+      arg0: BigNumberish,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     lock(
       _asset: string,
       _amountToLock: BigNumberish,
@@ -1240,6 +1355,8 @@ export interface Staking extends BaseContract {
     minimumStablecoinStake(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    nextIdToUnlock(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     payInsurance(
       _chainId: BigNumberish,

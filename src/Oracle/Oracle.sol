@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright © 2023 TXA PTE. LTD.
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "./IOracle.sol";
 import "../Manager/ProcessingChain/IProcessingChainManager.sol";
@@ -106,6 +106,7 @@ contract Oracle is IOracle {
     /// @param _modulo Flag indicating to use max/min amount if price is out of those bounds.
     function report(uint256 _chainId, address _asset, uint256 _price, bool _modulo) public {
         if (!isReporter[msg.sender]) revert("Only reporter");
+        if (lastReport[_chainId][_asset] == 0) revert("Asset price not initialized");
         if (block.number < lastReport[_chainId][_asset] + PRICE_COOLDOWN) {
             revert("Price cooldown period has not passed");
         }

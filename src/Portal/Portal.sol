@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright © 2023 TXA PTE. LTD.
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "./IPortal.sol";
 import "../StateUpdateLibrary.sol";
@@ -8,6 +8,7 @@ import "../Manager/AssetChain/IAssetChainManager.sol";
 import "../Rollup/IRollup.sol";
 import "../util/Id.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title Portal
 /// @author Arseniy Klempner
@@ -15,6 +16,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// collateralized for trading on an off-chain orderbook (participating interface). When traders wish to withdraw, they
 /// request settlement through this contract.
 contract Portal is IPortal {
+    using SafeERC20 for IERC20;
     using IdLib for Id;
 
     /// Stores an incremental identifier assigned to each Deposit and SettlementRequest that occurs on this chain.
@@ -110,7 +112,7 @@ contract Portal is IPortal {
         unchecked {
             collateralized[_token] += _amount;
         }
-        if (!IERC20(_token).transferFrom(msg.sender, address(this), _amount)) revert INSUFFICIENT_BALANCE_TOKEN();
+        IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
         emit DepositUtxo(msg.sender, _amount, _token, participatingInterface, chainSequenceId, utxo);
         chainSequenceId = chainSequenceId.increment();
     }
@@ -159,7 +161,7 @@ contract Portal is IPortal {
             (bool success,) = msg.sender.call{ value: _amount }("");
             if (!success) revert TRANSFER_FAILED_WITHDRAW();
         } else {
-            if (!IERC20(_token).transfer(msg.sender, _amount)) revert TOKEN_TRANSFER_FAILED_WITHDRAW();
+            IERC20(_token).safeTransfer(msg.sender, _amount);
         }
         emit Withdraw(msg.sender, _amount, _token);
     }
@@ -175,6 +177,7 @@ contract Portal is IPortal {
             if (rejectedDeposits[_depositHashes[i]]) revert("Deposit already rejected");
             if (collateralized[deposit.asset] < deposit.amount) revert("Insufficient balance");
             rejected[deposit.trader][deposit.asset] += deposit.amount;
+            collateralized[deposit.asset] -= deposit.amount;
             rejectedDeposits[_depositHashes[i]] = true;
             emit RejectedDeposit(deposit.trader, deposit.asset, deposit.amount);
         }
@@ -192,7 +195,7 @@ contract Portal is IPortal {
             (bool success,) = msg.sender.call{ value: _amount }("");
             if (!success) revert TRANSFER_FAILED_WITHDRAW();
         } else {
-            if (!IERC20(_token).transfer(msg.sender, _amount)) revert TOKEN_TRANSFER_FAILED_WITHDRAW();
+           IERC20(_token).safeTransfer(msg.sender, _amount);
         }
         emit WithdrawRejectedDeposit(msg.sender, _amount, _token);
     }
