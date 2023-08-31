@@ -109,8 +109,9 @@ export interface StakingInterface extends utils.Interface {
     "ACTIVE_PERIODS()": FunctionFragment;
     "MAX_PERIOD()": FunctionFragment;
     "PERIOD_LENGTH()": FunctionFragment;
+    "_claim((uint256[],uint256[],uint256,address[]),bytes)": FunctionFragment;
     "claim((uint256[],uint256[],uint256,address[]))": FunctionFragment;
-    "claimInsuranceFee(uint256,address[])": FunctionFragment;
+    "claimInsuranceFee(uint256,address[],bytes)": FunctionFragment;
     "currentDepositId()": FunctionFragment;
     "currentLockId()": FunctionFragment;
     "deposits(uint256)": FunctionFragment;
@@ -146,6 +147,7 @@ export interface StakingInterface extends utils.Interface {
       | "ACTIVE_PERIODS"
       | "MAX_PERIOD"
       | "PERIOD_LENGTH"
+      | "_claim"
       | "claim"
       | "claimInsuranceFee"
       | "currentDepositId"
@@ -191,12 +193,16 @@ export interface StakingInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "_claim",
+    values: [Staking.ClaimParamsStruct, BytesLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "claim",
     values: [Staking.ClaimParamsStruct]
   ): string;
   encodeFunctionData(
     functionFragment: "claimInsuranceFee",
-    values: [BigNumberish, string[]]
+    values: [BigNumberish, string[], BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "currentDepositId",
@@ -311,6 +317,7 @@ export interface StakingInterface extends utils.Interface {
     functionFragment: "PERIOD_LENGTH",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "_claim", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "claim", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "claimInsuranceFee",
@@ -540,6 +547,12 @@ export interface Staking extends BaseContract {
 
     PERIOD_LENGTH(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    _claim(
+      _params: Staking.ClaimParamsStruct,
+      _lzAdapterParams: BytesLike,
+      overrides?: PayableOverrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     claim(
       _params: Staking.ClaimParamsStruct,
       overrides?: PayableOverrides & { from?: string }
@@ -548,6 +561,7 @@ export interface Staking extends BaseContract {
     claimInsuranceFee(
       _chainId: BigNumberish,
       _assets: string[],
+      _lzParams: BytesLike,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<ContractTransaction>;
 
@@ -714,6 +728,12 @@ export interface Staking extends BaseContract {
 
   PERIOD_LENGTH(overrides?: CallOverrides): Promise<BigNumber>;
 
+  _claim(
+    _params: Staking.ClaimParamsStruct,
+    _lzAdapterParams: BytesLike,
+    overrides?: PayableOverrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
   claim(
     _params: Staking.ClaimParamsStruct,
     overrides?: PayableOverrides & { from?: string }
@@ -722,6 +742,7 @@ export interface Staking extends BaseContract {
   claimInsuranceFee(
     _chainId: BigNumberish,
     _assets: string[],
+    _lzParams: BytesLike,
     overrides?: PayableOverrides & { from?: string }
   ): Promise<ContractTransaction>;
 
@@ -880,6 +901,12 @@ export interface Staking extends BaseContract {
 
     PERIOD_LENGTH(overrides?: CallOverrides): Promise<BigNumber>;
 
+    _claim(
+      _params: Staking.ClaimParamsStruct,
+      _lzAdapterParams: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     claim(
       _params: Staking.ClaimParamsStruct,
       overrides?: CallOverrides
@@ -888,6 +915,7 @@ export interface Staking extends BaseContract {
     claimInsuranceFee(
       _chainId: BigNumberish,
       _assets: string[],
+      _lzParams: BytesLike,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -1123,6 +1151,12 @@ export interface Staking extends BaseContract {
 
     PERIOD_LENGTH(overrides?: CallOverrides): Promise<BigNumber>;
 
+    _claim(
+      _params: Staking.ClaimParamsStruct,
+      _lzAdapterParams: BytesLike,
+      overrides?: PayableOverrides & { from?: string }
+    ): Promise<BigNumber>;
+
     claim(
       _params: Staking.ClaimParamsStruct,
       overrides?: PayableOverrides & { from?: string }
@@ -1131,6 +1165,7 @@ export interface Staking extends BaseContract {
     claimInsuranceFee(
       _chainId: BigNumberish,
       _assets: string[],
+      _lzParams: BytesLike,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<BigNumber>;
 
@@ -1256,6 +1291,12 @@ export interface Staking extends BaseContract {
 
     PERIOD_LENGTH(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    _claim(
+      _params: Staking.ClaimParamsStruct,
+      _lzAdapterParams: BytesLike,
+      overrides?: PayableOverrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
     claim(
       _params: Staking.ClaimParamsStruct,
       overrides?: PayableOverrides & { from?: string }
@@ -1264,6 +1305,7 @@ export interface Staking extends BaseContract {
     claimInsuranceFee(
       _chainId: BigNumberish,
       _assets: string[],
+      _lzParams: BytesLike,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 

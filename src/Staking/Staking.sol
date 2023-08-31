@@ -253,7 +253,7 @@ contract Staking is IStaking {
     }
 
     // Called by admin to claim assets set aside for insurance fund
-    function claimInsuranceFee(uint256 _chainId, address[] calldata _assets) external payable {
+    function claimInsuranceFee(uint256 _chainId, address[] calldata _assets, bytes calldata _lzParams) external payable {
         if (msg.sender != manager.admin()) revert("Only admin can claim insurance fees");
         address insuranceFund = manager.insuranceFund();
         if (insuranceFund == address(0)) revert("Insurance fund address not set");
@@ -265,7 +265,7 @@ contract Staking is IStaking {
             insuranceFees[_chainId][_assets[i]] = 0;
         }
         IProcessingChainLz(IProcessingChainManager(address(manager)).relayer()).sendObligations{ value: msg.value }(
-            _chainId, obligations, bytes(""), msg.sender
+            _chainId, obligations, _lzParams, msg.sender
         );
     }
 
@@ -276,8 +276,19 @@ contract Staking is IStaking {
         address[] rewardAsset;
     }
 
+    function claim(ClaimParams calldata _params) external payable { 
+        _claim(_params, bytes(""));
+    }
+
+    struct ClaimState {
+        address rewardAsset;
+        uint256 totalRewards;
+        uint256 claimable;
+    }
+
     // Called by the staker to claim rewards and relay them to the blockchain where the assets are deposited.
-    function claim(ClaimParams calldata _params) external payable {
+    function _claim(ClaimParams calldata _params, bytes memory _lzAdapterParams) public payable {
+        ClaimState memory state;
         for (uint256 d = 0; d < _params.depositId.length; d++) {
             // get deposit record
             uint256 depositId = _params.depositId[d];
@@ -300,22 +311,22 @@ contract Staking is IStaking {
                     ) continue;
                 }
                 for (uint256 i = 0; i < _params.rewardAsset.length; i++) {
-                    address rewardAsset = _params.rewardAsset[i];
+                    state.rewardAsset = _params.rewardAsset[i];
                     // get rewards for lock record
-                    uint256 totalRewards = rewards[lockId][_params.rewardChainId][rewardAsset];
+                    state.totalRewards = rewards[lockId][_params.rewardChainId][state.rewardAsset];
                     // calculate how much goes to deposit record
                     // totalReward * (deposited / totalDeposited)
-                    uint256 claimable =
-                        (totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAmountStaked * 1e5);
+                    state.claimable =
+                        (state.totalRewards * depositRecord.amount * 1e5) / (lockRecord.totalAmountStaked * 1e5);
                     // get how much has already been claimed
-                    uint256 claimed = claimedRewards[depositId][lockId][_params.rewardChainId][rewardAsset];
+                    uint256 claimed = claimedRewards[depositId][lockId][_params.rewardChainId][state.rewardAsset];
                     // check if there's anything that can be claimed
-                    if (claimed < claimable) {
-                        uint256 amountToClaim = claimable - claimed;
+                    if (claimed < state.claimable) {
+                        uint256 amountToClaim = state.claimable - claimed;
                         // update claimed amount
-                        claimedRewards[depositId][lockId][_params.rewardChainId][rewardAsset] += amountToClaim;
+                        claimedRewards[depositId][lockId][_params.rewardChainId][state.rewardAsset] += amountToClaim;
                         // add to amount of asset that will be relayed
-                        toClaim[msg.sender][_params.rewardChainId][rewardAsset] += amountToClaim;
+                        toClaim[msg.sender][_params.rewardChainId][state.rewardAsset] += amountToClaim;
                     }
                 }
             }
@@ -331,7 +342,7 @@ contract Staking is IStaking {
             emit Claimed(msg.sender, _params.rewardChainId, _params.rewardAsset[i], amountToClaim);
         }
         IProcessingChainLz(IProcessingChainManager(address(manager)).relayer()).sendObligations{ value: msg.value }(
-            _params.rewardChainId, obligations, bytes(""), msg.sender
+            _params.rewardChainId, obligations, _lzAdapterParams, msg.sender
         );
     }
 

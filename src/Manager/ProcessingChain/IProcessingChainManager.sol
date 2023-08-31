@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 
 interface IProcessingChainManager {
     function admin() external view returns (address);
+    function participatingInterface() external view returns (address);
     function insuranceFund() external view returns (address);
     function fraudPeriod() external view returns (uint256);
     function rootProposalLockAmount() external view returns (uint256);
