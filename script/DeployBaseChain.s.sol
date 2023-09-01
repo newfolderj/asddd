@@ -32,11 +32,11 @@ contract DeployBaseChain is Script {
         participatingInterface = vm.addr(deployerPrivateKey);
         admin = vm.addr(deployerPrivateKey);
         validator = vm.addr(deployerPrivateKey);
-        ERC20PresetFixedSupply stablecoin = new ERC20PresetFixedSupply("Stablecoin", "USDT", 1e20 ether, validator);
-        ERC20PresetFixedSupply dummyCoin = new ERC20PresetFixedSupply("DummyCoin", "DMC", 1e20 ether, validator);
-        ERC20PresetFixedSupply protocolToken = new ERC20PresetFixedSupply("ProtocolToken", "TXA", 1e20 ether, validator);
-        dummyCoin.transfer(vm.addr(alicePk), 1e18);
-        dummyCoin.transfer(vm.addr(bobPk), 1e18);
+        ERC20PresetFixedSupply stablecoin = new ERC20PresetFixedSupply("Stablecoin", "USDT", 1e21 ether, validator);
+        ERC20PresetFixedSupply dummyCoin = new ERC20PresetFixedSupply("DummyCoin", "DMC", 1e21 ether, validator);
+        ERC20PresetFixedSupply protocolToken = new ERC20PresetFixedSupply("ProtocolToken", "TXA", 1e21 ether, validator);
+        dummyCoin.transfer(vm.addr(alicePk), 1e19);
+        dummyCoin.transfer(vm.addr(bobPk), 1e19);
 
         manager = new BaseManager({
             _participatingInterface: participatingInterface, 
