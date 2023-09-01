@@ -97,7 +97,7 @@ publish:
     - docker push $IMAGE_TAG
     - docker push $VERSIONED_IMAGE_TAG
   rules:
-    - if: '$CI_COMMIT_BRANCH == "beta-testing" && $CI_COMMIT_MESSAGE =~ /^Merge branch .+/'
+    - if: '$CI_COMMIT_BRANCH == "beta-deploy" && $CI_COMMIT_MESSAGE =~ /^Merge branch .+/'
 
 publish-beta:
   stage: publish
