@@ -64,7 +64,7 @@ contract RollupTest is BaseTest {
         vm.prank(validator);
         Rollup.SettlementParams[] memory params = new Rollup.SettlementParams[](1);
         params[0] = Rollup.SettlementParams(stateUpdate, ID_ONE, proof);
-        rollup.processSettlements{ value: 1 ether }(Id.wrap(chainId), params);
+        rollup.processSettlements{ value: 1 ether }(Id.wrap(chainId), params, bytes(""));
 
         // Alice can now withdraw original deposit minus settlement fee
         (uint256 insuranceFee, uint256 stakerRewards) = IFeeManager(address(manager)).calculateSettlementFees(amount);
@@ -160,7 +160,7 @@ contract RollupTest is BaseTest {
         if (insuranceFundAmount <= 0) revert("Insurance fee should have been set aside");
 
         vm.prank(admin);
-        staking.claimInsuranceFee{ value: 0.5 ether }(chainId, rewardAsset);
+        staking.claimInsuranceFee{ value: 0.5 ether }(chainId, rewardAsset, bytes(""));
 
         vm.prank(validator);
         portal.withdraw(insuranceFundAmount, address(0));

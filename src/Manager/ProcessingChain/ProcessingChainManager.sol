@@ -99,10 +99,33 @@ contract ProcessingChainManager is IProcessingChainManager, FeeManager {
         fraudEngine = _fraudEngine;
     }
 
-    function setStaking(address _collateral) external {
+    function replaceFraudEngine(address _fraudEngine) external {
+        if (msg.sender != admin) revert();
+        if (_fraudEngine == address(0)) revert();
+        fraudEngine = _fraudEngine;
+    }
+
+    function setStaking(address _staking) external {
         if (msg.sender != admin) revert();
         if (staking != address(0)) revert();
-        staking = _collateral;
+        staking = _staking;
+    }
+
+    function replaceStaking(address _staking) external {
+        if (msg.sender != admin) revert();
+        if (_staking == address(0)) revert();
+        staking = _staking;
+    }
+
+    function replaceRollup(address _rollup) external {
+        if (msg.sender != admin) revert();
+        if (_rollup == address(0)) revert();
+        rollup = _rollup;
+    }
+
+    function replaceParticipatingInterface(address _participatingInterface) external {
+        if(msg.sender != admin) revert();
+        participatingInterface = _participatingInterface;
     }
 
     function grantValidator(address _validator) external {
@@ -116,7 +139,8 @@ contract ProcessingChainManager is IProcessingChainManager, FeeManager {
     }
 
     function updateInsuranceFund(address _insuranceFund) external {
-        if(msg.sender != admin) revert();
+        if (msg.sender != admin) revert();
+        if (_insuranceFund == address(0)) revert();
         insuranceFund = _insuranceFund;
     }
 

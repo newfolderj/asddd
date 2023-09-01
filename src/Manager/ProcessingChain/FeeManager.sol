@@ -31,7 +31,7 @@ abstract contract FeeManager {
 
     // Determines which percentage of trading fees go to the settlement layer.
     // Remaining goes to the participating interface.
-    uint256 public protocolFee = 50 * ONE_PERCENT_NUMERATOR;
+    // uint256 public protocolFee = 50 * ONE_PERCENT_NUMERATOR;
 
     uint256 public settlementFeeNumerator = ONE_BPS_NUMERATOR * 10; // 0.1 %
 
@@ -52,7 +52,7 @@ abstract contract FeeManager {
 
     // How much of staking rewards go to the stable coin pool
     // Remaining goes to the protocol token pool
-    uint256 public stablePoolPortion = 85 * ONE_PERCENT_NUMERATOR;
+    uint256 public stablePoolPortion = ONE_BPS_NUMERATOR * 8696;
 
     function calculateStakingRewards(uint256 stakingReward) external view returns (uint256 stablePoolReward, uint256 protocolPoolReward) {
         stablePoolReward = (stakingReward * stablePoolPortion) / DENOMINATOR;

@@ -57,10 +57,13 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     "participatingInterface()": FunctionFragment;
     "proposeFees(uint256,uint256)": FunctionFragment;
     "proposedFees()": FunctionFragment;
-    "protocolFee()": FunctionFragment;
     "protocolToken()": FunctionFragment;
     "relayer()": FunctionFragment;
+    "replaceFraudEngine(address)": FunctionFragment;
     "replaceOracle(address)": FunctionFragment;
+    "replaceParticipatingInterface(address)": FunctionFragment;
+    "replaceRollup(address)": FunctionFragment;
+    "replaceStaking(address)": FunctionFragment;
     "revokeValidator(address)": FunctionFragment;
     "rollup()": FunctionFragment;
     "rootProposalLockAmount()": FunctionFragment;
@@ -110,10 +113,13 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
       | "participatingInterface"
       | "proposeFees"
       | "proposedFees"
-      | "protocolFee"
       | "protocolToken"
       | "relayer"
+      | "replaceFraudEngine"
       | "replaceOracle"
+      | "replaceParticipatingInterface"
+      | "replaceRollup"
+      | "replaceStaking"
       | "revokeValidator"
       | "rollup"
       | "rootProposalLockAmount"
@@ -237,16 +243,28 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "protocolFee",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "protocolToken",
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "relayer", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "replaceFraudEngine",
+    values: [string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "replaceOracle",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "replaceParticipatingInterface",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "replaceRollup",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "replaceStaking",
     values: [string]
   ): string;
   encodeFunctionData(
@@ -407,16 +425,28 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "protocolFee",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "protocolToken",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "relayer", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "replaceFraudEngine",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "replaceOracle",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "replaceParticipatingInterface",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "replaceRollup",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "replaceStaking",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -647,14 +677,32 @@ export interface ProcessingChainManager extends BaseContract {
       [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
     >;
 
-    protocolFee(overrides?: CallOverrides): Promise<[BigNumber]>;
-
     protocolToken(overrides?: CallOverrides): Promise<[string]>;
 
     relayer(overrides?: CallOverrides): Promise<[string]>;
 
+    replaceFraudEngine(
+      _fraudEngine: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     replaceOracle(
       _oracle: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    replaceParticipatingInterface(
+      _participatingInterface: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    replaceRollup(
+      _rollup: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    replaceStaking(
+      _staking: string,
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
@@ -673,7 +721,7 @@ export interface ProcessingChainManager extends BaseContract {
     ): Promise<ContractTransaction>;
 
     setStaking(
-      _collateral: string,
+      _staking: string,
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
@@ -832,14 +880,32 @@ export interface ProcessingChainManager extends BaseContract {
     [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
   >;
 
-  protocolFee(overrides?: CallOverrides): Promise<BigNumber>;
-
   protocolToken(overrides?: CallOverrides): Promise<string>;
 
   relayer(overrides?: CallOverrides): Promise<string>;
 
+  replaceFraudEngine(
+    _fraudEngine: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
   replaceOracle(
     _oracle: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  replaceParticipatingInterface(
+    _participatingInterface: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  replaceRollup(
+    _rollup: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  replaceStaking(
+    _staking: string,
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
@@ -858,7 +924,7 @@ export interface ProcessingChainManager extends BaseContract {
   ): Promise<ContractTransaction>;
 
   setStaking(
-    _collateral: string,
+    _staking: string,
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
@@ -1020,13 +1086,25 @@ export interface ProcessingChainManager extends BaseContract {
       [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
     >;
 
-    protocolFee(overrides?: CallOverrides): Promise<BigNumber>;
-
     protocolToken(overrides?: CallOverrides): Promise<string>;
 
     relayer(overrides?: CallOverrides): Promise<string>;
 
+    replaceFraudEngine(
+      _fraudEngine: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     replaceOracle(_oracle: string, overrides?: CallOverrides): Promise<void>;
+
+    replaceParticipatingInterface(
+      _participatingInterface: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    replaceRollup(_rollup: string, overrides?: CallOverrides): Promise<void>;
+
+    replaceStaking(_staking: string, overrides?: CallOverrides): Promise<void>;
 
     revokeValidator(
       _validator: string,
@@ -1042,7 +1120,7 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setStaking(_collateral: string, overrides?: CallOverrides): Promise<void>;
+    setStaking(_staking: string, overrides?: CallOverrides): Promise<void>;
 
     settlementFeeNumerator(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -1203,14 +1281,32 @@ export interface ProcessingChainManager extends BaseContract {
 
     proposedFees(overrides?: CallOverrides): Promise<BigNumber>;
 
-    protocolFee(overrides?: CallOverrides): Promise<BigNumber>;
-
     protocolToken(overrides?: CallOverrides): Promise<BigNumber>;
 
     relayer(overrides?: CallOverrides): Promise<BigNumber>;
 
+    replaceFraudEngine(
+      _fraudEngine: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
     replaceOracle(
       _oracle: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
+    replaceParticipatingInterface(
+      _participatingInterface: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
+    replaceRollup(
+      _rollup: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
+    replaceStaking(
+      _staking: string,
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
@@ -1229,7 +1325,7 @@ export interface ProcessingChainManager extends BaseContract {
     ): Promise<BigNumber>;
 
     setStaking(
-      _collateral: string,
+      _staking: string,
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
@@ -1374,14 +1470,32 @@ export interface ProcessingChainManager extends BaseContract {
 
     proposedFees(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    protocolFee(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
     protocolToken(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     relayer(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    replaceFraudEngine(
+      _fraudEngine: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
     replaceOracle(
       _oracle: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    replaceParticipatingInterface(
+      _participatingInterface: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    replaceRollup(
+      _rollup: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    replaceStaking(
+      _staking: string,
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
@@ -1402,7 +1516,7 @@ export interface ProcessingChainManager extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     setStaking(
-      _collateral: string,
+      _staking: string,
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 

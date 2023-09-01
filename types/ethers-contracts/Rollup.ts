@@ -134,7 +134,7 @@ export interface RollupInterface extends utils.Interface {
     "lastConfirmedEpoch()": FunctionFragment;
     "markFraudulent(uint256)": FunctionFragment;
     "processRejectedDeposits(uint256,(((uint8,uint256,address,bytes),uint8,bytes32,bytes32),uint256,bytes32[])[],bytes)": FunctionFragment;
-    "processSettlements(uint256,(((uint8,uint256,address,bytes),uint8,bytes32,bytes32),uint256,bytes32[])[])": FunctionFragment;
+    "processSettlements(uint256,(((uint8,uint256,address,bytes),uint8,bytes32,bytes32),uint256,bytes32[])[],bytes)": FunctionFragment;
     "proposalBlock(uint256,bytes32)": FunctionFragment;
     "proposeStateRoot(bytes32,bytes32)": FunctionFragment;
     "proposedStateRoot(uint256)": FunctionFragment;
@@ -218,7 +218,7 @@ export interface RollupInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "processSettlements",
-    values: [BigNumberish, Rollup.SettlementParamsStruct[]]
+    values: [BigNumberish, Rollup.SettlementParamsStruct[], BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "proposalBlock",
@@ -429,6 +429,7 @@ export interface Rollup extends BaseContract {
     processSettlements(
       _chainId: BigNumberish,
       _params: Rollup.SettlementParamsStruct[],
+      _lzAdapterParams: BytesLike,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<ContractTransaction>;
 
@@ -452,7 +453,7 @@ export interface Rollup extends BaseContract {
     relayTradingFees(
       _chainId: BigNumberish,
       _assets: string[],
-      _adapterParans: BytesLike,
+      _adapterParams: BytesLike,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<ContractTransaction>;
 
@@ -531,6 +532,7 @@ export interface Rollup extends BaseContract {
   processSettlements(
     _chainId: BigNumberish,
     _params: Rollup.SettlementParamsStruct[],
+    _lzAdapterParams: BytesLike,
     overrides?: PayableOverrides & { from?: string }
   ): Promise<ContractTransaction>;
 
@@ -554,7 +556,7 @@ export interface Rollup extends BaseContract {
   relayTradingFees(
     _chainId: BigNumberish,
     _assets: string[],
-    _adapterParans: BytesLike,
+    _adapterParams: BytesLike,
     overrides?: PayableOverrides & { from?: string }
   ): Promise<ContractTransaction>;
 
@@ -631,6 +633,7 @@ export interface Rollup extends BaseContract {
     processSettlements(
       _chainId: BigNumberish,
       _params: Rollup.SettlementParamsStruct[],
+      _lzAdapterParams: BytesLike,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -654,7 +657,7 @@ export interface Rollup extends BaseContract {
     relayTradingFees(
       _chainId: BigNumberish,
       _assets: string[],
-      _adapterParans: BytesLike,
+      _adapterParams: BytesLike,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -749,6 +752,7 @@ export interface Rollup extends BaseContract {
     processSettlements(
       _chainId: BigNumberish,
       _params: Rollup.SettlementParamsStruct[],
+      _lzAdapterParams: BytesLike,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<BigNumber>;
 
@@ -772,7 +776,7 @@ export interface Rollup extends BaseContract {
     relayTradingFees(
       _chainId: BigNumberish,
       _assets: string[],
-      _adapterParans: BytesLike,
+      _adapterParams: BytesLike,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<BigNumber>;
 
@@ -854,6 +858,7 @@ export interface Rollup extends BaseContract {
     processSettlements(
       _chainId: BigNumberish,
       _params: Rollup.SettlementParamsStruct[],
+      _lzAdapterParams: BytesLike,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
@@ -877,7 +882,7 @@ export interface Rollup extends BaseContract {
     relayTradingFees(
       _chainId: BigNumberish,
       _assets: string[],
-      _adapterParans: BytesLike,
+      _adapterParams: BytesLike,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 

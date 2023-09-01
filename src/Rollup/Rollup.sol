@@ -186,10 +186,10 @@ contract Rollup is IRollup {
 
         epoch = epoch.increment();
 
-        processSettlements(settlement.balanceBefore.chainId, params);
+        processSettlements(settlement.balanceBefore.chainId, params, bytes(""));
     }
 
-    function processSettlements(Id _chainId, SettlementParams[] memory _params) public payable {
+    function processSettlements(Id _chainId, SettlementParams[] memory _params, bytes memory _lzAdapterParams) public payable {
         if (!manager.isValidator(msg.sender)) revert("Only validator can process settlements");
         ProcessSettlementState memory state;
         IPortal.Obligation[] memory obligations = new IPortal.Obligation[](_params.length);
@@ -326,7 +326,7 @@ contract Rollup is IRollup {
         // After performing validation, locking required collateral, and distributing settlement fees,
         // relay the obligations to the asset chain.
         IProcessingChainLz(manager.relayer()).sendObligations{ value: msg.value }(
-            Id.unwrap(_chainId), obligations, bytes(""), msg.sender
+            Id.unwrap(_chainId), obligations, _lzAdapterParams, msg.sender
         );
     }
 
@@ -401,7 +401,7 @@ contract Rollup is IRollup {
 
     /// Called by participating interface to claim trading fees from confirmed state roots
     function claimTradingFees(TradingFeeClaim[] calldata _claims) external {
-        if (msg.sender != participatingInterface) revert("Only participating interface can claim trading fees");
+        if (msg.sender != manager.participatingInterface()) revert("Only participating interface can claim trading fees");
         for (uint256 i = 0; i < _claims.length; i++) {
             // get confirmed state root for epoch
             bytes32 stateRoot = confirmedStateRoot[Id.wrap(_claims[i].epoch)];
@@ -417,16 +417,16 @@ contract Rollup is IRollup {
                 if (!valid) revert("Invalid merkle proof for trade");
 
                 // Check signature of state update
-                if (
-                    participatingInterface
-                        != keccak256(abi.encode(_claims[i].tradeProof[t].tradeUpdate.stateUpdate)).recover(
-                            _claims[i].tradeProof[t].tradeUpdate.v,
-                            _claims[i].tradeProof[t].tradeUpdate.r,
-                            _claims[i].tradeProof[t].tradeUpdate.s
-                        )
-                ) {
-                    revert("Invalid signature for state update");
-                }
+                // if (
+                //     participatingInterface
+                //         != keccak256(abi.encode(_claims[i].tradeProof[t].tradeUpdate.stateUpdate)).recover(
+                //             _claims[i].tradeProof[t].tradeUpdate.v,
+                //             _claims[i].tradeProof[t].tradeUpdate.r,
+                //             _claims[i].tradeProof[t].tradeUpdate.s
+                //         )
+                // ) {
+                //     revert("Invalid signature for state update");
+                // }
 
                 // validate state update
                 if (_claims[i].tradeProof[t].tradeUpdate.stateUpdate.typeIdentifier != StateUpdateLibrary.TYPE_ID_Trade)
@@ -458,12 +458,12 @@ contract Rollup is IRollup {
     function relayTradingFees(
         uint256 _chainId,
         address[] calldata _assets,
-        bytes calldata _adapterParans
+        bytes calldata _adapterParams
     )
         external
         payable
     {
-        if (msg.sender != participatingInterface) revert("Only participating interface can claim trading fees");
+        if (msg.sender != manager.participatingInterface()) revert("Only participating interface can claim trading fees");
         IPortal.Obligation[] memory obligations = new IPortal.Obligation[](_assets.length);
         for (uint256 i = 0; i < _assets.length; i++) {
             if (tradingFees[Id.wrap(_chainId)][_assets[i]] == 0) revert("No trading fees for this asset");
@@ -472,7 +472,7 @@ contract Rollup is IRollup {
             tradingFees[Id.wrap(_chainId)][_assets[i]] = 0;
         }
         IProcessingChainLz(manager.relayer()).sendObligations{ value: msg.value }(
-            _chainId, obligations, _adapterParans, msg.sender
+            _chainId, obligations, _adapterParams, msg.sender
         );
     }
 

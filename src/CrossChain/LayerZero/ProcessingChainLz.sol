@@ -30,6 +30,10 @@ contract ProcessingChainLz is NonblockingLzApp, IProcessingChainLz, CrossChainFu
         }
     }
 
+    function setPaymentZeroAddress(address _zroPaymentAddress) external onlyOwner { 
+        zroPaymentAddress = _zroPaymentAddress;
+    }
+
     // Send obligations to Portal via AssetChainLz on specified chain
     // Used after processing settlements, trading fees, and staking rewards
     function sendObligations(
