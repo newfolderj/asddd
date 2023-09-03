@@ -227,6 +227,15 @@ library StateUpdateLibrary {
         uint64 extra;
     }
 
+    struct TradeProofData {
+        SignedStateUpdate tradeUpdate;
+        bytes32[] proof;
+    }
+    
+    function packTradeProof(TradeProofData memory tradeProof) public view returns (bool) {
+        return true;
+    }
+
     function packBalance(Balance memory balance) public view returns (bool) {
         return true;
     }

@@ -248,7 +248,7 @@ contract Rollup is IRollup {
     // Maps sequnce ID of state update to whether or not its fee(s) have been claimed by the participating interface
     mapping(Id => bool) internal tradeClaimed;
     // Maps chain ID to asset address to amount that has been claimed as fees and is awaiting relay
-    mapping(Id => mapping(address => uint256)) internal tradingFees;
+    mapping(Id => mapping(address => uint256)) public tradingFees;
 
     struct TradeProof {
         StateUpdateLibrary.SignedStateUpdate tradeUpdate;

@@ -86,22 +86,6 @@ export declare namespace Rollup {
     Rollup.TradeProofStructOutput[]
   ] & { epoch: BigNumber; tradeProof: Rollup.TradeProofStructOutput[] };
 
-  export type RejectedDepositParamsStruct = {
-    signedUpdate: StateUpdateLibrary.SignedStateUpdateStruct;
-    stateRootId: BigNumberish;
-    proof: BytesLike[];
-  };
-
-  export type RejectedDepositParamsStructOutput = [
-    StateUpdateLibrary.SignedStateUpdateStructOutput,
-    BigNumber,
-    string[]
-  ] & {
-    signedUpdate: StateUpdateLibrary.SignedStateUpdateStructOutput;
-    stateRootId: BigNumber;
-    proof: string[];
-  };
-
   export type SettlementParamsStruct = {
     signedUpdate: StateUpdateLibrary.SignedStateUpdateStruct;
     stateRootId: BigNumberish;
@@ -133,14 +117,14 @@ export interface RollupInterface extends utils.Interface {
     "isFraudulentLockId(uint256)": FunctionFragment;
     "lastConfirmedEpoch()": FunctionFragment;
     "markFraudulent(uint256)": FunctionFragment;
-    "processRejectedDeposits(uint256,(((uint8,uint256,address,bytes),uint8,bytes32,bytes32),uint256,bytes32[])[],bytes)": FunctionFragment;
-    "processSettlements(uint256,(((uint8,uint256,address,bytes),uint8,bytes32,bytes32),uint256,bytes32[])[],bytes)": FunctionFragment;
-    "proposalBlock(uint256,bytes32)": FunctionFragment;
-    "proposeStateRoot(bytes32,bytes32)": FunctionFragment;
+    "processSettlements(uint256,(((uint8,uint256,address,bytes),uint8,bytes32,bytes32),uint256,bytes32[])[])": FunctionFragment;
+    "processedSettlements(uint256,uint256)": FunctionFragment;
+    "proposalBlock(bytes32)": FunctionFragment;
+    "proposeStateRoot(bytes32)": FunctionFragment;
     "proposedStateRoot(uint256)": FunctionFragment;
-    "relayTradingFees(uint256,address[],bytes)": FunctionFragment;
-    "replaceStateRoot(bytes32,uint256)": FunctionFragment;
+    "relayTradingFees(uint256,address[])": FunctionFragment;
     "submitSettlement(bytes32,((uint8,uint256,address,bytes),uint8,bytes32,bytes32),bytes32[])": FunctionFragment;
+    "tradingFees(uint256,address)": FunctionFragment;
   };
 
   getFunction(
@@ -157,14 +141,14 @@ export interface RollupInterface extends utils.Interface {
       | "isFraudulentLockId"
       | "lastConfirmedEpoch"
       | "markFraudulent"
-      | "processRejectedDeposits"
       | "processSettlements"
+      | "processedSettlements"
       | "proposalBlock"
       | "proposeStateRoot"
       | "proposedStateRoot"
       | "relayTradingFees"
-      | "replaceStateRoot"
       | "submitSettlement"
+      | "tradingFees"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -213,20 +197,20 @@ export interface RollupInterface extends utils.Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "processRejectedDeposits",
-    values: [BigNumberish, Rollup.RejectedDepositParamsStruct[], BytesLike]
+    functionFragment: "processSettlements",
+    values: [BigNumberish, Rollup.SettlementParamsStruct[]]
   ): string;
   encodeFunctionData(
-    functionFragment: "processSettlements",
-    values: [BigNumberish, Rollup.SettlementParamsStruct[], BytesLike]
+    functionFragment: "processedSettlements",
+    values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "proposalBlock",
-    values: [BigNumberish, BytesLike]
+    values: [BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "proposeStateRoot",
-    values: [BytesLike, BytesLike]
+    values: [BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "proposedStateRoot",
@@ -234,15 +218,15 @@ export interface RollupInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "relayTradingFees",
-    values: [BigNumberish, string[], BytesLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "replaceStateRoot",
-    values: [BytesLike, BigNumberish]
+    values: [BigNumberish, string[]]
   ): string;
   encodeFunctionData(
     functionFragment: "submitSettlement",
     values: [BytesLike, StateUpdateLibrary.SignedStateUpdateStruct, BytesLike[]]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "tradingFees",
+    values: [BigNumberish, string]
   ): string;
 
   decodeFunctionResult(
@@ -288,11 +272,11 @@ export interface RollupInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "processRejectedDeposits",
+    functionFragment: "processSettlements",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "processSettlements",
+    functionFragment: "processedSettlements",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -312,34 +296,34 @@ export interface RollupInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "replaceStateRoot",
+    functionFragment: "submitSettlement",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "submitSettlement",
+    functionFragment: "tradingFees",
     data: BytesLike
   ): Result;
 
   events: {
-    "SettlementFeePaid(address,uint256,address,uint256)": EventFragment;
+    "ObligationsWritten(uint256,address,address,uint256)": EventFragment;
   };
 
-  getEvent(nameOrSignatureOrTopic: "SettlementFeePaid"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "ObligationsWritten"): EventFragment;
 }
 
-export interface SettlementFeePaidEventObject {
-  trader: string;
-  chainId: BigNumber;
+export interface ObligationsWrittenEventObject {
+  id: BigNumber;
+  requester: string;
   token: string;
-  amount: BigNumber;
+  cleared: BigNumber;
 }
-export type SettlementFeePaidEvent = TypedEvent<
-  [string, BigNumber, string, BigNumber],
-  SettlementFeePaidEventObject
+export type ObligationsWrittenEvent = TypedEvent<
+  [BigNumber, string, string, BigNumber],
+  ObligationsWrittenEventObject
 >;
 
-export type SettlementFeePaidEventFilter =
-  TypedEventFilter<SettlementFeePaidEvent>;
+export type ObligationsWrittenEventFilter =
+  TypedEventFilter<ObligationsWrittenEvent>;
 
 export interface Rollup extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -419,28 +403,24 @@ export interface Rollup extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
-    processRejectedDeposits(
-      _chainId: BigNumberish,
-      _params: Rollup.RejectedDepositParamsStruct[],
-      adapterParams: BytesLike,
-      overrides?: PayableOverrides & { from?: string }
-    ): Promise<ContractTransaction>;
-
     processSettlements(
       _chainId: BigNumberish,
       _params: Rollup.SettlementParamsStruct[],
-      _lzAdapterParams: BytesLike,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<ContractTransaction>;
 
-    proposalBlock(
+    processedSettlements(
       arg0: BigNumberish,
-      arg1: BytesLike,
+      arg1: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
+    proposalBlock(
+      arg0: BytesLike,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
     proposeStateRoot(
-      _lastProposedStateRoot: BytesLike,
       _stateRoot: BytesLike,
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
@@ -453,14 +433,7 @@ export interface Rollup extends BaseContract {
     relayTradingFees(
       _chainId: BigNumberish,
       _assets: string[],
-      _adapterParams: BytesLike,
       overrides?: PayableOverrides & { from?: string }
-    ): Promise<ContractTransaction>;
-
-    replaceStateRoot(
-      _stateRoot: BytesLike,
-      _epoch: BigNumberish,
-      overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
     submitSettlement(
@@ -469,6 +442,12 @@ export interface Rollup extends BaseContract {
       _proof: BytesLike[],
       overrides?: PayableOverrides & { from?: string }
     ): Promise<ContractTransaction>;
+
+    tradingFees(
+      arg0: BigNumberish,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
   };
 
   claimTradingFees(
@@ -522,28 +501,21 @@ export interface Rollup extends BaseContract {
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
-  processRejectedDeposits(
-    _chainId: BigNumberish,
-    _params: Rollup.RejectedDepositParamsStruct[],
-    adapterParams: BytesLike,
-    overrides?: PayableOverrides & { from?: string }
-  ): Promise<ContractTransaction>;
-
   processSettlements(
     _chainId: BigNumberish,
     _params: Rollup.SettlementParamsStruct[],
-    _lzAdapterParams: BytesLike,
     overrides?: PayableOverrides & { from?: string }
   ): Promise<ContractTransaction>;
 
-  proposalBlock(
+  processedSettlements(
     arg0: BigNumberish,
-    arg1: BytesLike,
+    arg1: BigNumberish,
     overrides?: CallOverrides
-  ): Promise<BigNumber>;
+  ): Promise<boolean>;
+
+  proposalBlock(arg0: BytesLike, overrides?: CallOverrides): Promise<BigNumber>;
 
   proposeStateRoot(
-    _lastProposedStateRoot: BytesLike,
     _stateRoot: BytesLike,
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
@@ -556,14 +528,7 @@ export interface Rollup extends BaseContract {
   relayTradingFees(
     _chainId: BigNumberish,
     _assets: string[],
-    _adapterParams: BytesLike,
     overrides?: PayableOverrides & { from?: string }
-  ): Promise<ContractTransaction>;
-
-  replaceStateRoot(
-    _stateRoot: BytesLike,
-    _epoch: BigNumberish,
-    overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
   submitSettlement(
@@ -572,6 +537,12 @@ export interface Rollup extends BaseContract {
     _proof: BytesLike[],
     overrides?: PayableOverrides & { from?: string }
   ): Promise<ContractTransaction>;
+
+  tradingFees(
+    arg0: BigNumberish,
+    arg1: string,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
   callStatic: {
     claimTradingFees(
@@ -623,28 +594,24 @@ export interface Rollup extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    processRejectedDeposits(
-      _chainId: BigNumberish,
-      _params: Rollup.RejectedDepositParamsStruct[],
-      adapterParams: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     processSettlements(
       _chainId: BigNumberish,
       _params: Rollup.SettlementParamsStruct[],
-      _lzAdapterParams: BytesLike,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    proposalBlock(
+    processedSettlements(
       arg0: BigNumberish,
-      arg1: BytesLike,
+      arg1: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
+    proposalBlock(
+      arg0: BytesLike,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     proposeStateRoot(
-      _lastProposedStateRoot: BytesLike,
       _stateRoot: BytesLike,
       overrides?: CallOverrides
     ): Promise<void>;
@@ -657,13 +624,6 @@ export interface Rollup extends BaseContract {
     relayTradingFees(
       _chainId: BigNumberish,
       _assets: string[],
-      _adapterParams: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    replaceStateRoot(
-      _stateRoot: BytesLike,
-      _epoch: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -673,21 +633,27 @@ export interface Rollup extends BaseContract {
       _proof: BytesLike[],
       overrides?: CallOverrides
     ): Promise<void>;
+
+    tradingFees(
+      arg0: BigNumberish,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
   };
 
   filters: {
-    "SettlementFeePaid(address,uint256,address,uint256)"(
-      trader?: string | null,
-      chainId?: BigNumberish | null,
-      token?: string | null,
-      amount?: null
-    ): SettlementFeePaidEventFilter;
-    SettlementFeePaid(
-      trader?: string | null,
-      chainId?: BigNumberish | null,
-      token?: string | null,
-      amount?: null
-    ): SettlementFeePaidEventFilter;
+    "ObligationsWritten(uint256,address,address,uint256)"(
+      id?: null,
+      requester?: null,
+      token?: null,
+      cleared?: null
+    ): ObligationsWrittenEventFilter;
+    ObligationsWritten(
+      id?: null,
+      requester?: null,
+      token?: null,
+      cleared?: null
+    ): ObligationsWrittenEventFilter;
   };
 
   estimateGas: {
@@ -742,28 +708,24 @@ export interface Rollup extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
-    processRejectedDeposits(
-      _chainId: BigNumberish,
-      _params: Rollup.RejectedDepositParamsStruct[],
-      adapterParams: BytesLike,
-      overrides?: PayableOverrides & { from?: string }
-    ): Promise<BigNumber>;
-
     processSettlements(
       _chainId: BigNumberish,
       _params: Rollup.SettlementParamsStruct[],
-      _lzAdapterParams: BytesLike,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<BigNumber>;
 
-    proposalBlock(
+    processedSettlements(
       arg0: BigNumberish,
-      arg1: BytesLike,
+      arg1: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    proposalBlock(
+      arg0: BytesLike,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     proposeStateRoot(
-      _lastProposedStateRoot: BytesLike,
       _stateRoot: BytesLike,
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
@@ -776,14 +738,7 @@ export interface Rollup extends BaseContract {
     relayTradingFees(
       _chainId: BigNumberish,
       _assets: string[],
-      _adapterParams: BytesLike,
       overrides?: PayableOverrides & { from?: string }
-    ): Promise<BigNumber>;
-
-    replaceStateRoot(
-      _stateRoot: BytesLike,
-      _epoch: BigNumberish,
-      overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
     submitSettlement(
@@ -791,6 +746,12 @@ export interface Rollup extends BaseContract {
       _signedUpdate: StateUpdateLibrary.SignedStateUpdateStruct,
       _proof: BytesLike[],
       overrides?: PayableOverrides & { from?: string }
+    ): Promise<BigNumber>;
+
+    tradingFees(
+      arg0: BigNumberish,
+      arg1: string,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
   };
 
@@ -848,28 +809,24 @@ export interface Rollup extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
-    processRejectedDeposits(
-      _chainId: BigNumberish,
-      _params: Rollup.RejectedDepositParamsStruct[],
-      adapterParams: BytesLike,
-      overrides?: PayableOverrides & { from?: string }
-    ): Promise<PopulatedTransaction>;
-
     processSettlements(
       _chainId: BigNumberish,
       _params: Rollup.SettlementParamsStruct[],
-      _lzAdapterParams: BytesLike,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
-    proposalBlock(
+    processedSettlements(
       arg0: BigNumberish,
-      arg1: BytesLike,
+      arg1: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    proposalBlock(
+      arg0: BytesLike,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     proposeStateRoot(
-      _lastProposedStateRoot: BytesLike,
       _stateRoot: BytesLike,
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
@@ -882,14 +839,7 @@ export interface Rollup extends BaseContract {
     relayTradingFees(
       _chainId: BigNumberish,
       _assets: string[],
-      _adapterParams: BytesLike,
       overrides?: PayableOverrides & { from?: string }
-    ): Promise<PopulatedTransaction>;
-
-    replaceStateRoot(
-      _stateRoot: BytesLike,
-      _epoch: BigNumberish,
-      overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
     submitSettlement(
@@ -897,6 +847,12 @@ export interface Rollup extends BaseContract {
       _signedUpdate: StateUpdateLibrary.SignedStateUpdateStruct,
       _proof: BytesLike[],
       overrides?: PayableOverrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    tradingFees(
+      arg0: BigNumberish,
+      arg1: string,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
   };
 }
