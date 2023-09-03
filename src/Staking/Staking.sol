@@ -42,7 +42,7 @@ contract Staking is IStaking {
     uint256 public constant ACTIVE_PERIODS = 3;
     // Maximum number of blocks in the future from current block for which a staker
     // can lock collateral.
-    uint256 public constant MAX_PERIOD = PERIOD_LENGTH * 5; // About 300 days
+    uint256 public constant MAX_PERIOD = PERIOD_LENGTH * ACTIVE_PERIODS; // About 180 days
 
     struct DepositRecord {
         address staker;
@@ -110,7 +110,7 @@ contract Staking is IStaking {
     }
 
     uint256 public constant minimumStablecoinStake = 200e6;
-    uint256 public constant minimumProtocolStake = 200e18;
+    uint256 public constant minimumProtocolStake = 1_000e18;
 
     function stake(address _asset, uint256 _amount, uint256 _unlockTime) public {
         if (!(_asset == stablecoin || _asset == protocolToken)) revert("Invalid asset");

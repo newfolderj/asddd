@@ -5,6 +5,8 @@ pragma solidity ^0.8.19;
 import "../BaseDeploy.sol";
 import "../../../src/Manager/ProcessingChain/ProcessingChainManager.sol";
 import "../../../src/Staking/Staking.sol";
+import "../../../src/Rollup/Rollup.sol";
+import "../../../src/Oracle/Oracle.sol";
 import "../../../src/CrossChain/LayerZero/ProcessingChainLz.sol";
 import "@murky/Merkle.sol";
 
@@ -48,7 +50,7 @@ contract SubmitSettlement is BaseDeploy {
                         ),
                         ID_ONE,
                         StateUpdateLibrary.Balance(
-                            vm.envAddress("VALIDATOR_ADDR"), address(0), Id.wrap(vm.envUint("ASSET_CHAINID")), 0.5 ether
+                            vm.envAddress("VALIDATOR_ADDR"), address(0), Id.wrap(vm.envUint("ASSET_CHAINID")), 0.001 ether
                         ),
                         StateUpdateLibrary.Balance(
                             vm.envAddress("VALIDATOR_ADDR"), address(0), Id.wrap(vm.envUint("ASSET_CHAINID")), 0
@@ -73,28 +75,29 @@ contract SubmitSettlement is BaseDeploy {
         params[0] = Rollup.SettlementParams(settlementStateUpdate, epoch, proof);
 
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
+        manager.grantValidator(manager.admin());
         // approve staking in stablecoin and protocol
-        stablecoin.approve(address(staking), 10_000e6);
-        protocolToken.approve(address(staking), 50_000e18);
+        // stablecoin.approve(address(staking), 10_000e6);
+        // protocolToken.approve(address(staking), 50_000e18);
         // stake into furthest tranche
-        staking.stake({ _asset: address(stablecoin), _amount: 10_000e6, _unlockTime: tranches[2] });
-        staking.stake({ _asset: address(protocolToken), _amount: 50_000e18, _unlockTime: tranches[2] });
+        // staking.stake({ _asset: address(stablecoin), _amount: 10_000e6, _unlockTime: tranches[2] });
+        // staking.stake({ _asset: address(protocolToken), _amount: 50_000e18, _unlockTime: tranches[2] });
         // propose a state root
-        bytes32 proposedRoot = rollup.proposedStateRoot(Id.wrap(Id.unwrap(rollup.epoch()) - 1));
-        rollup.proposeStateRoot(proposedRoot, stateRoot);
+        // bytes32 proposedRoot = rollup.proposedStateRoot(Id.wrap(Id.unwrap(rollup.epoch()) - 1));
+        // rollup.submitSettlement(proposedRoot, stateRoot);
         // check if oracle prices need to be updated
         // check if price of asset being settled has expired
-        uint256 lastReport = oracle.lastReport(vm.envUint("ASSET_CHAINID"), address(0));
-        if (block.number > lastReport + oracle.PRICE_EXPIRY()) {
-            oracle.report(vm.envUint("ASSET_CHAINID"), address(0), 1888.77e18, true);
-        }
+        // uint256 lastReport = oracle.lastReport(vm.envUint("ASSET_CHAINID"), address(0));
+        // if (block.number > lastReport + oracle.PRICE_EXPIRY()) {
+        //     oracle.report(vm.envUint("ASSET_CHAINID"), address(0), 1888.77e18, true);
+        // }
         // check if price of protocol token has expired
-        lastReport = oracle.lastReport(vm.envUint("PROCESSING_CHAINID"), address(protocolToken));
-        if (block.number > lastReport + oracle.PRICE_EXPIRY()) {
-            oracle.report(vm.envUint("PROCESSING_CHAINID"), address(protocolToken), vm.envUint("PROTOCOL_TOKEN_PRICE"), true);
-        }
+        // lastReport = oracle.lastReport(vm.envUint("PROCESSING_CHAINID"), address(protocolToken));
+        // if (block.number > lastReport + oracle.PRICE_EXPIRY()) {
+            // oracle.report(vm.envUint("PROCESSING_CHAINID"), address(protocolToken), vm.envUint("PROTOCOL_TOKEN_PRICE"), true);
+        // }
         // process a settlement
-        rollup.processSettlements{ value: 0.5 ether }(Id.wrap(vm.envUint("ASSET_CHAINID")), params, bytes(""));
+        rollup.submitSettlement{ value: 0.03 ether }(stateRoot, settlementStateUpdate, proof);
 
         vm.stopBroadcast();
     }

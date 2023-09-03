@@ -1,0 +1,14 @@
+[
+    {
+        "initialPrice": "1649150000000000000000",
+        "precision": 18,
+        "symbol": "ETH",
+        "tokenAddress": "0x0000000000000000000000000000000000000000"
+    },
+    {
+        "initialPrice": "1000000000000000000",
+        "precision": 6,
+        "symbol": "USDT",
+        "tokenAddress": "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+    }
+]

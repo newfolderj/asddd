@@ -24,37 +24,57 @@ import type {
 
 export interface AssetChainManagerInterface extends utils.Interface {
   functions: {
+    "acceptAdminTransfer()": FunctionFragment;
     "addSupportedAsset(address,address)": FunctionFragment;
     "admin()": FunctionFragment;
+    "cancelAdminTransfer()": FunctionFragment;
     "deployReceiver(address,uint16)": FunctionFragment;
     "getMinimumDeposit(address)": FunctionFragment;
     "minimumDeposit(address)": FunctionFragment;
+    "newAdmin()": FunctionFragment;
     "participatingInterface()": FunctionFragment;
     "portal()": FunctionFragment;
     "receiver()": FunctionFragment;
+    "replaceParticipatingInterface(address)": FunctionFragment;
+    "replaceReceiver(address)": FunctionFragment;
     "setMinimumDeposit(address,uint256)": FunctionFragment;
     "supportedAsset(address)": FunctionFragment;
+    "transferAdmin(address)": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
+      | "acceptAdminTransfer"
       | "addSupportedAsset"
       | "admin"
+      | "cancelAdminTransfer"
       | "deployReceiver"
       | "getMinimumDeposit"
       | "minimumDeposit"
+      | "newAdmin"
       | "participatingInterface"
       | "portal"
       | "receiver"
+      | "replaceParticipatingInterface"
+      | "replaceReceiver"
       | "setMinimumDeposit"
       | "supportedAsset"
+      | "transferAdmin"
   ): FunctionFragment;
 
+  encodeFunctionData(
+    functionFragment: "acceptAdminTransfer",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "addSupportedAsset",
     values: [string, string]
   ): string;
   encodeFunctionData(functionFragment: "admin", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "cancelAdminTransfer",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "deployReceiver",
     values: [string, BigNumberish]
@@ -67,6 +87,7 @@ export interface AssetChainManagerInterface extends utils.Interface {
     functionFragment: "minimumDeposit",
     values: [string]
   ): string;
+  encodeFunctionData(functionFragment: "newAdmin", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "participatingInterface",
     values?: undefined
@@ -74,6 +95,14 @@ export interface AssetChainManagerInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "portal", values?: undefined): string;
   encodeFunctionData(functionFragment: "receiver", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "replaceParticipatingInterface",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "replaceReceiver",
+    values: [string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setMinimumDeposit",
     values: [string, BigNumberish]
   ): string;
@@ -81,12 +110,24 @@ export interface AssetChainManagerInterface extends utils.Interface {
     functionFragment: "supportedAsset",
     values: [string]
   ): string;
+  encodeFunctionData(
+    functionFragment: "transferAdmin",
+    values: [string]
+  ): string;
 
+  decodeFunctionResult(
+    functionFragment: "acceptAdminTransfer",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "addSupportedAsset",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "admin", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "cancelAdminTransfer",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "deployReceiver",
     data: BytesLike
@@ -99,6 +140,7 @@ export interface AssetChainManagerInterface extends utils.Interface {
     functionFragment: "minimumDeposit",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "newAdmin", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "participatingInterface",
     data: BytesLike
@@ -106,11 +148,23 @@ export interface AssetChainManagerInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "portal", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "receiver", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "replaceParticipatingInterface",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "replaceReceiver",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "setMinimumDeposit",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "supportedAsset",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "transferAdmin",
     data: BytesLike
   ): Result;
 
@@ -144,6 +198,10 @@ export interface AssetChainManager extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
+    acceptAdminTransfer(
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     addSupportedAsset(
       _asset: string,
       _approved: string,
@@ -151,6 +209,10 @@ export interface AssetChainManager extends BaseContract {
     ): Promise<ContractTransaction>;
 
     admin(overrides?: CallOverrides): Promise<[string]>;
+
+    cancelAdminTransfer(
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
 
     deployReceiver(
       _lzEndpoint: string,
@@ -168,11 +230,23 @@ export interface AssetChainManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
+    newAdmin(overrides?: CallOverrides): Promise<[string]>;
+
     participatingInterface(overrides?: CallOverrides): Promise<[string]>;
 
     portal(overrides?: CallOverrides): Promise<[string]>;
 
     receiver(overrides?: CallOverrides): Promise<[string]>;
+
+    replaceParticipatingInterface(
+      _participatingInterface: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    replaceReceiver(
+      _receiver: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
 
     setMinimumDeposit(
       _asset: string,
@@ -181,7 +255,16 @@ export interface AssetChainManager extends BaseContract {
     ): Promise<ContractTransaction>;
 
     supportedAsset(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
+
+    transferAdmin(
+      _admin: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
   };
+
+  acceptAdminTransfer(
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
 
   addSupportedAsset(
     _asset: string,
@@ -190,6 +273,10 @@ export interface AssetChainManager extends BaseContract {
   ): Promise<ContractTransaction>;
 
   admin(overrides?: CallOverrides): Promise<string>;
+
+  cancelAdminTransfer(
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
 
   deployReceiver(
     _lzEndpoint: string,
@@ -204,11 +291,23 @@ export interface AssetChainManager extends BaseContract {
 
   minimumDeposit(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
+  newAdmin(overrides?: CallOverrides): Promise<string>;
+
   participatingInterface(overrides?: CallOverrides): Promise<string>;
 
   portal(overrides?: CallOverrides): Promise<string>;
 
   receiver(overrides?: CallOverrides): Promise<string>;
+
+  replaceParticipatingInterface(
+    _participatingInterface: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  replaceReceiver(
+    _receiver: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
 
   setMinimumDeposit(
     _asset: string,
@@ -218,7 +317,14 @@ export interface AssetChainManager extends BaseContract {
 
   supportedAsset(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
+  transferAdmin(
+    _admin: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
   callStatic: {
+    acceptAdminTransfer(overrides?: CallOverrides): Promise<void>;
+
     addSupportedAsset(
       _asset: string,
       _approved: string,
@@ -227,6 +333,8 @@ export interface AssetChainManager extends BaseContract {
 
     admin(overrides?: CallOverrides): Promise<string>;
 
+    cancelAdminTransfer(overrides?: CallOverrides): Promise<void>;
+
     deployReceiver(
       _lzEndpoint: string,
       _lzProcessingChainId: BigNumberish,
@@ -240,11 +348,23 @@ export interface AssetChainManager extends BaseContract {
 
     minimumDeposit(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
+    newAdmin(overrides?: CallOverrides): Promise<string>;
+
     participatingInterface(overrides?: CallOverrides): Promise<string>;
 
     portal(overrides?: CallOverrides): Promise<string>;
 
     receiver(overrides?: CallOverrides): Promise<string>;
+
+    replaceParticipatingInterface(
+      _participatingInterface: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    replaceReceiver(
+      _receiver: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     setMinimumDeposit(
       _asset: string,
@@ -253,11 +373,17 @@ export interface AssetChainManager extends BaseContract {
     ): Promise<void>;
 
     supportedAsset(arg0: string, overrides?: CallOverrides): Promise<boolean>;
+
+    transferAdmin(_admin: string, overrides?: CallOverrides): Promise<void>;
   };
 
   filters: {};
 
   estimateGas: {
+    acceptAdminTransfer(
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
     addSupportedAsset(
       _asset: string,
       _approved: string,
@@ -265,6 +391,10 @@ export interface AssetChainManager extends BaseContract {
     ): Promise<BigNumber>;
 
     admin(overrides?: CallOverrides): Promise<BigNumber>;
+
+    cancelAdminTransfer(
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
 
     deployReceiver(
       _lzEndpoint: string,
@@ -279,11 +409,23 @@ export interface AssetChainManager extends BaseContract {
 
     minimumDeposit(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
+    newAdmin(overrides?: CallOverrides): Promise<BigNumber>;
+
     participatingInterface(overrides?: CallOverrides): Promise<BigNumber>;
 
     portal(overrides?: CallOverrides): Promise<BigNumber>;
 
     receiver(overrides?: CallOverrides): Promise<BigNumber>;
+
+    replaceParticipatingInterface(
+      _participatingInterface: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
+    replaceReceiver(
+      _receiver: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
 
     setMinimumDeposit(
       _asset: string,
@@ -292,9 +434,18 @@ export interface AssetChainManager extends BaseContract {
     ): Promise<BigNumber>;
 
     supportedAsset(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    transferAdmin(
+      _admin: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
+    acceptAdminTransfer(
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
     addSupportedAsset(
       _asset: string,
       _approved: string,
@@ -302,6 +453,10 @@ export interface AssetChainManager extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     admin(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    cancelAdminTransfer(
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
 
     deployReceiver(
       _lzEndpoint: string,
@@ -319,6 +474,8 @@ export interface AssetChainManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    newAdmin(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     participatingInterface(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
@@ -326,6 +483,16 @@ export interface AssetChainManager extends BaseContract {
     portal(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     receiver(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    replaceParticipatingInterface(
+      _participatingInterface: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    replaceReceiver(
+      _receiver: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
 
     setMinimumDeposit(
       _asset: string,
@@ -336,6 +503,11 @@ export interface AssetChainManager extends BaseContract {
     supportedAsset(
       arg0: string,
       overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    transferAdmin(
+      _admin: string,
+      overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
   };
 }

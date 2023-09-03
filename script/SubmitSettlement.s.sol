@@ -5,6 +5,8 @@ pragma solidity ^0.8.19;
 import "forge-std/Script.sol";
 import "../src/Portal/Portal.sol";
 import "../src/Staking/Staking.sol";
+import "../src/Oracle/Oracle.sol";
+import "../src/Rollup/Rollup.sol";
 import "../src/Manager/ProcessingChain/ProcessingChainManager.sol";
 import "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
 

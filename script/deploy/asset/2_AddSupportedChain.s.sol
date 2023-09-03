@@ -6,6 +6,7 @@ import "../BaseDeploy.sol";
 import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
 import "../../../src/Manager/ProcessingChain/ProcessingChainManager.sol";
+import "../../../src/CrossChain/LayerZero/ProcessingChainLz.sol";
 
 contract AddSupportedChain is BaseDeploy {
     using stdJson for string;

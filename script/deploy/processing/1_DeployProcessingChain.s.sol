@@ -5,11 +5,12 @@ pragma solidity 0.8.19;
 import "../BaseDeploy.sol";
 import "../../../src/Manager/ProcessingChain/ProcessingChainManager.sol";
 import "../../../src/Staking/Staking.sol";
+import "../../../src/Rollup/Rollup.sol";
+import "../../../src/Oracle/Oracle.sol";
 import "../../../src/CrossChain/LayerZero/ProcessingChainLz.sol";
 
 contract DeployProcessingChain is BaseDeploy {
     using stdJson for string;
-
 
     function run() external {
         onlyOnProcessingChain();
@@ -20,9 +21,9 @@ contract DeployProcessingChain is BaseDeploy {
 
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
-        address participatingInterface = vm.addr(deployerPrivateKey);
+        address participatingInterface = vm.envAddress("PARTICIPATING_INTERFACE_ADDR");
         address admin = vm.addr(deployerPrivateKey);
-        address validator = vm.addr(deployerPrivateKey);
+        address validator = vm.envAddress("VALIDATOR_ADDR");
         // Deploy Manager
         ProcessingChainManager manager = new ProcessingChainManager({
             _participatingInterface: participatingInterface, 
@@ -31,8 +32,16 @@ contract DeployProcessingChain is BaseDeploy {
             _stablecoin: stablecoinProcessingChain,
             _protocolToken: protocolTokenProcessingChain
         });
+        // Deploy rollup
+        Rollup rollup = new Rollup(participatingInterface, address(manager));
+        manager.replaceRollup(address(rollup));
         // Deploy LZ Relayer
-        manager.deployRelayer(vm.envAddress("LZ_ENDPOINT_PROCESSING"));
+        ProcessingChainLz relayer = new ProcessingChainLz(
+            vm.envAddress("LZ_ENDPOINT_PROCESSING"),
+            admin,
+            address(manager)
+            );
+        manager.replaceRelayer(address(relayer));
 
         // Deploy Staking
         Staking staking =
@@ -40,13 +49,17 @@ contract DeployProcessingChain is BaseDeploy {
         manager.setStaking(address(staking));
 
         // Deploy Oracle
-        manager.deployOracle(address(stablecoin), block.chainid, vm.envUint("PROTOCOL_TOKEN_PRICE"));
-        Oracle oracle = Oracle(manager.oracle());
+        Oracle oracle = new Oracle(
+            admin, address(manager), protocolTokenProcessingChain, stablecoin, 1, vm.envUint("PROTOCOL_TOKEN_PRICE")
+        );
+        manager.replaceOracle(address(oracle));
+        // manager.deployOracle(address(stablecoin), block.chainid, vm.envUint("PROTOCOL_TOKEN_PRICE"));
+        // Oracle oracle = Oracle(manager.oracle());
         oracle.grantReporter(admin);
         oracle.grantReporter(vm.envAddress("ORACLE_REPORTER_ADDR"));
         vm.stopBroadcast();
 
-        string memory obj1 = '{}';
+        string memory obj1 = "{}";
         vm.serializeAddress(obj1, "rollup", manager.rollup());
         vm.serializeAddress(obj1, "processingChainLz", manager.relayer());
         vm.serializeAddress(obj1, "oracle", manager.oracle());

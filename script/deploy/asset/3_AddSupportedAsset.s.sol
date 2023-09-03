@@ -6,11 +6,14 @@ import "../BaseDeploy.sol";
 import "../../../src/Manager/AssetChain/AssetChainManager.sol";
 import "../../../src/Staking/Staking.sol";
 import "../../../src/CrossChain/LayerZero/ProcessingChainLz.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract AddSupportedAsset is BaseDeploy {
     using stdJson for string;
+    using SafeERC20 for IERC20;
 
     function run() external {
+
         onlyOnAssetChain();
         string memory json = vm.readFile(assetChainContractsPath);
         AssetChainManager manager = AssetChainManager(abi.decode(json.parseRaw(".manager"), (address)));
@@ -41,23 +44,23 @@ contract AddSupportedAsset is BaseDeploy {
                         string.concat("Precision in assets.json does not match on-chain precision for asset ", symbol)
                     );
                 }
-                if (token.allowance(vm.envAddress("APPROVER"), address(manager)) < 1) {
-                    vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
-                    try token.approve(address(manager), 1) { }
-                    catch {
-                        revert(
-                            string.concat(
-                                "Manager needs to be approved to transfer ", symbol, " from ", vm.envString("APPROVER")
-                            )
-                        );
-                    }
-                    vm.stopBroadcast();
-                }
+                // if (token.allowance(vm.envAddress("APPROVER"), address(manager)) < 1) {
+                //     vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
+                //     try token.approve(address(manager), 1) { }
+                //     catch {
+                //         revert(
+                //             string.concat(
+                //                 "Manager needs to be approved to transfer ", symbol, " from ", vm.envString("APPROVER")
+                //             )
+                //         );
+                //     }
+                //     vm.stopBroadcast();
+                // }
                 console.log(
                     string.concat("Adding support for asset ", symbol, " on chain ID ", vm.envString("ASSET_CHAINID"))
                 );
                 vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
-                token.approve(address(manager), 1);
+                IERC20(address(token)).safeApprove(address(manager), 1);
                 manager.addSupportedAsset(address(token), vm.envAddress("APPROVER"));
                 vm.stopBroadcast();
             } else {
