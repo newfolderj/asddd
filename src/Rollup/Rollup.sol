@@ -83,7 +83,9 @@ contract Rollup is IRollup {
     function proposeStateRoot(bytes32 _lastProposedStateRoot, bytes32 _stateRoot) external {
         if (!manager.isValidator(msg.sender)) revert CALLER_NOT_VALIDATOR();
         if (_stateRoot == "") revert("Proposed empty state root");
-        if(_lastProposedStateRoot != proposedStateRoot[Id.wrap(Id.unwrap(epoch) - 1)]) revert ("Last proposed state root doesn't match");
+        if (_lastProposedStateRoot != proposedStateRoot[Id.wrap(Id.unwrap(epoch) - 1)]) {
+            revert("Last proposed state root doesn't match");
+        }
         IStaking staking = IStaking(manager.staking());
         uint256 lockId = staking.lock(staking.protocolToken(), manager.rootProposalLockAmount());
 
@@ -103,11 +105,11 @@ contract Rollup is IRollup {
         if (_stateRoot == "") revert("State root is empty");
         if (!fraudulent[_epoch][proposedStateRoot[_epoch]]) {
             if (lastConfirmedEpoch >= _epoch) revert("Cannot replace state root that's been confirmed");
-            if (processedSettlements[_epoch][_stateRoot].length() > 0) {
+            if (processedSettlements[_epoch][proposedStateRoot[_epoch]].length() > 0) {
                 revert("A settlement has already been processed for this state root");
             }
         }
-        if(fraudulent[_epoch][_stateRoot]) revert("State root is fraudulent");
+        if (fraudulent[_epoch][_stateRoot]) revert("State root is fraudulent");
 
         lockIdStateRoot[stateRootLockId[_epoch][proposedStateRoot[_epoch]]].stateRoot = _stateRoot;
         proposedStateRoot[_epoch] = _stateRoot;
@@ -298,7 +300,9 @@ contract Rollup is IRollup {
         for (uint256 i = 0; i < _params.length; i++) {
             bytes32 stateRoot = confirmedStateRoot[_params[i].stateRootId];
             if (stateRoot == "") revert EMPTY_STATE_ROOT();
-
+            if (fraudulent[_params[i].stateRootId][stateRoot]) {
+                revert("Cannot process rejected deposits for a fraudulent state root.");
+            }
             {
                 bool valid =
                     MerkleProof.verify(_params[i].proof, stateRoot, keccak256(abi.encode(_params[i].signedUpdate)));
@@ -433,13 +437,13 @@ contract Rollup is IRollup {
 
     function isFraudulentLockId(uint256 _lockId) external view returns (bool) {
         StateRootRecord memory r = lockIdStateRoot[_lockId];
-        if(r.stateRoot == "") revert("Invalid lock ID");
+        if (r.stateRoot == "") revert("Invalid lock ID");
         return fraudulent[r.epoch][r.stateRoot];
     }
 
     function isConfirmedLockId(uint256 _lockId) external view returns (bool) {
         StateRootRecord memory r = lockIdStateRoot[_lockId];
-        if(r.stateRoot == "") revert("Invalid lock ID");
+        if (r.stateRoot == "") revert("Invalid lock ID");
         return confirmedStateRoot[r.epoch] == r.stateRoot;
     }
 
