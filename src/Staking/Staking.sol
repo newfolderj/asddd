@@ -167,9 +167,9 @@ contract Staking is IStaking {
         uint256 amountLeft = _amountToLock;
         for (uint256 i = 0; i < tranches.length; i++) {
             // get balance of asset in tranche
+            totalAmountStaked += totals[_asset][tranches[i]].total;
             uint256 available = totals[_asset][tranches[i]].total - totals[_asset][tranches[i]].locked;
             if (available == 0) continue;
-            totalAmountStaked += totals[_asset][tranches[i]].total;
             if (amountLeft == 0) continue;
             if (available <= amountLeft) {
                 amountLeft -= available;
@@ -347,7 +347,7 @@ contract Staking is IStaking {
         // Start time of the earliest period
         uint256 current = _blockNumber - (r > 0 ? r : 0);
         // If past the deposit cutoff, then the current period is closed and the subsequent is earliest.
-        if (r >= manager.fraudPeriod()) {
+        if (r >= PERIOD_LENGTH - manager.fraudPeriod()) {
             current += PERIOD_LENGTH;
         }
         for (uint256 i = 0; i < ACTIVE_PERIODS; i++) {
