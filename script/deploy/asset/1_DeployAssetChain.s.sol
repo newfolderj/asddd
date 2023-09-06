@@ -5,6 +5,7 @@ pragma solidity 0.8.19;
 import "../BaseDeploy.sol";
 import "../../../src/Manager/AssetChain/AssetChainManager.sol";
 import "../../../src/CrossChain/LayerZero/AssetChainLz.sol";
+import "../../../src/CrossChain/LayerZero/ProcessingChainLz.sol";
 
 struct ChainInfo {
     uint256 chainId;
@@ -23,7 +24,7 @@ contract DeployAssetChain is BaseDeploy {
 
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
-        address participatingInterface = vm.addr(deployerPrivateKey);
+        address participatingInterface = vm.envAddress("PARTICIPATING_INTERFACE_ADDR");
         address admin = vm.addr(deployerPrivateKey);
 
         // Deploy Asset Manager

@@ -35,15 +35,15 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     "MIN_FEE_NUMERATOR()": FunctionFragment;
     "ONE_BPS_NUMERATOR()": FunctionFragment;
     "ONE_PERCENT_NUMERATOR()": FunctionFragment;
+    "acceptAdminTransfer()": FunctionFragment;
     "addSupportedAsset(uint256,address,uint8)": FunctionFragment;
     "addSupportedChain(uint256)": FunctionFragment;
     "admin()": FunctionFragment;
     "calculateInsuranceFee(uint256)": FunctionFragment;
     "calculateSettlementFees(uint256)": FunctionFragment;
     "calculateStakingRewards(uint256)": FunctionFragment;
+    "cancelAdminTransfer()": FunctionFragment;
     "currentFees()": FunctionFragment;
-    "deployOracle(address,uint256,uint256)": FunctionFragment;
-    "deployRelayer(address)": FunctionFragment;
     "feeHistory(uint256)": FunctionFragment;
     "feeSequenceId()": FunctionFragment;
     "fraudEngine()": FunctionFragment;
@@ -53,6 +53,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     "insuranceFundFee()": FunctionFragment;
     "isSupportedAsset(uint256,address)": FunctionFragment;
     "isValidator(address)": FunctionFragment;
+    "newAdmin()": FunctionFragment;
     "oracle()": FunctionFragment;
     "participatingInterface()": FunctionFragment;
     "proposeFees(uint256,uint256)": FunctionFragment;
@@ -62,8 +63,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     "replaceFraudEngine(address)": FunctionFragment;
     "replaceOracle(address)": FunctionFragment;
     "replaceParticipatingInterface(address)": FunctionFragment;
+    "replaceRelayer(address)": FunctionFragment;
     "replaceRollup(address)": FunctionFragment;
     "replaceStaking(address)": FunctionFragment;
+    "replaceWalletDelegation(address)": FunctionFragment;
     "revokeValidator(address)": FunctionFragment;
     "rollup()": FunctionFragment;
     "rootProposalLockAmount()": FunctionFragment;
@@ -75,6 +78,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     "staking()": FunctionFragment;
     "supportedAsset(uint256,address)": FunctionFragment;
     "supportedChains(uint256)": FunctionFragment;
+    "transferAdmin(address)": FunctionFragment;
     "updateFees()": FunctionFragment;
     "updateInsuranceFund(address)": FunctionFragment;
     "updateRootProposalLockAmount(uint256)": FunctionFragment;
@@ -91,15 +95,15 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
       | "MIN_FEE_NUMERATOR"
       | "ONE_BPS_NUMERATOR"
       | "ONE_PERCENT_NUMERATOR"
+      | "acceptAdminTransfer"
       | "addSupportedAsset"
       | "addSupportedChain"
       | "admin"
       | "calculateInsuranceFee"
       | "calculateSettlementFees"
       | "calculateStakingRewards"
+      | "cancelAdminTransfer"
       | "currentFees"
-      | "deployOracle"
-      | "deployRelayer"
       | "feeHistory"
       | "feeSequenceId"
       | "fraudEngine"
@@ -109,6 +113,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
       | "insuranceFundFee"
       | "isSupportedAsset"
       | "isValidator"
+      | "newAdmin"
       | "oracle"
       | "participatingInterface"
       | "proposeFees"
@@ -118,8 +123,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
       | "replaceFraudEngine"
       | "replaceOracle"
       | "replaceParticipatingInterface"
+      | "replaceRelayer"
       | "replaceRollup"
       | "replaceStaking"
+      | "replaceWalletDelegation"
       | "revokeValidator"
       | "rollup"
       | "rootProposalLockAmount"
@@ -131,6 +138,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
       | "staking"
       | "supportedAsset"
       | "supportedChains"
+      | "transferAdmin"
       | "updateFees"
       | "updateInsuranceFund"
       | "updateRootProposalLockAmount"
@@ -164,6 +172,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "acceptAdminTransfer",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "addSupportedAsset",
     values: [BigNumberish, string, BigNumberish]
   ): string;
@@ -185,16 +197,12 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "currentFees",
+    functionFragment: "cancelAdminTransfer",
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "deployOracle",
-    values: [string, BigNumberish, BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "deployRelayer",
-    values: [string]
+    functionFragment: "currentFees",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "feeHistory",
@@ -229,6 +237,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     values: [BigNumberish, string]
   ): string;
   encodeFunctionData(functionFragment: "isValidator", values: [string]): string;
+  encodeFunctionData(functionFragment: "newAdmin", values?: undefined): string;
   encodeFunctionData(functionFragment: "oracle", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "participatingInterface",
@@ -260,11 +269,19 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     values: [string]
   ): string;
   encodeFunctionData(
+    functionFragment: "replaceRelayer",
+    values: [string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "replaceRollup",
     values: [string]
   ): string;
   encodeFunctionData(
     functionFragment: "replaceStaking",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "replaceWalletDelegation",
     values: [string]
   ): string;
   encodeFunctionData(
@@ -301,6 +318,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "supportedChains",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "transferAdmin",
+    values: [string]
   ): string;
   encodeFunctionData(
     functionFragment: "updateFees",
@@ -346,6 +367,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "acceptAdminTransfer",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "addSupportedAsset",
     data: BytesLike
   ): Result;
@@ -367,15 +392,11 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "cancelAdminTransfer",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "currentFees",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "deployOracle",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "deployRelayer",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "feeHistory", data: BytesLike): Result;
@@ -411,6 +432,7 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     functionFragment: "isValidator",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "newAdmin", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "oracle", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "participatingInterface",
@@ -442,11 +464,19 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "replaceRelayer",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "replaceRollup",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "replaceStaking",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "replaceWalletDelegation",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -479,6 +509,10 @@ export interface ProcessingChainManagerInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "supportedChains",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "transferAdmin",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "updateFees", data: BytesLike): Result;
@@ -571,6 +605,10 @@ export interface ProcessingChainManager extends BaseContract {
 
     ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    acceptAdminTransfer(
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     addSupportedAsset(
       _chainId: BigNumberish,
       _asset: string,
@@ -610,23 +648,15 @@ export interface ProcessingChainManager extends BaseContract {
       }
     >;
 
+    cancelAdminTransfer(
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     currentFees(
       overrides?: CallOverrides
     ): Promise<
       [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
     >;
-
-    deployOracle(
-      _stablecoinAssetChain: string,
-      _stablecoinAssetChainId: BigNumberish,
-      _protocolTokenPrice: BigNumberish,
-      overrides?: Overrides & { from?: string }
-    ): Promise<ContractTransaction>;
-
-    deployRelayer(
-      _lzEndpoint: string,
-      overrides?: Overrides & { from?: string }
-    ): Promise<ContractTransaction>;
 
     feeHistory(
       arg0: BigNumberish,
@@ -660,6 +690,8 @@ export interface ProcessingChainManager extends BaseContract {
       _validator: string,
       overrides?: CallOverrides
     ): Promise<[boolean]>;
+
+    newAdmin(overrides?: CallOverrides): Promise<[string]>;
 
     oracle(overrides?: CallOverrides): Promise<[string]>;
 
@@ -696,6 +728,11 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
+    replaceRelayer(
+      _relayer: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     replaceRollup(
       _rollup: string,
       overrides?: Overrides & { from?: string }
@@ -703,6 +740,11 @@ export interface ProcessingChainManager extends BaseContract {
 
     replaceStaking(
       _staking: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
+    replaceWalletDelegation(
+      _walletDelegation: string,
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
 
@@ -744,6 +786,11 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[boolean]>;
 
+    transferAdmin(
+      _admin: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<ContractTransaction>;
+
     updateFees(
       overrides?: Overrides & { from?: string }
     ): Promise<ContractTransaction>;
@@ -776,6 +823,10 @@ export interface ProcessingChainManager extends BaseContract {
   ONE_BPS_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
 
   ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+  acceptAdminTransfer(
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
 
   addSupportedAsset(
     _chainId: BigNumberish,
@@ -816,23 +867,15 @@ export interface ProcessingChainManager extends BaseContract {
     }
   >;
 
+  cancelAdminTransfer(
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
   currentFees(
     overrides?: CallOverrides
   ): Promise<
     [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
   >;
-
-  deployOracle(
-    _stablecoinAssetChain: string,
-    _stablecoinAssetChainId: BigNumberish,
-    _protocolTokenPrice: BigNumberish,
-    overrides?: Overrides & { from?: string }
-  ): Promise<ContractTransaction>;
-
-  deployRelayer(
-    _lzEndpoint: string,
-    overrides?: Overrides & { from?: string }
-  ): Promise<ContractTransaction>;
 
   feeHistory(
     arg0: BigNumberish,
@@ -863,6 +906,8 @@ export interface ProcessingChainManager extends BaseContract {
   ): Promise<boolean>;
 
   isValidator(_validator: string, overrides?: CallOverrides): Promise<boolean>;
+
+  newAdmin(overrides?: CallOverrides): Promise<string>;
 
   oracle(overrides?: CallOverrides): Promise<string>;
 
@@ -899,6 +944,11 @@ export interface ProcessingChainManager extends BaseContract {
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
+  replaceRelayer(
+    _relayer: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
   replaceRollup(
     _rollup: string,
     overrides?: Overrides & { from?: string }
@@ -906,6 +956,11 @@ export interface ProcessingChainManager extends BaseContract {
 
   replaceStaking(
     _staking: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
+  replaceWalletDelegation(
+    _walletDelegation: string,
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
 
@@ -947,6 +1002,11 @@ export interface ProcessingChainManager extends BaseContract {
     overrides?: CallOverrides
   ): Promise<boolean>;
 
+  transferAdmin(
+    _admin: string,
+    overrides?: Overrides & { from?: string }
+  ): Promise<ContractTransaction>;
+
   updateFees(
     overrides?: Overrides & { from?: string }
   ): Promise<ContractTransaction>;
@@ -979,6 +1039,8 @@ export interface ProcessingChainManager extends BaseContract {
     ONE_BPS_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
 
     ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
+
+    acceptAdminTransfer(overrides?: CallOverrides): Promise<void>;
 
     addSupportedAsset(
       _chainId: BigNumberish,
@@ -1019,23 +1081,13 @@ export interface ProcessingChainManager extends BaseContract {
       }
     >;
 
+    cancelAdminTransfer(overrides?: CallOverrides): Promise<void>;
+
     currentFees(
       overrides?: CallOverrides
     ): Promise<
       [BigNumber, BigNumber] & { makerFee: BigNumber; takerFee: BigNumber }
     >;
-
-    deployOracle(
-      _stablecoinAssetChain: string,
-      _stablecoinAssetChainId: BigNumberish,
-      _protocolTokenPrice: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    deployRelayer(
-      _lzEndpoint: string,
-      overrides?: CallOverrides
-    ): Promise<void>;
 
     feeHistory(
       arg0: BigNumberish,
@@ -1070,6 +1122,8 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
+    newAdmin(overrides?: CallOverrides): Promise<string>;
+
     oracle(overrides?: CallOverrides): Promise<string>;
 
     participatingInterface(overrides?: CallOverrides): Promise<string>;
@@ -1102,9 +1156,16 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    replaceRelayer(_relayer: string, overrides?: CallOverrides): Promise<void>;
+
     replaceRollup(_rollup: string, overrides?: CallOverrides): Promise<void>;
 
     replaceStaking(_staking: string, overrides?: CallOverrides): Promise<void>;
+
+    replaceWalletDelegation(
+      _walletDelegation: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     revokeValidator(
       _validator: string,
@@ -1140,6 +1201,8 @@ export interface ProcessingChainManager extends BaseContract {
       arg0: BigNumberish,
       overrides?: CallOverrides
     ): Promise<boolean>;
+
+    transferAdmin(_admin: string, overrides?: CallOverrides): Promise<void>;
 
     updateFees(overrides?: CallOverrides): Promise<void>;
 
@@ -1195,6 +1258,10 @@ export interface ProcessingChainManager extends BaseContract {
 
     ONE_PERCENT_NUMERATOR(overrides?: CallOverrides): Promise<BigNumber>;
 
+    acceptAdminTransfer(
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
     addSupportedAsset(
       _chainId: BigNumberish,
       _asset: string,
@@ -1224,19 +1291,11 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    cancelAdminTransfer(
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
     currentFees(overrides?: CallOverrides): Promise<BigNumber>;
-
-    deployOracle(
-      _stablecoinAssetChain: string,
-      _stablecoinAssetChainId: BigNumberish,
-      _protocolTokenPrice: BigNumberish,
-      overrides?: Overrides & { from?: string }
-    ): Promise<BigNumber>;
-
-    deployRelayer(
-      _lzEndpoint: string,
-      overrides?: Overrides & { from?: string }
-    ): Promise<BigNumber>;
 
     feeHistory(
       arg0: BigNumberish,
@@ -1269,6 +1328,8 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    newAdmin(overrides?: CallOverrides): Promise<BigNumber>;
+
     oracle(overrides?: CallOverrides): Promise<BigNumber>;
 
     participatingInterface(overrides?: CallOverrides): Promise<BigNumber>;
@@ -1300,6 +1361,11 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
+    replaceRelayer(
+      _relayer: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
     replaceRollup(
       _rollup: string,
       overrides?: Overrides & { from?: string }
@@ -1307,6 +1373,11 @@ export interface ProcessingChainManager extends BaseContract {
 
     replaceStaking(
       _staking: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
+    replaceWalletDelegation(
+      _walletDelegation: string,
       overrides?: Overrides & { from?: string }
     ): Promise<BigNumber>;
 
@@ -1348,6 +1419,11 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    transferAdmin(
+      _admin: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<BigNumber>;
+
     updateFees(overrides?: Overrides & { from?: string }): Promise<BigNumber>;
 
     updateInsuranceFund(
@@ -1382,6 +1458,10 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    acceptAdminTransfer(
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
     addSupportedAsset(
       _chainId: BigNumberish,
       _asset: string,
@@ -1411,19 +1491,11 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    cancelAdminTransfer(
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
     currentFees(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    deployOracle(
-      _stablecoinAssetChain: string,
-      _stablecoinAssetChainId: BigNumberish,
-      _protocolTokenPrice: BigNumberish,
-      overrides?: Overrides & { from?: string }
-    ): Promise<PopulatedTransaction>;
-
-    deployRelayer(
-      _lzEndpoint: string,
-      overrides?: Overrides & { from?: string }
-    ): Promise<PopulatedTransaction>;
 
     feeHistory(
       arg0: BigNumberish,
@@ -1455,6 +1527,8 @@ export interface ProcessingChainManager extends BaseContract {
       _validator: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    newAdmin(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     oracle(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
@@ -1489,6 +1563,11 @@ export interface ProcessingChainManager extends BaseContract {
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
+    replaceRelayer(
+      _relayer: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
     replaceRollup(
       _rollup: string,
       overrides?: Overrides & { from?: string }
@@ -1496,6 +1575,11 @@ export interface ProcessingChainManager extends BaseContract {
 
     replaceStaking(
       _staking: string,
+      overrides?: Overrides & { from?: string }
+    ): Promise<PopulatedTransaction>;
+
+    replaceWalletDelegation(
+      _walletDelegation: string,
       overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
@@ -1539,6 +1623,11 @@ export interface ProcessingChainManager extends BaseContract {
     supportedChains(
       arg0: BigNumberish,
       overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    transferAdmin(
+      _admin: string,
+      overrides?: Overrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
     updateFees(

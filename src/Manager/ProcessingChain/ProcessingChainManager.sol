@@ -4,10 +4,10 @@ pragma solidity 0.8.19;
 
 import "./FeeManager.sol";
 import "./IProcessingChainManager.sol";
-import "../../Rollup/Rollup.sol";
-import "../../CrossChain/LayerZero/ProcessingChainLz.sol";
-import "./WalletDelegation.sol";
-import "../../Oracle/Oracle.sol";
+// import "../../Rollup/Rollup.sol";
+// import "../../CrossChain/LayerZero/ProcessingChainLz.sol";
+// import "./WalletDelegation.sol";
+// import "../../Oracle/Oracle.sol";
 
 /// The ProcessingChainManager is deployed on the processing chain.
 /// It handles deployment of core protocol contracts, authorizes addresses to perform actions across the protocol, and
@@ -47,99 +47,97 @@ contract ProcessingChainManager is IProcessingChainManager, FeeManager {
     ) {
         admin = _admin;
         participatingInterface = _participatingInterface;
-        rollup = address(new Rollup(_participatingInterface, address(this)));
-        walletDelegation = address(new WalletDelegation(_participatingInterface, address(this)));
+        // rollup = address(new Rollup(_participatingInterface, address(this)));
+        // walletDelegation = address(new WalletDelegation(_participatingInterface, address(this)));
         stablecoin = _stablecoin;
         protocolToken = _protocolToken;
         validators[_validator] = true;
     }
 
-    /// Called by the admin to deploy the contract used for LayerZero communication.
-    /// @param _lzEndpoint Address of the LayerZero endpoint on this chain
-    function deployRelayer(address _lzEndpoint) external {
-        if (msg.sender != admin) revert();
-        if (relayer != address(0)) revert();
-        relayer = address(
-            new ProcessingChainLz(
-            _lzEndpoint,
-            admin,
-            address(this)
-            )
-        );
+    address public newAdmin;
+
+    function transferAdmin(address _admin) external {
+        if (msg.sender != admin) revert("Sender not admin");
+        if(_admin == address(0)) revert("New admin cannot be empty");
+        if(newAdmin != address(0)) revert("New admin already set");
+        newAdmin = _admin;
     }
 
-    /// Called by the admin to deploy the Oracle contract
-    /// @param _stablecoinAssetChain Address of the stablecoin on its corresponding asset chain
-    /// @param _stablecoinAssetChainId Chain ID of the stablecoin's corresponding asset chain
-    /// @param _protocolTokenPrice Price of the protocol token in the stablecoin
-    function deployOracle(
-        address _stablecoinAssetChain,
-        uint256 _stablecoinAssetChainId,
-        uint256 _protocolTokenPrice
-    )
-        external
-    {
-        if (msg.sender != admin) revert();
-        if (oracle != address(0)) revert();
-        oracle = address(
-            new Oracle(
-            admin, address(this), protocolToken, _stablecoinAssetChain, _stablecoinAssetChainId, _protocolTokenPrice
-            )
-        );
+    function cancelAdminTransfer() external {
+        if (msg.sender != admin) revert("Sender not admin");
+        newAdmin = address(0);
+    }
+
+    function acceptAdminTransfer() external {
+        if(msg.sender != newAdmin) revert("Sender not new admin");
+        admin = newAdmin;
+        newAdmin = address(0);
+    }
+
+    function replaceRelayer(address _relayer) external {
+        if (msg.sender != admin) revert("Sender not admin");
+        if (_relayer == address(0)) revert();
+        relayer = _relayer;
+    }
+
+    function replaceWalletDelegation(address _walletDelegation) external {
+        if (msg.sender != admin) revert("Sender not admin");
+        if (_walletDelegation == address(0)) revert();
+        walletDelegation = _walletDelegation;
     }
 
     function replaceOracle(address _oracle) external {
-        if (msg.sender != admin) revert();
+        if (msg.sender != admin) revert("Sender not admin");
         oracle = _oracle;
     }
 
     function setFraudEngine(address _fraudEngine) external {
-        if (msg.sender != admin) revert();
+        if (msg.sender != admin) revert("Sender not admin");
         if (fraudEngine != address(0)) revert();
         fraudEngine = _fraudEngine;
     }
 
     function replaceFraudEngine(address _fraudEngine) external {
-        if (msg.sender != admin) revert();
+        if (msg.sender != admin) revert("Sender not admin");
         if (_fraudEngine == address(0)) revert();
         fraudEngine = _fraudEngine;
     }
 
     function setStaking(address _staking) external {
-        if (msg.sender != admin) revert();
+        if (msg.sender != admin) revert("Sender not admin");
         if (staking != address(0)) revert();
         staking = _staking;
     }
 
     function replaceStaking(address _staking) external {
-        if (msg.sender != admin) revert();
+        if (msg.sender != admin) revert("Sender not admin");
         if (_staking == address(0)) revert();
         staking = _staking;
     }
 
     function replaceRollup(address _rollup) external {
-        if (msg.sender != admin) revert();
+        if (msg.sender != admin) revert("Sender not admin");
         if (_rollup == address(0)) revert();
         rollup = _rollup;
     }
 
     function replaceParticipatingInterface(address _participatingInterface) external {
-        if(msg.sender != admin) revert();
+        if (msg.sender != admin) revert("Sender not admin");
         participatingInterface = _participatingInterface;
     }
 
     function grantValidator(address _validator) external {
-        if (msg.sender != admin) revert();
+        if (msg.sender != admin) revert("Sender not admin");
         validators[_validator] = true;
     }
 
     function revokeValidator(address _validator) external {
-        if (msg.sender != admin) revert();
+        if (msg.sender != admin) revert("Sender not admin");
         validators[_validator] = false;
     }
 
     function updateInsuranceFund(address _insuranceFund) external {
-        if (msg.sender != admin) revert();
+        if (msg.sender != admin) revert("Sender not admin");
         if (_insuranceFund == address(0)) revert();
         insuranceFund = _insuranceFund;
     }
@@ -147,7 +145,7 @@ contract ProcessingChainManager is IProcessingChainManager, FeeManager {
     /// Called by the admin to add support for a new chain
     /// @param _chainId Chain ID of the new EVM chain supported by the protocol
     function addSupportedChain(uint256 _chainId) external {
-        if (msg.sender != admin) revert();
+        if (msg.sender != admin) revert("Sender not admin");
         if (supportedChains[_chainId]) revert();
         supportedChains[_chainId] = true;
     }

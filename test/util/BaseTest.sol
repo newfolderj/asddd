@@ -9,10 +9,12 @@ import "../../src/Manager/AssetChain/AssetChainManager.sol";
 import "../../src/Staking/Staking.sol";
 import "../../src/util/Signature.sol";
 import "../../src/Oracle/Oracle.sol";
+import "../../src/Rollup/Rollup.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@murky/Merkle.sol";
 import "@LayerZero/mocks/LZEndpointMock.sol";
 import "../../src/CrossChain/LayerZero/AssetChainLz.sol";
+import "../../src/CrossChain/LayerZero/ProcessingChainLz.sol";
 import "forge-std/console.sol";
 
 contract BaseTest is Test {
@@ -171,13 +173,13 @@ contract BaseTest is Test {
     }
 
     function setUp() public virtual {
-        vm.roll(17752520);
+        vm.roll(17_752_520);
         participatingInterface = vm.addr(piKey);
         admin = vm.addr(0xAD);
         validator = vm.addr(0xDA);
 
         stablecoin = new ERC20("Stablecoin", "USDT");
-        protocolToken = new ERC20("ProtocolToken", "TXA"); 
+        protocolToken = new ERC20("ProtocolToken", "TXA");
         token = new ERC20("TestToken", "TST");
 
         manager = new ProcessingChainManager({
@@ -187,14 +189,20 @@ contract BaseTest is Test {
             _stablecoin: address(stablecoin),
             _protocolToken: address(protocolToken)
         });
-        rollup = Rollup(manager.rollup());
+        rollup = new Rollup(participatingInterface, address(manager));
         vm.startPrank(admin);
+        manager.replaceRollup(address(rollup));
         manager.updateInsuranceFund(validator);
         staking = new Staking(address(manager), address(stablecoin), address(protocolToken));
         manager.setStaking(address(staking));
         lzEndpointMock = new LZEndpointMock(uint16(block.chainid));
         lzEndpointMockDest = new LZEndpointMock(uint16(chainId));
-        manager.deployRelayer(address(lzEndpointMock));
+        ProcessingChainLz relayer = new ProcessingChainLz(
+            address(lzEndpointMock),
+            admin,
+            address(manager)
+            );
+        manager.replaceRelayer(address(relayer));
         processingChainLz = ProcessingChainLz(manager.relayer());
         uint256[] memory evmChainId = new uint256[](1);
         evmChainId[0] = chainId;
@@ -213,15 +221,17 @@ contract BaseTest is Test {
         // lzEndpointMockDest.setDestLzEndpoint(address(assetChainLz), address(lzEndpointMockDest));
         // Setup initial supported assets
         assetChainManager.addSupportedAsset(address(0), address(0));
-        deal({ token: address(token), to: admin, give: 1});
+        deal({ token: address(token), to: admin, give: 1 });
         token.approve(address(assetChainManager), 1);
         assetChainManager.addSupportedAsset(address(token), admin);
         manager.addSupportedChain(chainId);
         manager.addSupportedAsset(chainId, address(0), 18);
         manager.addSupportedAsset(chainId, address(token), 18);
         // Setup oracle with initial prices
-        manager.deployOracle(address(token), chainId, 0.3e18);
-        Oracle oracle = Oracle(manager.oracle());
+        Oracle oracle = new Oracle(
+            admin, address(manager), address(protocolToken), address(stablecoin), chainId, 0.3e18
+        );
+        manager.replaceOracle(address(oracle));
         oracle.grantReporter(admin);
         oracle.initializePrice(chainId, address(0), 1895.25e18);
         vm.stopPrank();
@@ -232,7 +242,6 @@ contract BaseTest is Test {
         vm.deal(bob, 10 ether);
         vm.deal(validator, 10 ether);
         vm.deal(admin, 10 ether);
-
 
         sigUtil = new Signature(participatingInterface);
         merkleLib = new Merkle();

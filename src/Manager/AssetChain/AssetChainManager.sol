@@ -26,6 +26,37 @@ contract AssetChainManager is IAssetChainManager {
         portal = address(new Portal(_participatingInterface, address(this)));
     }
 
+    address public newAdmin;
+
+    function transferAdmin(address _admin) external {
+        if (msg.sender != admin) revert("Sender not admin");
+        if (_admin == address(0)) revert("New admin cannot be empty");
+        if (newAdmin != address(0)) revert("New admin already set");
+        newAdmin = _admin;
+    }
+
+    function cancelAdminTransfer() external {
+        if (msg.sender != admin) revert("Sender not admin");
+        newAdmin = address(0);
+    }
+
+    function acceptAdminTransfer() external {
+        if (msg.sender != newAdmin) revert("Sender not new admin");
+        admin = newAdmin;
+        newAdmin = address(0);
+    }
+
+    function replaceParticipatingInterface(address _participatingInterface) external {
+        if (msg.sender != admin) revert("Sender not admin");
+        participatingInterface = _participatingInterface;
+    }
+
+    function replaceReceiver(address _receiver) external {
+        if (msg.sender != admin) revert("Sender not admin");
+        if (_receiver == address(0)) revert();
+        receiver = _receiver;
+    }
+
     function deployReceiver(address _lzEndpoint, uint16 _lzProcessingChainId) external {
         if (msg.sender != admin) revert();
         if (receiver != address(0)) revert();
@@ -67,12 +98,12 @@ contract AssetChainManager is IAssetChainManager {
     /// Called by admin to set the `_minimum` deposit amount for an `_asset`
     function setMinimumDeposit(address _asset, uint256 _minimum) external {
         if (msg.sender != admin) revert("Only admin");
-        if(!supportedAsset[_asset]) revert("Unsupported asset");
+        if (!supportedAsset[_asset]) revert("Unsupported asset");
         minimumDeposit[_asset] = _minimum;
     }
 
     function getMinimumDeposit(address _asset) external view returns (uint256) {
-        if(!supportedAsset[_asset]) revert("Unsupported asset");
+        if (!supportedAsset[_asset]) revert("Unsupported asset");
         return minimumDeposit[_asset] == 0 ? defaultMinimumDeposit : minimumDeposit[_asset];
     }
 }

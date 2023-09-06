@@ -5,6 +5,7 @@ pragma solidity 0.8.19;
 import "../BaseDeploy.sol";
 import "../../../src/Manager/ProcessingChain/ProcessingChainManager.sol";
 import "../../../src/CrossChain/LayerZero/ProcessingChainLz.sol";
+import "../../../src/Oracle/Oracle.sol";
 
 contract AddSupportedAssetProcessing is BaseDeploy {
     using stdJson for string;
