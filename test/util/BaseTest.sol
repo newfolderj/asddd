@@ -180,6 +180,16 @@ contract BaseTest is Test {
 
         stablecoin = new ERC20("Stablecoin", "USDT");
         protocolToken = new ERC20("ProtocolToken", "TXA");
+        // Use address of USDT on Arbitrum
+        bytes memory stablecoinCode = address(stablecoin).code;
+        address targetAddr = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
+        vm.etch(targetAddr, stablecoinCode);
+        stablecoin = ERC20(targetAddr);
+        // Use addres of TXA on Arbitrum
+        bytes memory protocolTokenCode = address(protocolToken).code;
+        targetAddr = 0xca84a842116d741190c3782e94fa9b7B7bbcf31b;
+        vm.etch(targetAddr, protocolTokenCode);
+        protocolToken = ERC20(targetAddr);
         token = new ERC20("TestToken", "TST");
 
         manager = new ProcessingChainManager({

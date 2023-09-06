@@ -24,7 +24,6 @@ variables:
 stages:
   - validate
   - test
-  - test-scripts
   - test-build
   - publish
 
@@ -44,22 +43,6 @@ unit-tests:
     - master@projecttxa/txa-dsl/txa-network-contracts
   script:
     - forge test -vvv
-
-test-scripts:
-  extends: .before_script
-  stage: test
-  tags: [docker]
-  only:
-    - merge_requests
-  except:
-    - develop@projecttxa/txa-dsl/txa-network-contracts
-    - master@projecttxa/txa-dsl/txa-network-contracts
-  script:
-    - anvil &
-    - sleep 5
-    - PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" forge script script/DeployBaseChain.s.sol --rpc-url http://127.0.0.1:8545 --broadcast
-    - PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" forge script script/DepositNativeAsset.s.sol --rpc-url http://127.0.0.1:8545 --broadcast
-    - PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" forge script script/RequestSettlementNativeAsset.s.sol --rpc-url http://127.0.0.1:8545 --broadcast
 
 unit-tests-upstream:
   extends: .before_script

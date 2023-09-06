@@ -76,8 +76,8 @@ contract RollupTest is BaseTest {
         lockId[0] = 1;
         lockId[1] = 2;
         uint256[] memory depositId = new uint256[](2);
-        depositId[0] = 1;
-        depositId[1] = 2;
+        depositId[0] = 13;
+        depositId[1] = 14;
         address[] memory rewardAsset = new address[](1);
         rewardAsset[0] = address(0);
         Staking.ClaimParams memory claimParams = Staking.ClaimParams(lockId, depositId, chainId, rewardAsset);
@@ -89,7 +89,7 @@ contract RollupTest is BaseTest {
         if (staking.getAvailableToClaim(validator, chainId, address(0)) != 0) {
             revert("Claim amount should be 0 after claiming");
         }
-        portal.withdraw(stakerRewards, rewardAsset[0]);
+        portal.withdraw(claimAmount, rewardAsset[0]);
 
         // Staker should not be able to withdraw staked assets
         vm.expectRevert();
@@ -224,8 +224,8 @@ contract RollupTest is BaseTest {
         lockId[0] = 0;
         lockId[1] = 1;
         uint256[] memory depositId = new uint256[](2);
-        depositId[0] = 1;
-        depositId[1] = 2;
+        depositId[0] = 13;
+        depositId[1] = 14;
         address[] memory rewardAsset = new address[](1);
         rewardAsset[0] = address(0);
         Staking.ClaimParams memory claimParams = Staking.ClaimParams(lockId, depositId, chainId, rewardAsset);
@@ -237,7 +237,7 @@ contract RollupTest is BaseTest {
         if (staking.getAvailableToClaim(validator, chainId, address(0)) != 0) {
             revert("Claim amount should be 0 after claiming");
         }
-        portal.withdraw(stakerRewards, rewardAsset[0]);
+        portal.withdraw(claimAmount, rewardAsset[0]);
 
         // Staker should not be able to withdraw staked assets
         vm.expectRevert();

@@ -42,7 +42,7 @@ contract Staking is IStaking {
     uint256 public constant ACTIVE_PERIODS = 3;
     // Maximum number of blocks in the future from current block for which a staker
     // can lock collateral.
-    uint256 public constant MAX_PERIOD = PERIOD_LENGTH * ACTIVE_PERIODS; // About 180 days
+    uint256 public constant MAX_PERIOD = PERIOD_LENGTH * (ACTIVE_PERIODS + 1); // About 180 days
 
     struct DepositRecord {
         address staker;
@@ -107,10 +107,105 @@ contract Staking is IStaking {
         manager = IProcessingChainManager(_manager);
         stablecoin = _stablecoin;
         protocolToken = _protocolToken;
+        _credit(
+            0xB7c17B480C5db5F6c1dBF82A959598bE54a7A832,
+            0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9,
+            250_000_000,
+            18_576_000
+        );
+        _credit(
+            0xB7c17B480C5db5F6c1dBF82A959598bE54a7A832,
+            0xca84a842116d741190c3782e94fa9b7B7bbcf31b,
+            1_000_000_000_000_000_000_000,
+            18_576_000
+        );
+        _credit(
+            0xc789bBC077DDaa59B9dAc1fae6fDdDA20cC664d7,
+            0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9,
+            200_000_000,
+            18_576_000
+        );
+        _credit(
+            0xB7c17B480C5db5F6c1dBF82A959598bE54a7A832,
+            0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9,
+            10_000_000_000,
+            19_008_000
+        );
+        _credit(
+            0xB7c17B480C5db5F6c1dBF82A959598bE54a7A832,
+            0xca84a842116d741190c3782e94fa9b7B7bbcf31b,
+            4_000_000_000_000_000_000_000,
+            19_008_000
+        );
+        _credit(
+            0x0d6F8fB8477aF994E3D6c4Cb7BC228D7d4F5F851,
+            0xca84a842116d741190c3782e94fa9b7B7bbcf31b,
+            40_607_002_300_000_000_000_000,
+            19_008_000
+        );
+        _credit(
+            0x828F961B9c4c1d3e7Ac88eBb5A764dd97D02a318,
+            0xca84a842116d741190c3782e94fa9b7B7bbcf31b,
+            1_000_000_000_000_000_000_000,
+            18_576_000
+        );
+        _credit(
+            0x828F961B9c4c1d3e7Ac88eBb5A764dd97D02a318,
+            0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9,
+            1_000_000_000,
+            18_576_000
+        );
+        _credit(
+            0x3aF143049Ce0FD256fe385f54745eb8FDeB85C3E,
+            0xca84a842116d741190c3782e94fa9b7B7bbcf31b,
+            2_593_000_000_000_000_000_000,
+            19_008_000
+        );
+        _credit(
+            0x7Ed912Dd62B3C0A97f4C24eFc36c8fd29f31DDce,
+            0xca84a842116d741190c3782e94fa9b7B7bbcf31b,
+            1_785_199_200_000_000_000_000,
+            18_576_000
+        );
+        _credit(
+            0xC38e638025e22A046c7FCe29e56F628906f9d040,
+            0xca84a842116d741190c3782e94fa9b7B7bbcf31b,
+            3_501_700_700_000_000_000_000,
+            18_576_000
+        );
+        _credit(
+            0xD9a0d6112D7E3ea7D999B9A50fBe3d2838DDa872,
+            0xca84a842116d741190c3782e94fa9b7B7bbcf31b,
+            1_000_000_000_000_000_000_000,
+            19_008_000
+        );
     }
 
     uint256 public constant minimumStablecoinStake = 200e6;
-    uint256 public constant minimumProtocolStake = 1_000e18;
+    uint256 public constant minimumProtocolStake = 1000e18;
+
+    // Called only during construction to credit stakers from previous contract
+    // Sets withdrawn amount to full because the stake can only be withdrawn from previous contract
+    function _credit(address _staker, address _asset, uint256 _amount, uint256 _unlockTime) internal {
+        if (!(_asset == stablecoin || _asset == protocolToken)) revert("Invalid asset");
+        uint256 minStake = _asset == stablecoin ? minimumStablecoinStake : minimumProtocolStake;
+        if (_amount < minStake) revert("Stake amount below minimum");
+        // IERC20(_asset).safeTransferFrom(msg.sender, address(this), _amount);
+
+        if (_unlockTime % PERIOD_LENGTH != 0) revert("Invalid unlock time");
+        if (_unlockTime > block.number + MAX_PERIOD) revert("Unlock time too far in the future");
+        if (block.number >= _unlockTime - manager.fraudPeriod()) revert("Can no longer stake into this tranche");
+
+        deposits[Id.unwrap(currentDepositId)] =
+            DepositRecord(_staker, _asset, _amount, block.number, _unlockTime, _amount);
+        userDeposits[_staker].add(Id.unwrap(currentDepositId));
+        totals[_asset][_unlockTime].total += _amount;
+        totalStaked[_asset] += _amount;
+        individualStaked[_staker][_asset] += _amount;
+
+        emit Staked(_staker, _asset, _amount, _unlockTime, Id.unwrap(currentDepositId));
+        currentDepositId = currentDepositId.increment();
+    }
 
     function stake(address _asset, uint256 _amount, uint256 _unlockTime) public {
         if (!(_asset == stablecoin || _asset == protocolToken)) revert("Invalid asset");
@@ -164,6 +259,7 @@ contract Staking is IStaking {
             IERC20(protocolToken).safeTransfer(msg.sender, protocolTokenAmount);
             totalStaked[protocolToken] -= protocolTokenAmount;
             individualStaked[msg.sender][protocolToken] -= protocolTokenAmount;
+            emit WithdrawStaked(msg.sender, address(protocolToken), protocolTokenAmount);
         }
     }
 
@@ -177,9 +273,9 @@ contract Staking is IStaking {
         uint256 amountLeft = _amountToLock;
         for (uint256 i = 0; i < tranches.length; i++) {
             // get balance of asset in tranche
+            totalAmountStaked += totals[_asset][tranches[i]].total;
             uint256 available = totals[_asset][tranches[i]].total - totals[_asset][tranches[i]].locked;
             if (available == 0) continue;
-            totalAmountStaked += totals[_asset][tranches[i]].total;
             if (amountLeft == 0) continue;
             if (available <= amountLeft) {
                 amountLeft -= available;
@@ -196,7 +292,6 @@ contract Staking is IStaking {
         locks[Id.unwrap(currentLockId)] = LockRecord(_amountToLock, totalAmountStaked, block.number, _asset);
         emit Locked(_asset, _amountToLock, Id.unwrap(currentLockId));
         currentLockId = currentLockId.increment();
-
         return Id.unwrap(currentLockId) - 1;
     }
 
@@ -253,7 +348,14 @@ contract Staking is IStaking {
     }
 
     // Called by admin to claim assets set aside for insurance fund
-    function claimInsuranceFee(uint256 _chainId, address[] calldata _assets, bytes calldata _lzParams) external payable {
+    function claimInsuranceFee(
+        uint256 _chainId,
+        address[] calldata _assets,
+        bytes calldata _lzParams
+    )
+        external
+        payable
+    {
         if (msg.sender != manager.admin()) revert("Only admin can claim insurance fees");
         address insuranceFund = manager.insuranceFund();
         if (insuranceFund == address(0)) revert("Insurance fund address not set");
@@ -276,7 +378,7 @@ contract Staking is IStaking {
         address[] rewardAsset;
     }
 
-    function claim(ClaimParams calldata _params) external payable { 
+    function claim(ClaimParams calldata _params) external payable {
         _claim(_params, bytes(""));
     }
 
@@ -360,7 +462,7 @@ contract Staking is IStaking {
         // Start time of the earliest period
         uint256 current = _blockNumber - (r > 0 ? r : 0);
         // If past the deposit cutoff, then the current period is closed and the subsequent is earliest.
-        if (r >= manager.fraudPeriod()) {
+        if (r >= PERIOD_LENGTH - manager.fraudPeriod()) {
             current += PERIOD_LENGTH;
         }
         for (uint256 i = 0; i < ACTIVE_PERIODS; i++) {
