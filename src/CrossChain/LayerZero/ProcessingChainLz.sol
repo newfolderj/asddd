@@ -5,6 +5,7 @@ pragma solidity 0.8.19;
 import "../CrossChainFunctions.sol";
 import "./IProcessingChainLz.sol";
 import "../../Manager/ProcessingChain/IProcessingChainManager.sol";
+import "../../Manager/AssetChain/IAssetChainManager.sol";
 import "@LayerZero/lzApp/NonblockingLzApp.sol";
 
 /**
@@ -12,15 +13,24 @@ import "@LayerZero/lzApp/NonblockingLzApp.sol";
  */
 contract ProcessingChainLz is NonblockingLzApp, IProcessingChainLz, CrossChainFunctions {
     IProcessingChainManager public manager;
+    IAssetChainManager public assetManager;
     address zroPaymentAddress;
 
     // Maps EVM chain ID to LayerZero chain ID
     mapping(uint256 => uint16) chainIds;
     mapping(uint256 => address) portals;
 
-    constructor(address _lzEndpoint, address _owner, address _manager) NonblockingLzApp(_lzEndpoint) {
+    constructor(
+        address _lzEndpoint,
+        address _owner,
+        address _manager,
+        address _assetManager
+    )
+        NonblockingLzApp(_lzEndpoint)
+    {
         _transferOwnership(_owner);
         manager = IProcessingChainManager(_manager);
+        assetManager = IAssetChainManager(_assetManager);
     }
 
     function setChainIds(uint256[] calldata evmChainId, uint16[] calldata lzChainId) external onlyOwner {
@@ -30,7 +40,7 @@ contract ProcessingChainLz is NonblockingLzApp, IProcessingChainLz, CrossChainFu
         }
     }
 
-    function setPaymentZeroAddress(address _zroPaymentAddress) external onlyOwner { 
+    function setPaymentZeroAddress(address _zroPaymentAddress) external onlyOwner {
         zroPaymentAddress = _zroPaymentAddress;
     }
 
@@ -48,6 +58,16 @@ contract ProcessingChainLz is NonblockingLzApp, IProcessingChainLz, CrossChainFu
         if (!(msg.sender == manager.rollup() || msg.sender == manager.staking())) {
             revert("Sender must be Rollup or Staking contract");
         }
+        // If processing settlement for same chain as processing chain, call Portal directly
+        // We expect this contract to be authorized in AssetChainManager
+        if (_chainId == block.chainid) {
+            IPortal(assetManager.portal()).writeObligations(_obligations);
+            if (msg.value > 0) {
+                (bool success,) = _refundAddress.call{ value: msg.value }("");
+                if (!success) revert("failed to refund");
+            }
+            return;
+        }
         uint16 lzChainId = chainIds[_chainId];
         if (lzChainId == 0) revert("LzChainId not set");
         bytes memory payload = abi.encode(CrossChainMessage(WRITE_OBLIGATIONS, abi.encode(_obligations)));
@@ -64,6 +84,16 @@ contract ProcessingChainLz is NonblockingLzApp, IProcessingChainLz, CrossChainFu
         payable
     {
         if (msg.sender != manager.rollup()) revert();
+        // If rejecting deposits for same chain as processing chain, call Portal directly
+        // We expect this contract to be authorized in AssetChainManager
+        if (_chainId == block.chainid) {
+            IPortal(assetManager.portal()).rejectDeposits(_depositHashes);
+            if (msg.value > 0) {
+                (bool success,) = _refundAddress.call{ value: msg.value }("");
+                if (!success) revert("failed to refund");
+            }
+            return;
+        }
         uint16 lzChainId = chainIds[_chainId];
         if (lzChainId == 0) revert("LzChainId not set");
         bytes memory payload = abi.encode(CrossChainMessage(REJECT_DEPOSITS, abi.encode(_depositHashes)));

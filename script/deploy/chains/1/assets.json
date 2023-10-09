@@ -10,5 +10,11 @@
         "precision": 6,
         "symbol": "USDT",
         "tokenAddress": "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+    },
+    {
+        "initialPrice": "150000000000000000",
+        "precision": 18,
+        "symbol": "TXA",
+        "tokenAddress": "0x4463e6A3dEd0dBE3F6e15bC8420dFc55e5FeA830"
     }
 ]

@@ -53,7 +53,6 @@ contract AssetChainManager is IAssetChainManager {
 
     function replaceReceiver(address _receiver) external {
         if (msg.sender != admin) revert("Sender not admin");
-        if (_receiver == address(0)) revert();
         receiver = _receiver;
     }
 

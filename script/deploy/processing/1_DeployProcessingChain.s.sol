@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 
 import "../BaseDeploy.sol";
 import "../../../src/Manager/ProcessingChain/ProcessingChainManager.sol";
+import "../../../src/Manager/AssetChain/AssetChainManager.sol";
 import "../../../src/Staking/Staking.sol";
 import "../../../src/Rollup/Rollup.sol";
 import "../../../src/Oracle/Oracle.sol";
@@ -32,6 +33,7 @@ contract DeployProcessingChain is BaseDeploy {
             _stablecoin: stablecoinProcessingChain,
             _protocolToken: protocolTokenProcessingChain
         });
+        AssetChainManager assetChainManager = new AssetChainManager(participatingInterface, admin);
         // Deploy rollup
         Rollup rollup = new Rollup(participatingInterface, address(manager));
         manager.replaceRollup(address(rollup));
@@ -39,9 +41,17 @@ contract DeployProcessingChain is BaseDeploy {
         ProcessingChainLz relayer = new ProcessingChainLz(
             vm.envAddress("LZ_ENDPOINT_PROCESSING"),
             admin,
-            address(manager)
+            address(manager),
+            address(assetChainManager)
             );
         manager.replaceRelayer(address(relayer));
+        manager.addSupportedChain(block.chainid);
+        assetChainManager.replaceReceiver(address(relayer));
+        // Add ProtocolToken as supported asset
+        manager.addSupportedAsset(block.chainid, protocolTokenProcessingChain, 18);
+        IERC20 protocolToken = IERC20(protocolTokenProcessingChain);
+        protocolToken.approve(address(assetChainManager), 1);
+        assetChainManager.addSupportedAsset(protocolTokenProcessingChain, vm.addr(vm.envUint("PRIVATE_KEY")));
 
         // Deploy Staking
         Staking staking =
@@ -64,6 +74,12 @@ contract DeployProcessingChain is BaseDeploy {
         vm.serializeAddress(obj1, "processingChainLz", manager.relayer());
         vm.serializeAddress(obj1, "oracle", manager.oracle());
         vm.serializeAddress(obj1, "staking", manager.staking());
+        vm.serializeAddress(obj1, "assetManager", address(assetChainManager));
+        vm.serializeAddress(obj1, "portal", assetChainManager.portal());
         vm.writeJson(vm.serializeAddress(obj1, "manager", address(manager)), processingChainContractsPath);
+
+        // Write asset chain contracts to json file
+        vm.serializeAddress(obj1, "assetChainLz", assetChainManager.receiver());
+        vm.writeJson(vm.serializeAddress(obj1, "manager", address(assetChainManager)), assetChainContractsPath);
     }
 }

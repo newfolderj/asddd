@@ -199,6 +199,7 @@ contract BaseTest is Test {
             _stablecoin: address(stablecoin),
             _protocolToken: address(protocolToken)
         });
+        assetChainManager = new AssetChainManager(participatingInterface, admin);
         rollup = new Rollup(participatingInterface, address(manager));
         vm.startPrank(admin);
         manager.replaceRollup(address(rollup));
@@ -210,7 +211,8 @@ contract BaseTest is Test {
         ProcessingChainLz relayer = new ProcessingChainLz(
             address(lzEndpointMock),
             admin,
-            address(manager)
+            address(manager),
+            address(assetChainManager)
             );
         manager.replaceRelayer(address(relayer));
         processingChainLz = ProcessingChainLz(manager.relayer());
@@ -219,7 +221,6 @@ contract BaseTest is Test {
         uint16[] memory lzChainId = new uint16[](1);
         lzChainId[0] = uint16(chainId);
         processingChainLz.setChainIds(evmChainId, lzChainId);
-        assetChainManager = new AssetChainManager(participatingInterface, admin);
         assetChainManager.deployReceiver(address(lzEndpointMockDest), uint16(block.chainid));
         portal = Portal(assetChainManager.portal());
         assetChainLz = AssetChainLz(assetChainManager.receiver());

@@ -57,16 +57,18 @@ contract DeployBaseChain is Script {
 
         LZEndpointMock lzEndpointMock = new LZEndpointMock(uint16(block.chainid));
         LZEndpointMock lzEndpointMockDest = new LZEndpointMock(uint16(block.chainid));
-        ProcessingChainLz processingChainLz = new ProcessingChainLz(
-            address(lzEndpointMock),
-            admin,
-            address(manager)
-            );
-        manager.replaceRelayer(address(processingChainLz));
         assetChainManager = new AssetChainManager({
             _participatingInterface: participatingInterface, 
             _admin: admin
         });
+        ProcessingChainLz processingChainLz = new ProcessingChainLz(
+            address(lzEndpointMock),
+            admin,
+            address(manager),
+            address(assetChainManager)
+            );
+        manager.replaceRelayer(address(processingChainLz));
+        assetChainManager.replaceReceiver(address(processingChainLz));
         assetChainManager.addSupportedAsset(address(0), address(0));
         stablecoin.approve(address(assetChainManager), 1);
         assetChainManager.addSupportedAsset(address(stablecoin), validator);

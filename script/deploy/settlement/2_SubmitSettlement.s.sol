@@ -43,17 +43,17 @@ contract SubmitSettlement is BaseDeploy {
                     StateUpdateLibrary.Settlement(
                         StateUpdateLibrary.SettlementRequest(
                             vm.envAddress("VALIDATOR_ADDR"),
-                            address(0),
+                            vm.envAddress("PROTOCOL_TOKEN_ADDR"),
                             manager.participatingInterface(),
                             ID_ONE,
                             Id.wrap(vm.envUint("ASSET_CHAINID"))
                         ),
                         ID_ONE,
                         StateUpdateLibrary.Balance(
-                            vm.envAddress("VALIDATOR_ADDR"), address(0), Id.wrap(vm.envUint("ASSET_CHAINID")), 0.001 ether
+                            vm.envAddress("VALIDATOR_ADDR"), vm.envAddress("PROTOCOL_TOKEN_ADDR"), Id.wrap(vm.envUint("ASSET_CHAINID")), 0.001 ether
                         ),
                         StateUpdateLibrary.Balance(
-                            vm.envAddress("VALIDATOR_ADDR"), address(0), Id.wrap(vm.envUint("ASSET_CHAINID")), 0
+                            vm.envAddress("VALIDATOR_ADDR"), vm.envAddress("PROTOCOL_TOKEN_ADDR"), Id.wrap(vm.envUint("ASSET_CHAINID")), 0
                         )
                     )
                 )
