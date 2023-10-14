@@ -3,14 +3,12 @@
 pragma solidity ^0.8.19;
 
 interface IPortal {
-    function writeObligation(
-        bytes32 deposit,
-        address recipient,
-        uint256 amount
-    ) external;
-
-    function getAvailableBalance(
-        address trader,
-        address token
-    ) external view returns (uint256);
+    struct Obligation {
+        address recipient;
+        address asset;
+        uint256 amount;
+    }
+    function writeObligations(Obligation[] calldata obligations) external;
+    function rejectDeposits(bytes32[] calldata _depositHashes) external;
+    function getAvailableBalance(address trader, address token) external view returns (uint256);
 }
